@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Stethoscope, Settings } from 'lucide-react';
+import { LayoutDashboard, Stethoscope, ClipboardList } from 'lucide-react';
 
 const AdminLayout = () => {
     const location = useLocation();
@@ -8,7 +8,7 @@ const AdminLayout = () => {
     const menuItems = [
         { icon: LayoutDashboard, label: 'Pacientes', path: '/admin/dashboard' },
         { icon: Stethoscope, label: 'Médicos', path: '/admin/doctors' },
-        { icon: Settings, label: 'Ajustes', path: '/admin/quiz-settings' },
+        { icon: ClipboardList, label: 'Formulários', path: '/admin/quiz-settings' },
     ];
 
     return (

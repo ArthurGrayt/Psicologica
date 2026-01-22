@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, Calendar, Pencil, Unlock, ArrowUpDown } from 'lucide-react';
 
-const DashboardTable = () => {
-    const [patients, setPatients] = useState([
-        { id: 1, name: 'Ana Silva', company: 'Tech Corp', role: 'Dev Senior', sector: 'TI', date: '22/01/2026', status: 'Concluído' },
-        { id: 2, name: 'Carlos Souza', company: 'Inova Rh', role: 'Recrutador', sector: 'RH', date: '21/01/2026', status: 'Em Análise' },
-        { id: 3, name: 'Beatriz Costa', company: 'Tech Corp', role: 'Designer', sector: 'Marketing', date: '20/01/2026', status: 'Pendente' },
-        { id: 4, name: 'Daniel Oliveira', company: 'Construtora Exemplo', role: 'Engenheiro', sector: 'Obras', date: '19/01/2026', status: 'Concluído' },
-        { id: 5, name: 'Eduarda Lima', company: 'Inova Rh', role: 'Analista', sector: 'Financeiro', date: '18/01/2026', status: 'Agendado' },
-        { id: 6, name: 'Fernanda Alves', company: 'Tech Corp', role: 'PO', sector: 'Produto', date: '17/01/2026', status: 'Concluído' },
-        { id: 7, name: 'Gabriel Santos', company: 'Construtora Exemplo', role: 'Mestre de Obras', sector: 'Obras', date: '16/01/2026', status: 'Pendente' },
-    ]);
-
+const DashboardTable = ({ patients, onEdit, onSort }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
 
     const requestSort = (key) => {
@@ -20,17 +10,7 @@ const DashboardTable = () => {
             direction = 'descending';
         }
         setSortConfig({ key, direction });
-
-        const sortedPatients = [...patients].sort((a, b) => {
-            if (a[key] < b[key]) {
-                return direction === 'ascending' ? -1 : 1;
-            }
-            if (a[key] > b[key]) {
-                return direction === 'ascending' ? 1 : -1;
-            }
-            return 0;
-        });
-        setPatients(sortedPatients);
+        onSort(key, direction);
     };
 
     const getSortIcon = (columnName) => {
@@ -95,16 +75,20 @@ const DashboardTable = () => {
                                 </td>
                                 <td className="p-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${patient.status === 'Concluído' ? 'bg-green-100 text-green-700' :
-                                        patient.status === 'Pendente' ? 'bg-yellow-100 text-yellow-700' :
-                                            patient.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
-                                                'bg-slate-100 text-slate-600'
+                                            patient.status === 'Pendente' ? 'bg-yellow-100 text-yellow-700' :
+                                                patient.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-slate-100 text-slate-600'
                                         }`}>
                                         {patient.status}
                                     </span>
                                 </td>
                                 <td className="p-4 text-center">
                                     <div className="flex items-center justify-center gap-2">
-                                        <button className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-full transition-colors" title="Editar">
+                                        <button
+                                            className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-full transition-colors"
+                                            title="Editar"
+                                            onClick={() => onEdit(patient)}
+                                        >
                                             <Pencil size={18} />
                                         </button>
                                         <button className="text-slate-400 hover:text-purple-600 hover:bg-purple-50 p-2 rounded-full transition-colors" title="Gerar Laudo">
