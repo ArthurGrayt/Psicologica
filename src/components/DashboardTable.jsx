@@ -1,6 +1,7 @@
-import { FileText, Calendar, Pencil, Unlock, ArrowUpDown, Trash2, Link as LinkIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Calendar, Pencil, Unlock, Lock, ArrowUpDown, Trash2, Link as LinkIcon } from 'lucide-react';
 
-const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm }) => {
+const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, onToggleLock }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
 
     const requestSort = (key) => {
@@ -73,12 +74,13 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm }) 
                                     {patient.date}
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${patient.status === 'Concluído' ? 'bg-green-100 text-green-700' :
-                                        patient.status === 'Pendente' ? 'bg-yellow-100 text-yellow-700' :
-                                            patient.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
-                                                'bg-slate-100 text-slate-600'
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-100 text-green-700' :
+                                        patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-yellow-100 text-yellow-700' // Default / Pending
                                         }`}>
-                                        {patient.status}
+                                        {patient.status === 'pending' ? 'Pendente' :
+                                            patient.status === 'in_progress' ? 'Em Progresso' :
+                                                patient.status === 'completed' ? 'Concluído' : patient.status}
                                     </span>
                                 </td>
                                 <td className="p-4 text-center">
@@ -105,9 +107,32 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm }) 
                                         <button className="text-slate-400 hover:text-purple-600 hover:bg-purple-50 p-2 rounded-full transition-colors" title="Gerar Laudo">
                                             <FileText size={18} />
                                         </button>
-                                        <button className="text-slate-400 hover:text-green-600 hover:bg-green-50 p-2 rounded-full transition-colors" title="Liberar Acesso">
-                                            <Unlock size={18} />
-                                        </button>
+
+                                        {/* LOCK / UNLOCK BUTTON */}
+                                        {patient.assessmentId ? (
+                                            <button
+                                                className={`p-2 rounded-full transition-colors ${patient.locked
+                                                    ? 'text-red-500 hover:bg-red-50 hover:text-red-600'
+                                                    : 'text-green-500 hover:bg-green-50 hover:text-green-600'
+                                                    }`}
+                                                title={patient.locked ? "Destravar Formulário" : "Travar Formulário"}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onToggleLock(patient.id, patient.assessmentId, patient.locked);
+                                                }}
+                                            >
+                                                {patient.locked ? <Lock size={18} /> : <Unlock size={18} />}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="text-slate-300 cursor-not-allowed p-2 rounded-full"
+                                                title="Nenhuma avaliação criada"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <Unlock size={18} />
+                                            </button>
+                                        )}
+
                                         <button
                                             className="text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 p-2 rounded-full transition-colors"
                                             title="Gerar Link Formulário"

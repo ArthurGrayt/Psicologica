@@ -85,7 +85,13 @@ const Dashboard = () => {
                     sector_id,
                     created_at,
                     cargos:role_id (nome),
-                    setor:sector_id (nome)
+                    setor:sector_id (nome),
+                    assessments (
+                        id,
+                        status,
+                        locked,
+                        created_at
+                    )
                 `)
                 .order('created_at', { ascending: false });
 
@@ -106,6 +112,13 @@ const Dashboard = () => {
                 const setorNome = p.setor ? (p.setor.nome_setor || p.setor.nome || 'Setor') : 'Sem Setor';
                 const date = new Date(p.created_at).toLocaleDateString('pt-BR');
 
+                // Get latest assessment
+                let latestAssessment = null;
+                if (p.assessments && p.assessments.length > 0) {
+                    // Sort by created_at desc just in case DB didn't return sorted
+                    latestAssessment = p.assessments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                }
+
                 return {
                     id: p.id,
                     name: p.name,
@@ -113,7 +126,10 @@ const Dashboard = () => {
                     role: cargoNome,
                     sector: setorNome,
                     date: date,
-                    status: 'Pendente'
+                    status: latestAssessment ? latestAssessment.status : 'Pendente',
+                    // New fields for Lock
+                    assessmentId: latestAssessment ? latestAssessment.id : null,
+                    locked: latestAssessment ? latestAssessment.locked : false
                 };
             });
 
@@ -170,6 +186,37 @@ const Dashboard = () => {
         }
     };
 
+    // Handler: Toggle Lock
+    const handleToggleLock = async (patientId, assessmentId, currentLockState) => {
+        if (!assessmentId) {
+            alert('Este paciente não possui uma avaliação criada para travar/liberar.');
+            return;
+        }
+
+        try {
+            const newLockState = !currentLockState;
+
+            const { error } = await supabase
+                .from('assessments')
+                .update({ locked: newLockState })
+                .eq('id', assessmentId);
+
+            if (error) throw error;
+
+            // Update Local State Optimistically
+            setPatients(prev => prev.map(p => {
+                if (p.id === patientId) {
+                    return { ...p, locked: newLockState };
+                }
+                return p;
+            }));
+
+        } catch (err) {
+            console.error('Error toggling lock:', err);
+            alert('Erro ao alterar status de bloqueio: ' + err.message);
+        }
+    };
+
     // Handler: Generate Assessment Link
     const handleGenerateAssessment = async (patientId) => {
         try {
@@ -179,7 +226,8 @@ const Dashboard = () => {
                 .insert({
                     patient_id: patientId,
                     status: 'pending',
-                    locked: false
+                    locked: false,
+                    created_at: new Date().toISOString()
                 })
                 .select()
                 .single();
@@ -190,6 +238,9 @@ const Dashboard = () => {
             const link = `${window.location.origin}/quiz/${data.id}`;
             setGeneratedLink(link);
             setIsLinkModalOpen(true);
+
+            // Refresh list to pick up the new assessment
+            fetchPatients();
 
         } catch (err) {
             console.error('Error generating assessment:', err);
@@ -746,6 +797,8 @@ const Dashboard = () => {
                                 onEdit={setSelectedPatient}
                                 onSort={handleSort}
                                 onDelete={handleDeletePatient}
+                                onGenerateForm={handleGenerateAssessment}
+                                onToggleLock={handleToggleLock}
                             />
                         )
                     )}
@@ -772,6 +825,60 @@ const Dashboard = () => {
                 </div>
 
             </div>
+
+            {/* Modal de Link Gerado */}
+            {isLinkModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
+                    <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <LinkIcon size={20} className="text-[#35b6cf]" />
+                                Link Gerado
+                            </h3>
+                            <button onClick={() => setIsLinkModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <p className="text-sm text-slate-500 mb-4">
+                            Envie este link para o paciente preencher a avaliação de onde estiver.
+                        </p>
+
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3 mb-6">
+                            <span className="text-sm text-slate-600 truncate font-mono select-all">
+                                {generatedLink}
+                            </span>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(generatedLink);
+                                    alert('Link copiado!');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 p-1.5 hover:bg-blue-50 rounded transition-colors"
+                                title="Copiar"
+                            >
+                                <Copy size={16} />
+                            </button>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setIsLinkModalOpen(false)}
+                                className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+                            >
+                                Fechar
+                            </button>
+                            <a
+                                href={generatedLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 py-2.5 bg-[#35b6cf] text-white rounded-xl font-medium hover:bg-[#2ca1b7] shadow-lg shadow-cyan-500/20 transition-colors flex items-center justify-center gap-2"
+                            >
+                                Abrir <ExternalLink size={16} />
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };
