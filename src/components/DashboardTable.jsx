@@ -1,0 +1,127 @@
+import React, { useState } from 'react';
+import { FileText, Calendar, Pencil, Unlock, ArrowUpDown } from 'lucide-react';
+
+const DashboardTable = () => {
+    const [patients, setPatients] = useState([
+        { id: 1, name: 'Ana Silva', company: 'Tech Corp', role: 'Dev Senior', sector: 'TI', date: '22/01/2026', status: 'Concluído' },
+        { id: 2, name: 'Carlos Souza', company: 'Inova Rh', role: 'Recrutador', sector: 'RH', date: '21/01/2026', status: 'Em Análise' },
+        { id: 3, name: 'Beatriz Costa', company: 'Tech Corp', role: 'Designer', sector: 'Marketing', date: '20/01/2026', status: 'Pendente' },
+        { id: 4, name: 'Daniel Oliveira', company: 'Construtora Exemplo', role: 'Engenheiro', sector: 'Obras', date: '19/01/2026', status: 'Concluído' },
+        { id: 5, name: 'Eduarda Lima', company: 'Inova Rh', role: 'Analista', sector: 'Financeiro', date: '18/01/2026', status: 'Agendado' },
+        { id: 6, name: 'Fernanda Alves', company: 'Tech Corp', role: 'PO', sector: 'Produto', date: '17/01/2026', status: 'Concluído' },
+        { id: 7, name: 'Gabriel Santos', company: 'Construtora Exemplo', role: 'Mestre de Obras', sector: 'Obras', date: '16/01/2026', status: 'Pendente' },
+    ]);
+
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+
+        const sortedPatients = [...patients].sort((a, b) => {
+            if (a[key] < b[key]) {
+                return direction === 'ascending' ? -1 : 1;
+            }
+            if (a[key] > b[key]) {
+                return direction === 'ascending' ? 1 : -1;
+            }
+            return 0;
+        });
+        setPatients(sortedPatients);
+    };
+
+    const getSortIcon = (columnName) => {
+        return <ArrowUpDown size={14} className={`ml-2 inline-block transition-opacity ${sortConfig.key === columnName ? 'opacity-100 text-blue-600' : 'opacity-30'}`} />;
+    };
+
+    return (
+        <div className="w-full h-full flex flex-col">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b border-slate-100 text-slate-500 text-sm uppercase tracking-wider">
+                            <th
+                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none"
+                                onClick={() => requestSort('name')}
+                            >
+                                Paciente {getSortIcon('name')}
+                            </th>
+                            <th
+                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none"
+                                onClick={() => requestSort('company')}
+                            >
+                                Empresa {getSortIcon('company')}
+                            </th>
+                            <th
+                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none"
+                                onClick={() => requestSort('role')}
+                            >
+                                Cargo {getSortIcon('role')}
+                            </th>
+                            <th
+                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none"
+                                onClick={() => requestSort('sector')}
+                            >
+                                Setor {getSortIcon('sector')}
+                            </th>
+                            <th
+                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none"
+                                onClick={() => requestSort('date')}
+                            >
+                                Data {getSortIcon('date')}
+                            </th>
+                            <th
+                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none"
+                                onClick={() => requestSort('status')}
+                            >
+                                Status {getSortIcon('status')}
+                            </th>
+                            <th className="p-4 font-semibold text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-slate-700">
+                        {patients.map((patient) => (
+                            <tr key={patient.id} className="hover:bg-slate-50 transition-colors group">
+                                <td className="p-4 font-medium text-slate-900">{patient.name}</td>
+                                <td className="p-4 text-slate-600">{patient.company}</td>
+                                <td className="p-4 text-slate-600">{patient.role}</td>
+                                <td className="p-4 text-slate-600">{patient.sector}</td>
+                                <td className="p-4 flex items-center gap-2 text-slate-500">
+                                    <Calendar size={16} />
+                                    {patient.date}
+                                </td>
+                                <td className="p-4">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${patient.status === 'Concluído' ? 'bg-green-100 text-green-700' :
+                                        patient.status === 'Pendente' ? 'bg-yellow-100 text-yellow-700' :
+                                            patient.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-slate-100 text-slate-600'
+                                        }`}>
+                                        {patient.status}
+                                    </span>
+                                </td>
+                                <td className="p-4 text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <button className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-full transition-colors" title="Editar">
+                                            <Pencil size={18} />
+                                        </button>
+                                        <button className="text-slate-400 hover:text-purple-600 hover:bg-purple-50 p-2 rounded-full transition-colors" title="Gerar Laudo">
+                                            <FileText size={18} />
+                                        </button>
+                                        <button className="text-slate-400 hover:text-green-600 hover:bg-green-50 p-2 rounded-full transition-colors" title="Liberar Acesso">
+                                            <Unlock size={18} />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+export default DashboardTable;
