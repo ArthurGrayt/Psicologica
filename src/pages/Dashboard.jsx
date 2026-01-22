@@ -76,7 +76,8 @@ const Dashboard = () => {
         setFetchError(null);
         console.log('--- INICIANDO FETCH PATIENTS ---');
         try {
-            const { data, error } = await supabase
+            // 1. Fetch Patients
+            const { data: patientsData, error: patientsError } = await supabase
                 .from('patients')
                 .select(`
                     id, 
@@ -85,38 +86,48 @@ const Dashboard = () => {
                     sector_id,
                     created_at,
                     cargos:role_id (nome),
-                    setor:sector_id (nome),
-                    assessments (
-                        id,
-                        status,
-                        locked,
-                        created_at
-                    )
+                    setor:sector_id (nome)
                 `)
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error('Erro na query Supabase:', error);
-                throw error;
+            if (patientsError) {
+                console.error('Erro na query Supabase (patients):', patientsError);
+                throw patientsError;
             }
 
-            console.log('Pacientes carregados (RAW):', data);
+            console.log('Pacientes carregados (RAW):', patientsData);
 
-            if (!data || data.length === 0) {
-                console.warn('Query retornou array vazio. Tabela patients deve estar vazia.');
+            if (!patientsData || patientsData.length === 0) {
+                console.warn('Query retornou array vazio.');
+                setPatients([]);
+                return;
+            }
+
+            // 2. Fetch Assessments separately to avoid Join error (PGRST200)
+            const patientIds = patientsData.map(p => p.id);
+            const { data: assessmentsData, error: assessmentsError } = await supabase
+                .from('assessments')
+                .select('id, patient_id, status, locked, created_at')
+                .in('patient_id', patientIds);
+
+            if (assessmentsError) {
+                console.error('Erro na query Supabase (assessments):', assessmentsError);
+                // We can continue without assessments if it's not a critical failure
             }
 
             // Mapeamento para tabela
-            const mappedPatients = data.map(p => {
+            const mappedPatients = patientsData.map(p => {
                 const cargoNome = p.cargos ? (p.cargos.nome_cargo || p.cargos.nome || 'Cargo') : 'Sem Cargo';
                 const setorNome = p.setor ? (p.setor.nome_setor || p.setor.nome || 'Setor') : 'Sem Setor';
                 const date = new Date(p.created_at).toLocaleDateString('pt-BR');
 
+                // Find assessments for this patient
+                const patientAssessments = (assessmentsData || []).filter(a => a.patient_id === p.id);
+
                 // Get latest assessment
                 let latestAssessment = null;
-                if (p.assessments && p.assessments.length > 0) {
-                    // Sort by created_at desc just in case DB didn't return sorted
-                    latestAssessment = p.assessments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                if (patientAssessments.length > 0) {
+                    latestAssessment = patientAssessments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
                 }
 
                 return {
@@ -127,7 +138,6 @@ const Dashboard = () => {
                     sector: setorNome,
                     date: date,
                     status: latestAssessment ? latestAssessment.status : 'Pendente',
-                    // New fields for Lock
                     assessmentId: latestAssessment ? latestAssessment.id : null,
                     locked: latestAssessment ? latestAssessment.locked : false
                 };

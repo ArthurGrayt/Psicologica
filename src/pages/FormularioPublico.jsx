@@ -14,22 +14,22 @@ const LoadingScreen = () => (
 );
 
 const SuccessScreen = () => (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-        <div className="bg-white p-8 rounded-xl shadow border-t-[8px] border-t-[#35b6cf] max-w-[640px] w-full text-center animate-in zoom-in-95 duration-500">
+    <div className="min-h-screen bg-gradient-to-b from-white to-[#ccedf3] flex items-center justify-center p-6 font-sans">
+        <div className="bg-white p-8 rounded-xl shadow border-t-[10px] border-t-[#35b6cf] max-w-[640px] w-full text-center animate-in zoom-in-95 duration-500">
             <h1 className="text-2xl font-normal text-slate-800 mb-6">Levantamento Preliminar Psicossocial</h1>
-            <div className="mb-6 text-left p-4 bg-slate-50 rounded text-slate-600 text-sm">
+            <div className="mb-6 text-left p-4 bg-slate-50 rounded text-slate-800 text-[14px]">
                 Sua resposta foi registrada.
             </div>
-            <button onClick={() => window.close()} className="text-slate-500 hover:text-slate-700 text-sm font-medium hover:underline">
-                Fechar página
+            <button onClick={() => window.close()} className="text-[#35b6cf] hover:text-[#2ca9c0] text-sm font-medium hover:underline">
+                Enviar outra resposta
             </button>
         </div>
     </div>
 );
 
 const BlockedScreen = ({ message }) => (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-        <div className="bg-white p-8 rounded-xl shadow border-t-[8px] border-red-400 max-w-[640px] w-full text-center">
+    <div className="min-h-screen bg-gradient-to-b from-white to-[#ccedf3] flex items-center justify-center p-6 font-sans">
+        <div className="bg-white p-8 rounded-xl shadow border-t-[10px] border-red-400 max-w-[640px] w-full text-center">
             <div className="mx-auto w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
                 <Lock size={32} />
             </div>
@@ -45,9 +45,9 @@ const QuestionCard = ({ question, answer, onAnswer, error }) => {
     const renderInput = () => {
         if (question.type === 'yes_no') {
             return (
-                <div className="flex flex-col gap-2 mt-4">
+                <div className="flex flex-col gap-3 mt-4">
                     {['Sim', 'Não'].map((opt) => (
-                        <label key={opt} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-slate-50 rounded transition-colors group">
+                        <label key={opt} className="flex items-center gap-3 cursor-pointer group">
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${answer === opt ? 'border-[#35b6cf]' : 'border-slate-300 group-hover:border-slate-400'}`}>
                                 {answer === opt && <div className="w-2.5 h-2.5 rounded-full bg-[#35b6cf]" />}
                             </div>
@@ -59,7 +59,7 @@ const QuestionCard = ({ question, answer, onAnswer, error }) => {
                                 onChange={() => onAnswer(opt)}
                                 className="hidden"
                             />
-                            <span className="text-slate-700">{opt}</span>
+                            <span className="text-[14px] text-[#202124]">{opt}</span>
                         </label>
                     ))}
                 </div>
@@ -67,38 +67,44 @@ const QuestionCard = ({ question, answer, onAnswer, error }) => {
         }
 
         if (question.type === 'scale' || question.type === 'select') {
-            const options = question.question_options || [];
+            const hasOptions = question.question_options && question.question_options.length > 0;
+
             return (
-                <div className="mt-8 relative max-w-[300px]">
-                    <div className="relative">
-                        <select
-                            value={answer || ''}
-                            onChange={(e) => onAnswer(e.target.value)}
-                            className="w-full appearance-none bg-white border border-slate-300 text-slate-600 py-3 px-4 pr-8 rounded focus:outline-none focus:border-transparent focus:ring-2 focus:ring-transparent focus:border-b-2 focus:border-b-[#35b6cf] transition-all hover:bg-slate-50 cursor-pointer"
-                            style={{ borderBottomWidth: '1px' }} // Mocking the image's simple box
-                        >
-                            <option value="">Escolher opção...</option>
-                            {options.map(opt => (
-                                <option key={opt.id} value={opt.label || opt.value}>{opt.label || opt.value}</option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                            <ChevronDown size={14} />
+                <div className="mt-6 relative max-w-[300px]">
+                    {hasOptions ? (
+                        <div className="relative">
+                            <select
+                                value={answer || ''}
+                                onChange={(e) => onAnswer(e.target.value)}
+                                className="w-full appearance-none bg-white border border-slate-200 text-[#202124] text-[14px] py-3 px-4 pr-10 rounded-md focus:outline-none focus:border-[#35b6cf] focus:ring-1 focus:ring-[#35b6cf] transition-all hover:bg-slate-50 cursor-pointer shadow-sm"
+                            >
+                                <option value="">Escolher opção...</option>
+                                {question.question_options.map(opt => (
+                                    <option key={opt.id} value={opt.label || opt.text || opt.value}>
+                                        {opt.label || opt.text || opt.value}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                                <ChevronDown size={14} />
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <p className="text-red-500 text-xs italic">Erro: Nenhuma opção carregada para esta pergunta.</p>
+                    )}
                 </div>
             );
         }
 
         if (question.type === 'text') {
             return (
-                <div className="mt-4">
+                <div className="mt-6">
                     <input
                         type="text"
                         placeholder="Sua resposta"
                         value={answer || ''}
                         onChange={(e) => onAnswer(e.target.value)}
-                        className="w-full border-b border-slate-200 py-2 text-slate-700 focus:outline-none focus:border-[#35b6cf] focus:bg-slate-50 transition-colors"
+                        className="w-full border-b border-slate-300 py-2 text-[#202124] text-[14px] focus:outline-none focus:border-[#35b6cf] transition-all"
                     />
                 </div>
             );
@@ -108,12 +114,16 @@ const QuestionCard = ({ question, answer, onAnswer, error }) => {
     };
 
     return (
-        <div id={`question-${question.id}`} className={`bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-4 transition-all duration-300 ${error ? 'border-red-500 ring-1 ring-red-100' : ''}`}>
-            <h3 className="text-base text-slate-800 font-medium">
-                {question.text} {question.required !== false && <span className="text-red-500">*</span>}
+        <div id={`question-${question.id}`} className={`bg-white rounded-xl shadow-sm border border-slate-200 px-6 py-7 mb-3 transition-all duration-300 ${error ? 'border-red-500 border-l-8' : ''}`}>
+            <h3 className="text-[15px] text-[#202124] font-normal leading-relaxed">
+                {question.text} {question.required !== false && <span className="text-red-500 ml-1">*</span>}
             </h3>
             {renderInput()}
-            {error && <p className="text-red-500 text-xs mt-2 flex items-center gap-1"><AlignLeft size={12} /> Esta pergunta é obrigatória</p>}
+            {error && (
+                <p className="text-[#d93025] text-[12px] mt-4 flex items-center gap-1">
+                    <AlignLeft size={14} /> Esta pergunta é obrigatória
+                </p>
+            )}
         </div>
     );
 };
@@ -129,9 +139,9 @@ const FormularioPublico = () => {
 
     // Data
     const [assessment, setAssessment] = useState(null);
-    const [patient, setPatient] = useState(null); // Rich data from collaborators if linked
+    const [patient, setPatient] = useState(null);
     const [questions, setQuestions] = useState([]);
-    const [answers, setAnswers] = useState({}); // { [qId]: value }
+    const [answers, setAnswers] = useState({});
     const [validationErrors, setValidationErrors] = useState([]);
 
     // Scroll ref for error focusing
@@ -164,9 +174,8 @@ const FormularioPublico = () => {
                 await supabase.from('assessments').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', assessmentId);
             }
 
-            // 2. Fetch Rich Patient Data (Try joining collaborators)
+            // 2. Fetch Rich Patient Data
             if (assess.patient_id) {
-                // Try fetching from colaboradores first for rich details
                 const { data: colab } = await supabase
                     .from('colaboradores')
                     .select('*, unidade(*), cargo(*)')
@@ -176,19 +185,20 @@ const FormularioPublico = () => {
                 if (colab) {
                     setPatient(colab);
                 } else {
-                    // Fallback to patients table
                     const { data: pat } = await supabase.from('patients').select('*').eq('id', assess.patient_id).single();
                     setPatient(pat);
                 }
             }
 
-            // 3. Load Questions
+            // 3. Load Questions & Options (Strict Join)
             const { data: qs, error: qError } = await supabase
                 .from('questions')
-                .select('*, question_options(*)')
+                .select('*, question_options(*), categories(name)')
                 .order('id', { ascending: true });
 
             if (qError) throw qError;
+
+            console.log('Dados carregados (Perguntas + Opções):', qs);
             setQuestions(qs || []);
 
             // 4. Load Existing Answers
@@ -208,15 +218,12 @@ const FormularioPublico = () => {
     const handleAnswerChange = async (q, val) => {
         setAnswers(prev => ({ ...prev, [q.id]: val }));
 
-        // Clear error if exists
         if (validationErrors.includes(q.id)) {
             setValidationErrors(prev => prev.filter(id => id !== q.id));
         }
 
-        // Auto-save (Upsert)
         try {
             let score = 0;
-            // Simple scoring logic based on type
             if (q.type === 'yes_no' && val === 'Sim') score = q.weight || 0;
             if (q.type === 'scale' || q.type === 'select') {
                 const opt = q.question_options?.find(o => (o.label || o.value) === val);
@@ -241,20 +248,17 @@ const FormularioPublico = () => {
     };
 
     const handleSubmit = async () => {
-        // Validate Required Fields
         const visibleQuestions = questions.filter(checkVisibility);
         const missing = visibleQuestions.filter(q => q.required !== false && !answers[q.id]).map(q => q.id);
 
         if (missing.length > 0) {
             setValidationErrors(missing);
-            alert('Por favor, responda todas as perguntas obrigatórias.');
-            // Scroll to first error
             const el = document.getElementById(`question-${missing[0]}`);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
 
-        if (!window.confirm('Tem certeza que deseja finalizar a avaliação?')) return;
+        if (!window.confirm('Deseja enviar suas respostas agora?')) return;
 
         setLoading(true);
         try {
@@ -265,7 +269,7 @@ const FormularioPublico = () => {
             }).eq('id', assessmentId);
             setStatus('finished');
         } catch (err) {
-            alert('Erro ao finalizar: ' + err.message);
+            alert('Erro ao enviar: ' + err.message);
         } finally {
             setLoading(false);
         }
@@ -277,40 +281,46 @@ const FormularioPublico = () => {
     if (error) return <BlockedScreen message={error} />;
 
     return (
-        <div ref={topRef} className="min-h-screen bg-[#f0ebf8] py-8 px-4 font-sans">
-            <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap'); body { font-family: 'Outfit', sans-serif; }`}</style>
+        <div ref={topRef} className="min-h-screen bg-gradient-to-b from-[#f8fdfe] to-[#ccedf3] py-3 px-3 relative font-sans">
+            <style>{`@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'); body { font-family: 'Roboto', sans-serif; }`}</style>
 
-            <div className="max-w-[640px] mx-auto pb-20">
+            <div className="max-w-[770px] mx-auto pb-20">
+                {/* Logo Gama Center */}
+                <div className="flex justify-start mb-6">
+                    <img
+                        src="/logo-gama.png?t=${Date.now()}"
+                        alt="GAMA CENTER"
+                        className="h-16 w-auto object-contain"
+                        onError={(e) => {
+                            e.target.src = '/logo-gama.png'; // Try without query if failed
+                        }}
+                    />
+                </div>
+
                 {/* Header Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 border-t-[10px] border-t-[#35b6cf] p-6 mb-4 relative overflow-hidden">
-                    {/* Top Accent is handled by border-t */}
-                    <div className="absolute top-0 left-0 w-full h-2 bg-[#35b6cf]"></div>
-
-                    <h1 className="text-3xl text-slate-900 mb-4 pt-2">Levantamento Preliminar Psicossocial - {patient?.unidade?.nome_unidade || 'Fábrica Criativa'}</h1>
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-[10px] border-t-[#35b6cf] p-6 mb-3 relative overflow-hidden">
+                    <h1 className="text-[24px] md:text-[32px] font-normal text-slate-900 mb-6 mt-2 leading-tight">
+                        Levantamento Preliminar Psicossocial - {patient?.unidade?.nome_unidade || 'Fábrica Criativa'}
+                    </h1>
 
                     {patient && (
-                        <div className="flex items-start gap-4 p-0 pt-2 pb-4 border-b border-slate-100 mb-4">
-                            {/* <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                                <User size={20} />
-                            </div> */}
-                            <div>
-                                <div className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                                    {patient.email || patient.nome || patient.name || 'Colaborador'}
-                                    {/* (Mocking email approach visually as bold text) */}
-                                </div>
-                                <div className="text-slate-500 text-xs mt-0.5">
-                                    {patient.role_id ? 'Registro Importado' : (patient.cargo?.nome_cargo || 'Colaborador')}
-                                    {patient.cpf && <span className="opacity-70"> (CPF: {patient.cpf})</span>}
-                                </div>
-                                <div className="text-blue-600 text-xs mt-1 cursor-pointer hover:underline">Alternar conta</div>
+                        <div className="bg-[#e8f0fe] rounded-lg p-4 border border-[#e8f0fe] flex items-center gap-4 transition-all">
+                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm border border-slate-100">
+                                <User size={20} className="text-[#35b6cf]" />
                             </div>
-                            <div className="ml-auto">
-                                <span className="text-xs text-slate-400">Rascunho salvo</span>
+                            <div className="flex-1 min-w-0">
+                                <div className="font-bold text-[#1f2937] text-[15px] truncate">
+                                    {patient.nome || patient.name || 'Colaborador'}
+                                </div>
+                                <div className="text-[#6b7280] text-[12px] mt-1">
+                                    {patient.unidade?.nome_unidade || 'Unidade não informada'}
+                                    {patient.cpf && <span> (CPF: {patient.cpf})</span>}
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    <p className="text-xs text-red-500 mt-2">* Indica pergunta obrigatória</p>
+                    <p className="text-[12px] text-red-600 mt-6 pt-4 border-t border-slate-100">* Indica pergunta obrigatória</p>
                 </div>
 
                 {/* Questions List */}
@@ -331,20 +341,25 @@ const FormularioPublico = () => {
                 <div className="flex justify-between items-center mt-6">
                     <button
                         onClick={handleSubmit}
-                        className="bg-[#35b6cf] text-white px-8 py-2.5 rounded hover:bg-[#2da9c0] shadow transition-colors font-medium text-sm"
+                        className="bg-[#35b6cf] text-white px-8 py-2.5 rounded hover:bg-[#2da9c0] shadow-sm transition-colors font-medium text-[14px]"
                     >
                         Enviar
                     </button>
 
-                    <div className="text-xs text-slate-500">
+                    <div className="text-[14px] text-slate-600 cursor-pointer hover:bg-slate-100 px-3 py-1.5 rounded transition-colors" onClick={() => { if (window.confirm('Limpar todas as respostas?')) setAnswers({}); }}>
                         Limpar formulário
                     </div>
                 </div>
 
-                <div className="text-center mt-8 text-xs text-slate-400">
-                    Este conteúdo não foi criado nem aprovado pelo Google. - <span className="underline cursor-pointer">Termos de Serviço</span> - <span className="underline cursor-pointer">Política de Privacidade</span>
+                <div className="text-center mt-12 text-[12px] text-slate-500 leading-relaxed">
+                    Este conteúdo não foi criado nem aprovado pela CorpEd Psicologia. <br />
+                    <span className="underline cursor-pointer">Denunciar abuso</span> -
+                    <span className="underline cursor-pointer ml-1">Termos de Serviço</span> -
+                    <span className="underline cursor-pointer ml-1">Política de Privacidade</span>
                 </div>
-                <div className="text-center mt-2 text-xl font-bold text-slate-300">Google Formulários</div>
+                <div className="text-center mt-4 text-[#70757a] text-[22px] font-normal" style={{ fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>
+                    Formulários
+                </div>
 
             </div>
         </div>

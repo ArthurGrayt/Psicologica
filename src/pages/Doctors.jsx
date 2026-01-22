@@ -340,14 +340,25 @@ const Doctors = () => {
 
                             {/* Área de Visualização da Assinatura (Centralizada) */}
                             <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 p-10 mb-8 relative group w-full transition-all hover:bg-slate-50 hover:border-slate-300">
-                                {selectedDoctor.hasSignature ? (
+                                {selectedDoctor.signatureUrl ? (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <img
-                                            src={selectedDoctor.signatureUrl || "https://placehold.co/400x200?text=Assinatura"}
+                                            src={selectedDoctor.signatureUrl}
                                             alt="Assinatura"
                                             className="max-h-64 object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
+                                            onLoad={() => console.log('Assinatura carregada com sucesso:', selectedDoctor.signatureUrl)}
+                                            onError={(e) => {
+                                                console.error('Falha ao carregar assinatura:', selectedDoctor.signatureUrl);
+                                                // If it's just a path, try to resolve it as a public URL
+                                                if (!selectedDoctor.signatureUrl.startsWith('http')) {
+                                                    const { data } = supabase.storage.from('assinaturas').getPublicUrl(selectedDoctor.signatureUrl);
+                                                    if (data?.publicUrl) {
+                                                        e.target.src = data.publicUrl;
+                                                    }
+                                                }
+                                            }}
                                         />
-                                        <div className="absolute top-2 right-2 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
+                                        <div className="absolute top-2 right-2 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
                                             VÁLIDA
                                         </div>
                                     </div>
@@ -357,7 +368,7 @@ const Doctors = () => {
                                             <Upload size={48} className="text-slate-300" />
                                         </div>
                                         <p className="text-lg font-medium text-slate-600">Nenhuma assinatura</p>
-                                        <p className="text-sm">Envie um arquivo PNG ou JPEG (Implementação Futura)</p>
+                                        <p className="text-sm">Envie um arquivo PNG ou JPEG</p>
                                     </div>
                                 )}
                             </div>
@@ -366,7 +377,7 @@ const Doctors = () => {
                             <div className="mt-auto">
                                 <label className={`flex items-center justify-center gap-3 w-full py-5 bg-white border-2 border-[#050a30] text-[#050a30] rounded-2xl hover:bg-blue-50 cursor-pointer transition-all active:scale-95 font-bold text-lg shadow-sm ${loading ? 'opacity-50 cursor-wait' : ''}`}>
                                     <Upload size={24} />
-                                    <span>{loading ? 'Enviando...' : (selectedDoctor.hasSignature ? 'Substituir Assinatura' : 'Fazer Upload')}</span>
+                                    <span>{loading ? 'Enviando...' : (selectedDoctor.signatureUrl ? 'Substituir Assinatura' : 'Fazer Upload')}</span>
                                     <input
                                         type="file"
                                         className="hidden"

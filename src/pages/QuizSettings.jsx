@@ -8,16 +8,24 @@ const QuizSettings = () => {
     const [editingId, setEditingId] = useState(null); // ID of question being edited
     const [tempQuestion, setTempQuestion] = useState(null); // Draft state for editing
 
+    // Filter States
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('');
+    const [filterWeight, setFilterWeight] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+
     // Fetch Questions
     const fetchQuestions = async () => {
         setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('questions')
-                .select('*, question_options(*)')
+                .select('*, question_options(*), categories(name)')
                 .order('id', { ascending: true });
 
             if (error) throw error;
+
+            console.log('Dados carregados (QuizSettings):', data);
 
             // Sort options for each question just in case
             const sorted = data.map(q => ({
@@ -84,7 +92,7 @@ const QuizSettings = () => {
             id: 'new_' + Date.now(),
             text: '',
             type: 'text',
-            category: 'general',
+            category_key: '',
             weight: 0,
             question_options: []
         };
@@ -118,7 +126,7 @@ const QuizSettings = () => {
             const qPayload = {
                 text: tempQuestion.text,
                 type: tempQuestion.type,
-                category: tempQuestion.category,
+                category_key: tempQuestion.category_key || tempQuestion.category,
                 weight: tempQuestion.weight,
                 depends_on_question_id: tempQuestion.depends_on_question_id || null,
                 show_if_value: tempQuestion.show_if_value || null
@@ -141,8 +149,9 @@ const QuizSettings = () => {
             if (['select', 'scale'].includes(tempQuestion.type)) {
                 const optionsToUpsert = tempQuestion.question_options.map(o => ({
                     question_id: savedQ.id,
-                    label: o.label,
-                    value: o.value || o.label,
+                    label: o.label || o.text,
+                    text: o.label || o.text, // Persist both to be safe
+                    value: o.value || o.label || o.text,
                     score_val: o.score_val || 0,
                     id: typeof o.id === 'number' ? o.id : undefined // Let DB generate ID for new opts
                 }));
@@ -154,9 +163,6 @@ const QuizSettings = () => {
 
                     if (optError) throw optError;
                 }
-
-                // Note: We are not handling deletion of removed options here for simplicity in this MVP
-                // To do that, we'd need to compare original vs new options list and delete missing IDs.
             }
 
             // Success
@@ -197,7 +203,7 @@ const QuizSettings = () => {
             ...tempQuestion,
             question_options: [
                 ...tempQuestion.question_options,
-                { id: 'temp_' + Date.now(), label: '', score_val: 0 }
+                { id: 'temp_' + Date.now(), label: '', text: '', score_val: 0 }
             ]
         });
     };
@@ -224,6 +230,34 @@ const QuizSettings = () => {
         }
     };
 
+    const getCategoryColors = (catName) => {
+        const colors = [
+            { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-100' },
+            { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100' },
+            { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-100' },
+            { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100' },
+            { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-100' },
+            { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100' },
+            { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-100' },
+            { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-100' },
+        ];
+        if (!catName) return colors[0];
+        let hash = 0;
+        for (let i = 0; i < catName.length; i++) {
+            hash = catName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash) % colors.length;
+        return colors[index];
+    };
+
+    const filteredQuestions = questions.filter(q => {
+        const matchesSearch = q.text.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = !filterType || q.type === filterType;
+        const matchesWeight = !filterWeight || String(q.weight) === String(filterWeight);
+        const matchesCategory = !filterCategory || (q.categories?.name || q.category_key || q.category) === filterCategory;
+        return matchesSearch && matchesType && matchesWeight && matchesCategory;
+    });
+
     return (
         <div className="max-w-4xl mx-auto pb-20">
             <div className="flex items-center justify-between mb-8">
@@ -241,11 +275,80 @@ const QuizSettings = () => {
                 </button>
             </div>
 
+            {/* Filters Bar */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full">
+                    <MessageSquare size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Pesquisar pelo texto da pergunta..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-11 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                    />
+                </div>
+
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-44">
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium text-slate-700"
+                        >
+                            <option value="">Todas Categorias</option>
+                            {[...new Set(questions.map(q => q.categories?.name || q.category_key || q.category))].filter(Boolean).sort().map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    <div className="relative flex-1 md:w-44">
+                        <select
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                            className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium text-slate-700"
+                        >
+                            <option value="">Todos os Tipos</option>
+                            <option value="text">TEXTO LIVRE</option>
+                            <option value="yes_no">SIM / NÃO</option>
+                            <option value="select">SELEÇÃO ÚNICA</option>
+                            <option value="scale">ESCALA / MÚLTIPLA</option>
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    <div className="relative flex-1 md:w-32">
+                        <select
+                            value={filterWeight}
+                            onChange={(e) => setFilterWeight(e.target.value)}
+                            className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium text-slate-700"
+                        >
+                            <option value="">Peso (Todos)</option>
+                            {[...new Set(questions.map(q => q.weight))].sort((a, b) => a - b).map(w => (
+                                <option key={w} value={w}>{w}</option>
+                            ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    {(searchTerm || filterType || filterWeight || filterCategory) && (
+                        <button
+                            onClick={() => { setSearchTerm(''); setFilterType(''); setFilterWeight(''); setFilterCategory(''); }}
+                            className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                            title="Limpar Filtros"
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {loading ? (
                 <div className="text-center py-10 text-slate-400">Carregando perguntas...</div>
             ) : (
                 <div className="space-y-4">
-                    {questions.map((q) => (
+                    {filteredQuestions.map((q) => (
                         <div
                             key={q.id}
                             style={{ marginLeft: q.level ? `${q.level * 2}rem` : '0px' }}
@@ -302,12 +405,13 @@ const QuizSettings = () => {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">Categoria (Tag)</label>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Categoria (Key)</label>
                                                 <input
                                                     type="text"
-                                                    value={tempQuestion.category}
-                                                    onChange={(e) => updateTemp('category', e.target.value)}
+                                                    value={tempQuestion.category_key || tempQuestion.category || ''}
+                                                    onChange={(e) => updateTemp('category_key', e.target.value)}
                                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                    placeholder="ex: Ansiedade"
                                                 />
                                             </div>
                                             <div>
@@ -335,8 +439,12 @@ const QuizSettings = () => {
                                                             <div className="text-slate-300"><List size={16} /></div>
                                                             <input
                                                                 type="text"
-                                                                value={opt.label}
-                                                                onChange={(e) => updateOption(idx, 'label', e.target.value)}
+                                                                value={opt.label || opt.text || ''}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    updateOption(idx, 'label', val);
+                                                                    updateOption(idx, 'text', val); // Keep both in sync for safety
+                                                                }}
                                                                 placeholder="Texto da Opção"
                                                                 className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
                                                             />
@@ -382,9 +490,6 @@ const QuizSettings = () => {
                                                     placeholder="Mostrar apenas se resposta for..."
                                                 />
                                             </div>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                Deixe em branco para exibir a pergunta sempre.
-                                            </p>
                                         </div>
 
                                         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
@@ -400,75 +505,97 @@ const QuizSettings = () => {
                                 </div>
                             ) : (
                                 // --- VIEW MODE ---
-                                <div className="p-5 flex items-start gap-4">
-                                    <div className="bg-slate-100 text-slate-500 font-mono text-sm px-3 py-1 rounded-lg">
-                                        #{String(q.id).padStart(3, '0')}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h3 className="font-semibold text-slate-800 text-lg">{q.text}</h3>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-bold uppercase border border-blue-100">
-                                                        {getTypeLabel(q.type)}
-                                                    </span>
-                                                    <span className="text-xs text-slate-400">
-                                                        {q.category} • Peso: {q.weight}
-                                                    </span>
-                                                    {q.depends_on_question_id && (
-                                                        <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md font-bold flex items-center gap-1 border border-amber-200 border-l-4">
-                                                            <AlertCircle size={12} />
-                                                            CONDICIONAL (PAI: #{q.depends_on_question_id})
+                                <div className="p-5">
+                                    <div className="flex items-start gap-4">
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-semibold text-slate-800 text-lg">{q.text}</h3>
+                                                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-bold uppercase tracking-wider border border-slate-200">
+                                                            ID: #{String(q.id).padStart(3, '0')}
                                                         </span>
-                                                    )}
+                                                        <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-bold uppercase tracking-wider border border-blue-100">
+                                                            ⚡ {getTypeLabel(q.type)}
+                                                        </span>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${getCategoryColors(q.categories?.name || q.category_key || q.category).bg} ${getCategoryColors(q.categories?.name || q.category_key || q.category).text} ${getCategoryColors(q.categories?.name || q.category_key || q.category).border}`}>
+                                                            📂 {q.categories?.name || q.category_key || q.category || 'Geral'}
+                                                        </span>
+                                                        <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-bold uppercase tracking-wider border border-emerald-100">
+                                                            ⚖️ Peso: {q.weight}
+                                                        </span>
+                                                        {q.depends_on_question_id && (
+                                                            <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-bold flex items-center gap-1 border border-amber-200">
+                                                                <AlertCircle size={10} />
+                                                                CONDICIONAL (#{q.depends_on_question_id})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleEdit(q)}
+                                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Editar"
+                                                    >
+                                                        <List size={20} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(q.id)}
+                                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <Trash2 size={20} />
+                                                    </button>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(q)}
-                                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    <List size={20} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(q.id)}
-                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    <Trash2 size={20} />
-                                                </button>
-                                            </div>
+                                            {/* Preview Options */}
+                                            {['select', 'scale'].includes(q.type) && (
+                                                <div className="mt-4 flex flex-wrap gap-2">
+                                                    {q.question_options && q.question_options.length > 0 ? (
+                                                        q.question_options.map(o => (
+                                                            <span key={o.id} className="text-xs border border-slate-200 bg-slate-50 text-slate-600 px-2 py-1 rounded-md">
+                                                                {o.label || o.text} ({o.score_val})
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-red-500 text-xs italic text-opacity-70">Nenhuma opção configurada.</p>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {/* Preview Options */}
-                                        {['select', 'scale'].includes(q.type) && q.question_options?.length > 0 && (
-                                            <div className="mt-4 flex flex-wrap gap-2">
-                                                {q.question_options.map(o => (
-                                                    <span key={o.id} className="text-xs border border-slate-200 bg-slate-50 text-slate-600 px-2 py-1 rounded-md">
-                                                        {o.label} ({o.score_val})
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             )}
                         </div>
                     ))}
 
-                    {questions.length === 0 && (
+                    {filteredQuestions.length === 0 && (
                         <div className="text-center py-16 bg-slate-50 rounded-[32px] border border-dashed border-slate-200">
                             <MessageSquare className="mx-auto text-slate-300 mb-4" size={48} />
-                            <h3 className="text-lg font-medium text-slate-600">Nenhuma pergunta encontrada</h3>
-                            <p className="text-slate-400 mt-1 mb-6">Comece criando a primeira pergunta do formulário.</p>
-                            <button
-                                onClick={handleAddNew}
-                                className="px-6 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors shadow-sm"
-                            >
-                                Criar Pergunta
-                            </button>
+                            <h3 className="text-lg font-medium text-slate-600">
+                                {searchTerm || filterType || filterWeight ? 'Nenhum resultado para os filtros aplicados' : 'Nenhuma pergunta encontrada'}
+                            </h3>
+                            <p className="text-slate-400 mt-1 mb-6">
+                                {searchTerm || filterType || filterWeight ? 'Tente ajustar seus filtros ou limpar a pesquisa.' : 'Comece criando a primeira pergunta do formulário.'}
+                            </p>
+                            {(searchTerm || filterType || filterWeight || filterCategory) ? (
+                                <button
+                                    onClick={() => { setSearchTerm(''); setFilterType(''); setFilterWeight(''); setFilterCategory(''); }}
+                                    className="px-6 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors shadow-sm"
+                                >
+                                    Limpar Filtros
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleAddNew}
+                                    className="px-6 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors shadow-sm"
+                                >
+                                    Criar Pergunta
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
