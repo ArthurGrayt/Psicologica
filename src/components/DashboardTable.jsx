@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { FileText, Calendar, Pencil, Unlock, ArrowUpDown } from 'lucide-react';
+import { FileText, Calendar, Pencil, Unlock, ArrowUpDown, Trash2, Link as LinkIcon } from 'lucide-react';
 
-const DashboardTable = ({ patients, onEdit, onSort }) => {
+const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
 
     const requestSort = (key) => {
@@ -75,9 +74,9 @@ const DashboardTable = ({ patients, onEdit, onSort }) => {
                                 </td>
                                 <td className="p-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${patient.status === 'Concluído' ? 'bg-green-100 text-green-700' :
-                                            patient.status === 'Pendente' ? 'bg-yellow-100 text-yellow-700' :
-                                                patient.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-slate-100 text-slate-600'
+                                        patient.status === 'Pendente' ? 'bg-yellow-100 text-yellow-700' :
+                                            patient.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-slate-100 text-slate-600'
                                         }`}>
                                         {patient.status}
                                     </span>
@@ -87,15 +86,34 @@ const DashboardTable = ({ patients, onEdit, onSort }) => {
                                         <button
                                             className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-full transition-colors"
                                             title="Editar"
-                                            onClick={() => onEdit(patient)}
+                                            onClick={(e) => { e.stopPropagation(); onEdit(patient); }}
                                         >
                                             <Pencil size={18} />
+                                        </button>
+                                        <button
+                                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors"
+                                            title="Excluir"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm('Tem certeza que deseja excluir este paciente?')) {
+                                                    onDelete(patient.id);
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 size={18} />
                                         </button>
                                         <button className="text-slate-400 hover:text-purple-600 hover:bg-purple-50 p-2 rounded-full transition-colors" title="Gerar Laudo">
                                             <FileText size={18} />
                                         </button>
                                         <button className="text-slate-400 hover:text-green-600 hover:bg-green-50 p-2 rounded-full transition-colors" title="Liberar Acesso">
                                             <Unlock size={18} />
+                                        </button>
+                                        <button
+                                            className="text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 p-2 rounded-full transition-colors"
+                                            title="Gerar Link Formulário"
+                                            onClick={(e) => { e.stopPropagation(); onGenerateForm(patient.id); }}
+                                        >
+                                            <LinkIcon size={18} />
                                         </button>
                                     </div>
                                 </td>

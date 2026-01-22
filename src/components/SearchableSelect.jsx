@@ -19,7 +19,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
     }, []);
 
     const filteredOptions = options.filter(option =>
-        option.label.toLowerCase().includes(searchTerm.toLowerCase())
+        (option.label || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const selectedOption = options.find(option => option.value === value);
@@ -67,8 +67,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
                                     key={option.value}
                                     onClick={() => handleSelect(option.value)}
                                     className={`px-3 py-2.5 rounded-lg cursor-pointer text-sm flex items-center justify-between transition-colors ${option.value === value
-                                            ? 'bg-blue-50 text-blue-700 font-medium'
-                                            : 'text-slate-700 hover:bg-slate-50'
+                                        ? 'bg-blue-50 text-blue-700 font-medium'
+                                        : 'text-slate-700 hover:bg-slate-50'
                                         }`}
                                 >
                                     <span>{option.label}</span>

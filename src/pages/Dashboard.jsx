@@ -1,34 +1,137 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square } from 'lucide-react';
+import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square, Link as LinkIcon, Copy, ExternalLink, CheckCircle } from 'lucide-react';
 import DashboardTable from '../components/DashboardTable';
 import { useCompanyData } from '../hooks/useCompanyData';
+import SearchableSelect from '../components/SearchableSelect';
+import { supabase } from '../lib/supabase';
 
 const Dashboard = () => {
-    // Estado Mockado Elevado
-    const [patients, setPatients] = useState([
-        { id: 1, name: 'Ana Silva', company: 'Tech Corp', role: 'Dev Senior', sector: 'TI', date: '22/01/2026', status: 'Concluído' },
-        { id: 2, name: 'Carlos Souza', company: 'Inova Rh', role: 'Recrutador', sector: 'RH', date: '21/01/2026', status: 'Em Análise' },
-        { id: 3, name: 'Beatriz Costa', company: 'Tech Corp', role: 'Designer', sector: 'Marketing', date: '20/01/2026', status: 'Pendente' },
-        { id: 4, name: 'Daniel Oliveira', company: 'Construtora Exemplo', role: 'Engenheiro', sector: 'Obras', date: '19/01/2026', status: 'Concluído' },
-        { id: 5, name: 'Eduarda Lima', company: 'Inova Rh', role: 'Analista', sector: 'Financeiro', date: '18/01/2026', status: 'Agendado' },
-        { id: 6, name: 'Fernanda Alves', company: 'Tech Corp', role: 'PO', sector: 'Produto', date: '17/01/2026', status: 'Concluído' },
-        { id: 7, name: 'Gabriel Santos', company: 'Construtora Exemplo', role: 'Mestre de Obras', sector: 'Obras', date: '16/01/2026', status: 'Pendente' },
-    ]);
+    // Estado Mockado Removido. Apenas dados reais.
+    const [patients, setPatients] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
 
     const [selectedPatient, setSelectedPatient] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isMultipleModalOpen, setIsMultipleModalOpen] = useState(false);
+
+    // Form Generation State
+    const [generatedLink, setGeneratedLink] = useState(null);
+    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+
+    // State for Quick Create Collaborator
+    const [isCreatingCollaborator, setIsCreatingCollaborator] = useState(false);
 
     // Hook de Dados de Empresa
     const { companies, units, fetchUnits } = useCompanyData();
 
-    // States for Single Insertion
-    const [newPatient, setNewPatient] = useState({ name: '', company: '', role: '', sector: '', unit: '' });
+    // Transform options for SearchableSelect
+    const companyOptions = companies.map(c => ({ label: c.nome_fantasia, value: c.id }));
+    const unitOptions = units.map(u => ({ label: u.nome_unidade, value: u.id }));
 
     // States for Multiple Insertion
     const [multipleInsertion, setMultipleInsertion] = useState({ company: '', unit: '' });
+
     const [availableCollaborators, setAvailableCollaborators] = useState([]);
     const [selectedCollaborators, setSelectedCollaborators] = useState([]);
+
+    // Reference Data for Dropdowns
+    const [roles, setRoles] = useState([]);
+    const [sectors, setSectors] = useState([]);
+
+    // New Collaborator Form State
+    const [newCollaborator, setNewCollaborator] = useState({
+        name: '',
+        cpf: '',
+        roleId: '', // ID do cargo
+        sectorId: '' // ID do setor
+    });
+
+    const roleOptions = roles.map(r => ({ label: r.nome || r.nome_cargo || 'Cargo sem nome', value: r.id }));
+    const sectorOptions = sectors.map(s => ({ label: s.nome || s.nome_setor || 'Setor sem nome', value: s.id }));
+
+    // Fetch Params (Cargos e Setores)
+    React.useEffect(() => {
+        const fetchParams = async () => {
+            try {
+                const [rolesRes, sectorsRes] = await Promise.all([
+                    supabase.from('cargos').select('*'),
+                    supabase.from('setor').select('*')
+                ]);
+
+                if (rolesRes.error) throw rolesRes.error;
+                if (sectorsRes.error) throw sectorsRes.error;
+
+                setRoles(rolesRes.data || []);
+                setSectors(sectorsRes.data || []);
+            } catch (err) {
+                console.error('Erro ao carregar parâmetros (cargos/setores):', err);
+            }
+        };
+        fetchParams();
+    }, []);
+
+    // Fetch Patients from DB
+    const fetchPatients = async () => {
+        setIsLoading(true);
+        setFetchError(null);
+        console.log('--- INICIANDO FETCH PATIENTS ---');
+        try {
+            const { data, error } = await supabase
+                .from('patients')
+                .select(`
+                    id, 
+                    name, 
+                    role_id, 
+                    sector_id,
+                    created_at,
+                    cargos:role_id (nome),
+                    setor:sector_id (nome)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Erro na query Supabase:', error);
+                throw error;
+            }
+
+            console.log('Pacientes carregados (RAW):', data);
+
+            if (!data || data.length === 0) {
+                console.warn('Query retornou array vazio. Tabela patients deve estar vazia.');
+            }
+
+            // Mapeamento para tabela
+            const mappedPatients = data.map(p => {
+                const cargoNome = p.cargos ? (p.cargos.nome_cargo || p.cargos.nome || 'Cargo') : 'Sem Cargo';
+                const setorNome = p.setor ? (p.setor.nome_setor || p.setor.nome || 'Setor') : 'Sem Setor';
+                const date = new Date(p.created_at).toLocaleDateString('pt-BR');
+
+                return {
+                    id: p.id,
+                    name: p.name,
+                    company: 'Carregando...',
+                    role: cargoNome,
+                    sector: setorNome,
+                    date: date,
+                    status: 'Pendente'
+                };
+            });
+
+            console.log('Pacientes Mapeados:', mappedPatients);
+            setPatients(mappedPatients);
+        } catch (err) {
+            console.error('EXCEÇÃO em fetchPatients:', err);
+            setFetchError(err.message);
+        } finally {
+            setIsLoading(false);
+            console.log('--- FINALIZADO FETCH PATIENTS ---');
+        }
+    };
+
+    // Load on Mount
+    React.useEffect(() => {
+        fetchPatients();
+    }, []);
 
     // Handlers
     const handleSort = (key, direction) => {
@@ -47,56 +150,196 @@ const Dashboard = () => {
         setPatients(patients.map(p => p.id === updated.id ? updated : p));
     };
 
-    const handleAddPatient = () => {
-        const id = patients.length + 1;
-        const date = new Date().toLocaleDateString('pt-BR');
+    const handleDeletePatient = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('patients')
+                .delete()
+                .eq('id', id);
 
-        // Encontrar nomes para exibição
-        const companyName = companies.find(c => c.id === newPatient.company)?.nome_fantasia || newPatient.company;
+            if (error) throw error;
 
-        const patientToAdd = {
-            id,
-            ...newPatient,
-            company: companyName, // Salvando nome para exibir na tabela
-            date,
-            status: 'Pendente'
-        };
-        setPatients([patientToAdd, ...patients]);
-        setIsModalOpen(false);
-        setNewPatient({ name: '', company: '', role: '', sector: '', unit: '' });
-    };
+            // Atualizar estado local
+            setPatients(patients.filter(p => p.id !== id));
+            // alert('Paciente excluído com sucesso.'); 
+            // Opcional: Toast notification
 
-    // Handlers para Single Insertion Dropdowns
-    const handleSingleCompanyChange = (e) => {
-        const companyId = e.target.value;
-        setNewPatient({ ...newPatient, company: companyId, unit: '' });
-        fetchUnits(companyId);
-    };
-
-    // Handlers para Multiple Insertion Dropdowns
-    const handleMultipleCompanyChange = (e) => {
-        const companyId = e.target.value;
-        setMultipleInsertion({ ...multipleInsertion, company: companyId, unit: '' });
-        fetchUnits(companyId);
-        setAvailableCollaborators([]); // Limpar lista anterior
-    };
-
-    const handleMultipleUnitChange = (e) => {
-        setMultipleInsertion({ ...multipleInsertion, unit: e.target.value });
-    };
-
-    const handleSearchCollaborators = () => {
-        // Mocking a fetch
-        if (multipleInsertion.company && multipleInsertion.unit) {
-            setAvailableCollaborators([
-                { id: 101, name: 'Roberto Santos', role: 'Dev Frontend', sector: 'TI' },
-                { id: 102, name: 'Julia Lima', role: 'UX Designer', sector: 'Design' },
-                { id: 103, name: 'Marcos Paulo', role: 'Product Owner', sector: 'Produto' },
-                { id: 104, name: 'Larissa Manoela', role: 'QA', sector: 'TI' },
-                { id: 105, name: 'Pedro Pascal', role: 'Dev Backend', sector: 'TI' },
-            ]);
+        } catch (err) {
+            console.error('Erro ao excluir paciente:', err);
+            alert('Erro ao excluir: ' + err.message);
         }
     };
+
+    // Handler: Generate Assessment Link
+    const handleGenerateAssessment = async (patientId) => {
+        try {
+            // 1. Create Assessment
+            const { data, error } = await supabase
+                .from('assessments')
+                .insert({
+                    patient_id: patientId,
+                    status: 'pending',
+                    locked: false
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // 2. Generate Link
+            const link = `${window.location.origin}/quiz/${data.id}`;
+            setGeneratedLink(link);
+            setIsLinkModalOpen(true);
+
+        } catch (err) {
+            console.error('Error generating assessment:', err);
+            alert('Erro ao gerar link: ' + err.message);
+        }
+    };
+
+    // Handler Create Collaborator (Quick)
+    const handleCreateCollaborator = async () => {
+        // Validação básica
+        if (!newCollaborator.name.trim() || !multipleInsertion.unit) {
+            alert('Nome e Unidade são obrigatórios.');
+            return;
+        }
+
+        try {
+            const unitId = Number(multipleInsertion.unit);
+            console.log(`Criando Colaborador Completo:`, newCollaborator, `Unidade: ${unitId}`);
+
+            const payload = {
+                nome: newCollaborator.name,
+                unidade: unitId,
+                avulso: true,
+                cpf: newCollaborator.cpf || null,
+                cargo: newCollaborator.roleId || null,
+                setorid: newCollaborator.sectorId || null
+            };
+
+            const { data, error } = await supabase
+                .from('colaboradores')
+                .insert(payload)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            console.log('Colaborador criado:', data);
+
+            // Reset
+            setNewCollaborator({ name: '', cpf: '', roleId: '', sectorId: '' });
+            setIsCreatingCollaborator(false);
+
+            // Refresh list
+            handleSearchCollaborators();
+            alert('Colaborador adicionado com sucesso!');
+
+        } catch (err) {
+            console.error('Erro ao criar colaborador:', err.message);
+            alert('Erro ao criar: ' + err.message);
+        }
+    };
+
+
+
+    // Handlers para Multiple Insertion Dropdowns
+    const handleMultipleCompanyChange = (value) => {
+        setMultipleInsertion({ ...multipleInsertion, company: value, unit: '' });
+        fetchUnits(value);
+        setAvailableCollaborators([]);
+    };
+
+    const handleMultipleUnitChange = (value) => {
+        setMultipleInsertion({ ...multipleInsertion, unit: value });
+    };
+
+    const handleSearchCollaborators = async () => {
+        if (!multipleInsertion.unit) {
+            console.log('handleSearch: Nenhuma unidade selecionada.');
+            return;
+        }
+
+        const unitIdRaw = multipleInsertion.unit;
+        const unitId = Number(unitIdRaw);
+
+        console.log(`--- INICIANDO BUSCA DE COLABORADORES ---`);
+        console.log(`Unidade Selecionada (Raw):`, unitIdRaw, `(Type: ${typeof unitIdRaw})`);
+        console.log(`Unidade Selecionada (Number):`, unitId, `(Type: ${typeof unitId})`);
+
+        try {
+            // BUSCA 1: Tentar buscar TUDO dessa unidade sem JOINS para ver se existe algo
+            const { count, error: countError } = await supabase
+                .from('colaboradores')
+                .select('*', { count: 'exact', head: true })
+                .eq('unidade', unitId);
+
+            if (countError) console.error('Erro ao contar colaboradores da unidade:', countError);
+            console.log(`Verificação Inicial: Existem ${count} colaboradores com unidade=${unitId}`);
+
+            if (count === 0) {
+                console.warn('ALERTA: Nenhum colaborador encontrado para este ID de unidade na tabela colaboradores.');
+                // Não vou retornar aqui para permitir mostrar a UI vazia onde tem o botão de adicionar
+                setAvailableCollaborators([]);
+                // return; 
+            }
+
+            // BUSCA 2: Busca completa com Joins
+            console.log('Executando query completa com Joins...');
+
+            const { data, error } = await supabase
+                .from('colaboradores')
+                .select(`
+                    id, 
+                    nome, 
+                    cargo, 
+                    setorid,
+                    cargos:cargo (*),      
+                    setor:setorid (*)
+                `)
+                .eq('unidade', unitId);
+
+            if (error) {
+                console.error('ERRO SUPABASE (Query Completa):', error);
+                throw error;
+            }
+
+            console.log('DADOS RETORNADOS (Query Completa):', data);
+
+            // Mapeamento
+            const mapped = (data || []).map(c => {
+                const cargoObj = c.cargos;
+                const setorObj = c.setor;
+
+                const cargoNome = cargoObj ? (cargoObj.nome_cargo || cargoObj.nome || 'Cargo') : (c.cargo ? `ID: ${c.cargo}` : 'Sem Cargo');
+                const setorNome = setorObj ? (setorObj.nome_setor || setorObj.nome || 'Setor') : (c.setorid ? `ID: ${c.setorid}` : 'Sem Setor');
+
+                return {
+                    id: c.id,
+                    name: c.nome,
+                    role: cargoNome,
+                    sector: setorNome,
+                    originalData: c
+                };
+            });
+
+            console.log(`Mapeamento concluído. ${mapped.length} itens prontos para exibir.`);
+            setAvailableCollaborators(mapped);
+
+        } catch (err) {
+            console.error('EXCEÇÃO em handleSearchCollaborators:', err);
+            console.error('Mensagem:', err.message);
+        }
+    };
+
+    // Trigger busca quando Unit está selecionada
+    React.useEffect(() => {
+        if (isMultipleModalOpen && multipleInsertion.unit) {
+            handleSearchCollaborators();
+        }
+    }, [multipleInsertion.company, multipleInsertion.unit, isMultipleModalOpen]);
+
 
     const toggleCollaboratorSelection = (id) => {
         if (selectedCollaborators.includes(id)) {
@@ -106,223 +349,247 @@ const Dashboard = () => {
         }
     };
 
-    const handleImportCollaborators = () => {
-        const date = new Date().toLocaleDateString('pt-BR');
+    const handleImportCollaborators = async () => {
+        try {
+            const selectedCols = availableCollaborators.filter(c => selectedCollaborators.includes(c.id));
 
-        const companyName = companies.find(c => c.id === multipleInsertion.company)?.nome_fantasia || multipleInsertion.company;
-
-        const newPatients = availableCollaborators
-            .filter(c => selectedCollaborators.includes(c.id))
-            .map((c, index) => ({
-                id: patients.length + index + 1,
+            // Preparar payload para tabela 'patients'
+            const inserts = selectedCols.map(c => ({
+                id: c.id,
                 name: c.name,
-                company: companyName,
-                role: c.role,
-                sector: c.sector,
-                date,
-                status: 'Pendente'
+                role_id: c.originalData.cargo,
+                sector_id: c.originalData.setorid
             }));
 
-        setPatients([...newPatients, ...patients]);
-        setIsMultipleModalOpen(false);
-        setMultipleInsertion({ company: '', unit: '' });
-        setAvailableCollaborators([]);
-        setSelectedCollaborators([]);
+            console.log('Inserindo pacientes:', inserts);
+
+            const { error } = await supabase
+                .from('patients')
+                .insert(inserts);
+
+            if (error) throw error;
+
+            // Sucesso
+            setIsMultipleModalOpen(false);
+            setMultipleInsertion({ company: '', unit: '' });
+            setAvailableCollaborators([]);
+            setSelectedCollaborators([]);
+
+            // Recarregar Dados Reais
+            fetchPatients();
+
+        } catch (err) {
+            console.error('Erro ao importar pacientes:', err.message);
+            alert('Erro ao importar: ' + err.message);
+        }
     };
 
     return (
         <div className="flex flex-col h-full gap-6 relative">
 
-            {/* Modal de Nova Avaliação (Single) */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-                    <div className="bg-white rounded-[32px] p-8 w-full max-w-lg shadow-2xl transform transition-all scale-100">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-slate-800">Nova Avaliação</h2>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
-                                <X size={24} />
-                            </button>
-                        </div>
 
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
-                                    <select
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
-                                        value={newPatient.company}
-                                        onChange={handleSingleCompanyChange}
-                                    >
-                                        <option value="">Selecione</option>
-                                        {companies.map(company => (
-                                            <option key={company.id} value={company.id}>
-                                                {company.nome_fantasia}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Unidade</label>
-                                    <select
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
-                                        value={newPatient.unit}
-                                        onChange={(e) => setNewPatient({ ...newPatient, unit: e.target.value })}
-                                        disabled={!newPatient.company}
-                                    >
-                                        <option value="">Selecione</option>
-                                        {units.map(unit => (
-                                            <option key={unit.id} value={unit.id}>
-                                                {unit.nome_unidade}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Nome do Paciente</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                    placeholder="Ex: João Silva"
-                                    value={newPatient.name}
-                                    onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Cargo</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                        placeholder="Ex: Desenvolvedor"
-                                        value={newPatient.role}
-                                        onChange={(e) => setNewPatient({ ...newPatient, role: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Setor</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                        placeholder="Ex: TI"
-                                        value={newPatient.sector}
-                                        onChange={(e) => setNewPatient({ ...newPatient, sector: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={handleAddPatient}
-                            className="w-full mt-8 py-3 bg-[#050a30] text-white rounded-xl font-medium hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all active:scale-95"
-                        >
-                            Adicionar Paciente
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* Modal de Inserção Múltipla */}
             {isMultipleModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-                    <div className="bg-white rounded-[32px] p-8 w-full max-w-2xl shadow-2xl transform transition-all scale-100 flex flex-col max-h-[90vh]">
+                    <div
+                        className={`bg-white rounded-[32px] p-8 shadow-2xl transform transition-all duration-500 ease-in-out flex flex-col max-h-[90vh] ${isCreatingCollaborator ? 'w-full max-w-6xl' : 'w-full max-w-2xl'
+                            }`}
+                    >
+                        {/* DEBUG LOG */}
+                        {console.log('[RENDER] Modal. isCreatingCollaborator:', isCreatingCollaborator)}
+
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h2 className="text-2xl font-bold text-slate-800">Inserção Múltipla</h2>
-                                <p className="text-slate-500 text-sm">Selecione empresa e unidade para listar colaboradores.</p>
+                                <h2 className="text-2xl font-bold text-slate-800">Inserir Paciente</h2>
+                                <p className="text-slate-500 text-sm">
+                                    {isCreatingCollaborator
+                                        ? "Busque ou cadastre um novo colaborador."
+                                        : "Selecione empresa e unidade para listar colaboradores."}
+                                </p>
                             </div>
                             <button onClick={() => setIsMultipleModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
 
-                        <div className="space-y-6 flex-1 overflow-hidden flex flex-col">
-                            {/* Seleção de Contexto */}
-                            <div className="grid grid-cols-2 gap-4 p-1">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
-                                    <select
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
-                                        value={multipleInsertion.company}
-                                        onChange={handleMultipleCompanyChange}
-                                    >
-                                        <option value="">Selecione</option>
-                                        {companies.map(company => (
-                                            <option key={company.id} value={company.id}>
-                                                {company.nome_fantasia}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Unidade</label>
-                                    <select
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
-                                        value={multipleInsertion.unit}
-                                        onChange={handleMultipleUnitChange}
-                                        onBlur={handleSearchCollaborators} // Manter busca ao sair/selecionar
-                                        disabled={!multipleInsertion.company}
-                                    >
-                                        <option value="">Selecione</option>
-                                        {units.map(unit => (
-                                            <option key={unit.id} value={unit.id}>
-                                                {unit.nome_unidade}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Lista de Colaboradores */}
-                            <div className="flex-1 border border-slate-200 rounded-xl overflow-hidden flex flex-col">
-                                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                                    <h3 className="font-semibold text-slate-700">Colaboradores Encontrados</h3>
-                                    <div className="text-xs text-slate-500">
-                                        {selectedCollaborators.length} selecionados de {availableCollaborators.length}
+                        <div className="flex gap-8 flex-1 overflow-hidden">
+                            {/* LADO ESQUERDO: Busca e Lista */}
+                            <div className="flex-1 flex flex-col space-y-6 overflow-hidden">
+                                {/* Seleção de Contexto */}
+                                <div className="grid grid-cols-2 gap-4 p-1">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
+                                        <SearchableSelect
+                                            options={companyOptions}
+                                            value={multipleInsertion.company}
+                                            onChange={handleMultipleCompanyChange}
+                                            placeholder="Buscar Empresa..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Unidade</label>
+                                        <SearchableSelect
+                                            options={unitOptions}
+                                            value={multipleInsertion.unit}
+                                            onChange={handleMultipleUnitChange}
+                                            placeholder="Buscar Unidade..."
+                                            disabled={!multipleInsertion.company}
+                                        />
                                     </div>
                                 </div>
-                                <div className="overflow-y-auto p-2 space-y-1 bg-white flex-1">
-                                    {availableCollaborators.length > 0 ? (
-                                        availableCollaborators.map((collab) => (
-                                            <div
-                                                key={collab.id}
-                                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedCollaborators.includes(collab.id) ? 'bg-blue-50 border border-blue-100' : 'hover:bg-slate-50 border border-transparent'}`}
-                                                onClick={() => toggleCollaboratorSelection(collab.id)}
-                                            >
-                                                <div className={`text-slate-400 ${selectedCollaborators.includes(collab.id) ? 'text-blue-600' : ''}`}>
-                                                    {selectedCollaborators.includes(collab.id) ? <CheckSquare size={20} /> : <Square size={20} />}
+
+                                {/* Lista de Colaboradores */}
+                                <div className="flex-1 border border-slate-200 rounded-xl overflow-hidden flex flex-col relative transition-all">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <h3 className="font-semibold text-slate-700">Colaboradores Encontrados</h3>
+                                        <div className="text-xs text-slate-500">
+                                            {selectedCollaborators.length} selecionados
+                                        </div>
+                                    </div>
+                                    <div className="overflow-y-auto p-2 space-y-1 bg-white flex-1 min-h-[150px]">
+                                        {availableCollaborators.length > 0 ? (
+                                            availableCollaborators.map((collab) => (
+                                                <div
+                                                    key={collab.id}
+                                                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedCollaborators.includes(collab.id) ? 'bg-blue-50 border border-blue-100' : 'hover:bg-slate-50 border border-transparent'}`}
+                                                    onClick={() => toggleCollaboratorSelection(collab.id)}
+                                                >
+                                                    <div className={`text-slate-400 ${selectedCollaborators.includes(collab.id) ? 'text-blue-600' : ''}`}>
+                                                        {selectedCollaborators.includes(collab.id) ? <CheckSquare size={20} /> : <Square size={20} />}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="font-medium text-slate-800">{collab.name}</div>
+                                                        <div className="text-xs text-slate-500">{collab.role} • {collab.sector}</div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1">
-                                                    <div className="font-medium text-slate-800">{collab.name}</div>
-                                                    <div className="text-xs text-slate-500">{collab.role} • {collab.sector}</div>
-                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8">
+                                                <Users size={32} className="mb-2 opacity-50" />
+                                                {multipleInsertion.company && multipleInsertion.unit ? (
+                                                    <p className="text-sm">Nenhum colaborador encontrado.</p>
+                                                ) : (
+                                                    <p className="text-sm">Selecione Empresa e Unidade para buscar.</p>
+                                                )}
                                             </div>
-                                        ))
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8">
-                                            <Users size={32} className="mb-2 opacity-50" />
-                                            <p className="text-sm">Selecione Empresa e Unidade para buscar.</p>
+                                        )}
+                                    </div>
+
+                                    {/* Botão de Expandir (Rodapé da lista) */}
+                                    {multipleInsertion.unit && !isCreatingCollaborator && (
+                                        <div className="border-t border-slate-100 p-3 bg-slate-50 animate-fadeIn">
+                                            <button
+                                                onClick={() => {
+                                                    console.log('[UI] Clicked Include Manual. Setting state true.');
+                                                    setIsCreatingCollaborator(true);
+                                                }}
+                                                className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-slate-500 text-sm hover:bg-white hover:border-slate-400 hover:text-slate-700 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Plus size={16} />
+                                                Não encontrou? Incluir manualmente
+                                            </button>
                                         </div>
                                     )}
                                 </div>
                             </div>
+
+                            {/* LADO DIREITO: Formulário de Criação (Condicional) */}
+                            {console.log('[RENDER] Right Side Block. Visible?', isCreatingCollaborator)}
+                            <div className={`
+                                flex-1 bg-slate-50 rounded-2xl p-6 border border-slate-200 flex flex-col
+                                transition-all duration-500 ease-in-out transform origin-left
+                                ${isCreatingCollaborator ? 'opacity-100 translate-x-0 w-1/2 block' : 'opacity-0 -translate-x-10 w-0 hidden'}
+                            `}>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                        <User size={20} className="text-[#050a30]" />
+                                        Novo Colaborador
+                                    </h3>
+                                    <button
+                                        onClick={() => setIsCreatingCollaborator(false)}
+                                        className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-200 rounded-full"
+                                        title="Fechar formulário"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome Completo *</label>
+                                        <input
+                                            type="text"
+                                            value={newCollaborator.name}
+                                            onChange={(e) => setNewCollaborator({ ...newCollaborator, name: e.target.value })}
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            placeholder="Nome do colaborador"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">CPF</label>
+                                        <input
+                                            type="text"
+                                            value={newCollaborator.cpf}
+                                            onChange={(e) => setNewCollaborator({ ...newCollaborator, cpf: e.target.value })}
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            placeholder="000.000.000-00"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Cargo</label>
+                                            <SearchableSelect
+                                                options={roleOptions}
+                                                value={newCollaborator.roleId}
+                                                onChange={(val) => setNewCollaborator({ ...newCollaborator, roleId: val })}
+                                                placeholder="Selecione..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Setor</label>
+                                            <SearchableSelect
+                                                options={sectorOptions}
+                                                value={newCollaborator.sectorId}
+                                                onChange={(val) => setNewCollaborator({ ...newCollaborator, sectorId: val })}
+                                                placeholder="Selecione..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 pt-6 border-t border-slate-200 flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setIsCreatingCollaborator(false)}
+                                        className="px-6 py-3 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={handleCreateCollaborator}
+                                        className="px-6 py-3 bg-[#050a30] text-white font-medium rounded-xl hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+                                    >
+                                        Cadastrar
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="mt-8 flex gap-3">
+                        <div className="mt-8 flex gap-3 pt-4 border-t border-slate-100">
                             <button
                                 onClick={() => setIsMultipleModalOpen(false)}
                                 className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
                             >
-                                Cancelar
+                                Fechar
                             </button>
                             <button
                                 onClick={handleImportCollaborators}
                                 disabled={selectedCollaborators.length === 0}
                                 className="flex-1 py-3 bg-[#050a30] text-white rounded-xl font-medium hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Importar Selecionados
+                                Importar Selecionados ({selectedCollaborators.length})
                             </button>
                         </div>
                     </div>
@@ -364,22 +631,13 @@ const Dashboard = () => {
                             <span>Filtrar</span>
                         </button>
 
-                        <div className="ml-auto md:ml-2 flex items-center gap-2">
-                            <button
-                                onClick={() => setIsMultipleModalOpen(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#050a30] border-2 border-[#050a30] rounded-xl hover:bg-blue-50 transition-all font-bold text-sm whitespace-nowrap"
-                            >
-                                <Users size={18} />
-                                <span>Inserção Múltipla</span>
-                            </button>
-                            <button
-                                onClick={() => setIsModalOpen(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-[#050a30] text-white rounded-xl hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all font-medium text-sm whitespace-nowrap"
-                            >
-                                <Plus size={18} />
-                                <span>Nova Avaliação</span>
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => setIsMultipleModalOpen(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#050a30] text-white rounded-xl hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all font-bold text-sm whitespace-nowrap"
+                        >
+                            <Users size={18} />
+                            <span>Inserir Paciente</span>
+                        </button>
                     </div>
                 )}
             </div>
@@ -460,12 +718,36 @@ const Dashboard = () => {
                             </div>
                         </div>
                     ) : (
-                        // MODO VISUALIZAÇÃO: Tabela
-                        <DashboardTable
-                            patients={patients}
-                            onEdit={setSelectedPatient}
-                            onSort={handleSort}
-                        />
+                        // MODO VISUALIZAÇÃO: Tabela com Loading e Empty State
+                        isLoading ? (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                                <div className="w-8 h-8 border-4 border-[#050a30] border-t-transparent rounded-full animate-spin mb-4"></div>
+                                <p>Carregando pacientes do banco de dados...</p>
+                            </div>
+                        ) : fetchError ? (
+                            <div className="h-full flex flex-col items-center justify-center text-red-500">
+                                <p className="font-semibold text-lg">Erro ao carregar dados</p>
+                                <p className="font-mono text-sm mt-2 max-w-md text-center">{fetchError}</p>
+                                <button onClick={fetchPatients} className="mt-4 px-4 py-2 bg-slate-100 rounded-lg text-slate-700 hover:bg-slate-200">
+                                    Tentar Novamente
+                                </button>
+                            </div>
+                        ) : patients.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                                <div className="bg-slate-50 p-6 rounded-full mb-4">
+                                    <Users size={40} className="opacity-50" />
+                                </div>
+                                <p className="text-lg font-medium text-slate-600">Nenhum paciente cadastrado</p>
+                                <p className="text-sm max-w-xs text-center mt-2 opacity-80">Use o botão "Inserção Múltipla" acima para buscar colaboradores e cadastrá-los como pacientes.</p>
+                            </div>
+                        ) : (
+                            <DashboardTable
+                                patients={patients}
+                                onEdit={setSelectedPatient}
+                                onSort={handleSort}
+                                onDelete={handleDeletePatient}
+                            />
+                        )
                     )}
                 </div>
 
@@ -490,7 +772,7 @@ const Dashboard = () => {
                 </div>
 
             </div>
-        </div>
+        </div >
     );
 };
 

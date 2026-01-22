@@ -3,6 +3,7 @@ import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './pages/Dashboard';
 import Doctors from './pages/Doctors';
 import QuizSettings from './pages/QuizSettings';
+import FormularioPublico from './pages/FormularioPublico';
 
 function App() {
   return (
@@ -18,6 +19,9 @@ function App() {
           <Route path="doctors" element={<Doctors />} />
           <Route path="quiz-settings" element={<QuizSettings />} />
         </Route>
+
+        {/* Rota Pública do Questionário */}
+        <Route path="/quiz/:assessmentId" element={<FormularioPublico />} />
       </Routes>
     </BrowserRouter>
   );
