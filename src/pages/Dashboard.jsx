@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText } from 'lucide-react';
+import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square } from 'lucide-react';
 import DashboardTable from '../components/DashboardTable';
+import { useCompanyData } from '../hooks/useCompanyData';
 
 const Dashboard = () => {
     // Estado Mockado Elevado
@@ -16,7 +17,18 @@ const Dashboard = () => {
 
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newPatient, setNewPatient] = useState({ name: '', company: '', role: '', sector: '' });
+    const [isMultipleModalOpen, setIsMultipleModalOpen] = useState(false);
+
+    // Hook de Dados de Empresa
+    const { companies, units, fetchUnits } = useCompanyData();
+
+    // States for Single Insertion
+    const [newPatient, setNewPatient] = useState({ name: '', company: '', role: '', sector: '', unit: '' });
+
+    // States for Multiple Insertion
+    const [multipleInsertion, setMultipleInsertion] = useState({ company: '', unit: '' });
+    const [availableCollaborators, setAvailableCollaborators] = useState([]);
+    const [selectedCollaborators, setSelectedCollaborators] = useState([]);
 
     // Handlers
     const handleSort = (key, direction) => {
@@ -38,21 +50,90 @@ const Dashboard = () => {
     const handleAddPatient = () => {
         const id = patients.length + 1;
         const date = new Date().toLocaleDateString('pt-BR');
+
+        // Encontrar nomes para exibição
+        const companyName = companies.find(c => c.id === newPatient.company)?.nome_fantasia || newPatient.company;
+
         const patientToAdd = {
             id,
             ...newPatient,
+            company: companyName, // Salvando nome para exibir na tabela
             date,
-            status: 'Pendente' // Status inicial padrão
+            status: 'Pendente'
         };
         setPatients([patientToAdd, ...patients]);
         setIsModalOpen(false);
-        setNewPatient({ name: '', company: '', role: '', sector: '' });
+        setNewPatient({ name: '', company: '', role: '', sector: '', unit: '' });
+    };
+
+    // Handlers para Single Insertion Dropdowns
+    const handleSingleCompanyChange = (e) => {
+        const companyId = e.target.value;
+        setNewPatient({ ...newPatient, company: companyId, unit: '' });
+        fetchUnits(companyId);
+    };
+
+    // Handlers para Multiple Insertion Dropdowns
+    const handleMultipleCompanyChange = (e) => {
+        const companyId = e.target.value;
+        setMultipleInsertion({ ...multipleInsertion, company: companyId, unit: '' });
+        fetchUnits(companyId);
+        setAvailableCollaborators([]); // Limpar lista anterior
+    };
+
+    const handleMultipleUnitChange = (e) => {
+        setMultipleInsertion({ ...multipleInsertion, unit: e.target.value });
+    };
+
+    const handleSearchCollaborators = () => {
+        // Mocking a fetch
+        if (multipleInsertion.company && multipleInsertion.unit) {
+            setAvailableCollaborators([
+                { id: 101, name: 'Roberto Santos', role: 'Dev Frontend', sector: 'TI' },
+                { id: 102, name: 'Julia Lima', role: 'UX Designer', sector: 'Design' },
+                { id: 103, name: 'Marcos Paulo', role: 'Product Owner', sector: 'Produto' },
+                { id: 104, name: 'Larissa Manoela', role: 'QA', sector: 'TI' },
+                { id: 105, name: 'Pedro Pascal', role: 'Dev Backend', sector: 'TI' },
+            ]);
+        }
+    };
+
+    const toggleCollaboratorSelection = (id) => {
+        if (selectedCollaborators.includes(id)) {
+            setSelectedCollaborators(selectedCollaborators.filter(cId => cId !== id));
+        } else {
+            setSelectedCollaborators([...selectedCollaborators, id]);
+        }
+    };
+
+    const handleImportCollaborators = () => {
+        const date = new Date().toLocaleDateString('pt-BR');
+
+        const companyName = companies.find(c => c.id === multipleInsertion.company)?.nome_fantasia || multipleInsertion.company;
+
+        const newPatients = availableCollaborators
+            .filter(c => selectedCollaborators.includes(c.id))
+            .map((c, index) => ({
+                id: patients.length + index + 1,
+                name: c.name,
+                company: companyName,
+                role: c.role,
+                sector: c.sector,
+                date,
+                status: 'Pendente'
+            }));
+
+        setPatients([...newPatients, ...patients]);
+        setIsMultipleModalOpen(false);
+        setMultipleInsertion({ company: '', unit: '' });
+        setAvailableCollaborators([]);
+        setSelectedCollaborators([]);
     };
 
     return (
         <div className="flex flex-col h-full gap-6 relative">
 
-            {/* Modal de Nova Avaliação */}
+            {/* Modal de Nova Avaliação (Single) */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
                     <div className="bg-white rounded-[32px] p-8 w-full max-w-lg shadow-2xl transform transition-all scale-100">
@@ -67,23 +148,34 @@ const Dashboard = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                        placeholder="Ex: Tech Corp"
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
                                         value={newPatient.company}
-                                        onChange={(e) => setNewPatient({ ...newPatient, company: e.target.value })}
-                                    />
+                                        onChange={handleSingleCompanyChange}
+                                    >
+                                        <option value="">Selecione</option>
+                                        {companies.map(company => (
+                                            <option key={company.id} value={company.id}>
+                                                {company.nome_fantasia}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Unidade</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                        placeholder="Ex: Matriz"
-                                        value={newPatient.unit || ''}
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                                        value={newPatient.unit}
                                         onChange={(e) => setNewPatient({ ...newPatient, unit: e.target.value })}
-                                    />
+                                        disabled={!newPatient.company}
+                                    >
+                                        <option value="">Selecione</option>
+                                        {units.map(unit => (
+                                            <option key={unit.id} value={unit.id}>
+                                                {unit.nome_unidade}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 
@@ -132,6 +224,111 @@ const Dashboard = () => {
                 </div>
             )}
 
+            {/* Modal de Inserção Múltipla */}
+            {isMultipleModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
+                    <div className="bg-white rounded-[32px] p-8 w-full max-w-2xl shadow-2xl transform transition-all scale-100 flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800">Inserção Múltipla</h2>
+                                <p className="text-slate-500 text-sm">Selecione empresa e unidade para listar colaboradores.</p>
+                            </div>
+                            <button onClick={() => setIsMultipleModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-6 flex-1 overflow-hidden flex flex-col">
+                            {/* Seleção de Contexto */}
+                            <div className="grid grid-cols-2 gap-4 p-1">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                                        value={multipleInsertion.company}
+                                        onChange={handleMultipleCompanyChange}
+                                    >
+                                        <option value="">Selecione</option>
+                                        {companies.map(company => (
+                                            <option key={company.id} value={company.id}>
+                                                {company.nome_fantasia}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Unidade</label>
+                                    <select
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                                        value={multipleInsertion.unit}
+                                        onChange={handleMultipleUnitChange}
+                                        onBlur={handleSearchCollaborators} // Manter busca ao sair/selecionar
+                                        disabled={!multipleInsertion.company}
+                                    >
+                                        <option value="">Selecione</option>
+                                        {units.map(unit => (
+                                            <option key={unit.id} value={unit.id}>
+                                                {unit.nome_unidade}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Lista de Colaboradores */}
+                            <div className="flex-1 border border-slate-200 rounded-xl overflow-hidden flex flex-col">
+                                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                    <h3 className="font-semibold text-slate-700">Colaboradores Encontrados</h3>
+                                    <div className="text-xs text-slate-500">
+                                        {selectedCollaborators.length} selecionados de {availableCollaborators.length}
+                                    </div>
+                                </div>
+                                <div className="overflow-y-auto p-2 space-y-1 bg-white flex-1">
+                                    {availableCollaborators.length > 0 ? (
+                                        availableCollaborators.map((collab) => (
+                                            <div
+                                                key={collab.id}
+                                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedCollaborators.includes(collab.id) ? 'bg-blue-50 border border-blue-100' : 'hover:bg-slate-50 border border-transparent'}`}
+                                                onClick={() => toggleCollaboratorSelection(collab.id)}
+                                            >
+                                                <div className={`text-slate-400 ${selectedCollaborators.includes(collab.id) ? 'text-blue-600' : ''}`}>
+                                                    {selectedCollaborators.includes(collab.id) ? <CheckSquare size={20} /> : <Square size={20} />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="font-medium text-slate-800">{collab.name}</div>
+                                                    <div className="text-xs text-slate-500">{collab.role} • {collab.sector}</div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8">
+                                            <Users size={32} className="mb-2 opacity-50" />
+                                            <p className="text-sm">Selecione Empresa e Unidade para buscar.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex gap-3">
+                            <button
+                                onClick={() => setIsMultipleModalOpen(false)}
+                                className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleImportCollaborators}
+                                disabled={selectedCollaborators.length === 0}
+                                className="flex-1 py-3 bg-[#050a30] text-white rounded-xl font-medium hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Importar Selecionados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {/* 1. Card Superior (Filtros) */}
             <div className="bg-white p-6 rounded-[32px] shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 transition-all duration-500">
@@ -163,29 +360,26 @@ const Dashboard = () => {
                 {!selectedPatient && (
                     <div className="flex items-center gap-3 w-full md:w-auto overflow-hidden">
                         <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 border border-slate-200 transition-colors font-medium text-sm whitespace-nowrap">
-                            <Calendar size={18} />
-                            <span>Data</span>
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 border border-slate-200 transition-colors font-medium text-sm whitespace-nowrap">
                             <Filter size={18} />
-                            <span>Empresa</span>
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 border border-slate-200 transition-colors font-medium text-sm whitespace-nowrap">
-                            <Filter size={18} />
-                            <span>Cargo</span>
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 border border-slate-200 transition-colors font-medium text-sm whitespace-nowrap">
-                            <Filter size={18} />
-                            <span>Setor</span>
+                            <span>Filtrar</span>
                         </button>
 
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="ml-auto md:ml-2 flex items-center gap-2 px-5 py-2.5 bg-[#050a30] text-white rounded-xl hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all font-medium text-sm whitespace-nowrap"
-                        >
-                            <Plus size={18} />
-                            <span>Nova Avaliação</span>
-                        </button>
+                        <div className="ml-auto md:ml-2 flex items-center gap-2">
+                            <button
+                                onClick={() => setIsMultipleModalOpen(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#050a30] border-2 border-[#050a30] rounded-xl hover:bg-blue-50 transition-all font-bold text-sm whitespace-nowrap"
+                            >
+                                <Users size={18} />
+                                <span>Inserção Múltipla</span>
+                            </button>
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#050a30] text-white rounded-xl hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all font-medium text-sm whitespace-nowrap"
+                            >
+                                <Plus size={18} />
+                                <span>Nova Avaliação</span>
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
