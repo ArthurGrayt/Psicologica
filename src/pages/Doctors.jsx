@@ -200,13 +200,13 @@ const Doctors = () => {
                         </button>
                     ) : (
                         <div className="relative w-full md:w-96 transition-all duration-500">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-slate-400" />
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <Search className="h-5 w-5 text-gray-400" />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Buscar médico..."
-                                className="pl-10 pr-4 py-2 w-full bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700"
+                                className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
                             />
                         </div>
                     )}
@@ -221,7 +221,7 @@ const Doctors = () => {
                         </button>
                         <button
                             onClick={handleStartCreate}
-                            className="ml-auto md:ml-2 flex items-center gap-2 px-5 py-2.5 bg-[#050a30] text-white rounded-xl hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all font-medium text-sm whitespace-nowrap"
+                            className="ml-auto md:ml-2 flex items-center gap-2 px-6 py-2.5 bg-[#139690] text-white rounded-2xl hover:bg-[#139690]/90 shadow-lg transition-all font-bold text-sm whitespace-nowrap"
                         >
                             <Plus size={18} />
                             <span>Novo Médico</span>
@@ -292,7 +292,7 @@ const Doctors = () => {
                                 <button onClick={handleClosePanel} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors">
                                     Cancelar
                                 </button>
-                                <button onClick={handleSaveDoctor} className="flex-1 py-3 bg-[#050a30] text-white rounded-xl font-medium hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-colors flex items-center justify-center gap-2">
+                                <button onClick={handleSaveDoctor} className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-medium hover:bg-[#139690]/90 shadow-lg shadow-blue-900/20 transition-colors flex items-center justify-center gap-2">
                                     <Save size={18} />
                                     {isCreating ? 'Cadastrar' : 'Salvar Alterações'}
                                 </button>
@@ -375,7 +375,7 @@ const Doctors = () => {
 
                             {/* Ações de Assinatura */}
                             <div className="mt-auto">
-                                <label className={`flex items-center justify-center gap-3 w-full py-5 bg-white border-2 border-[#050a30] text-[#050a30] rounded-2xl hover:bg-blue-50 cursor-pointer transition-all active:scale-95 font-bold text-lg shadow-sm ${loading ? 'opacity-50 cursor-wait' : ''}`}>
+                                <label className={`flex items-center justify-center gap-3 w-full py-5 bg-white border-2 border-[#139690] text-[#139690] rounded-2xl hover:bg-blue-50 cursor-pointer transition-all active:scale-95 font-bold text-lg shadow-sm ${loading ? 'opacity-50 cursor-wait' : ''}`}>
                                     <Upload size={24} />
                                     <span>{loading ? 'Enviando...' : (selectedDoctor.signatureUrl ? 'Substituir Assinatura' : 'Fazer Upload')}</span>
                                     <input

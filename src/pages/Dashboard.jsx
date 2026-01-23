@@ -8,6 +8,8 @@ import { supabase } from '../lib/supabase';
 const Dashboard = () => {
     // Estado Mockado Removido. Apenas dados reais.
     const [patients, setPatients] = useState([]);
+    const [filteredPatients, setFilteredPatients] = useState([]); // State for filtered results
+    const [searchTerm, setSearchTerm] = useState(''); // State for search input
     const [isLoading, setIsLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
 
@@ -100,6 +102,7 @@ const Dashboard = () => {
             if (!patientsData || patientsData.length === 0) {
                 console.warn('Query retornou array vazio.');
                 setPatients([]);
+                setFilteredPatients([]);
                 return;
             }
 
@@ -113,6 +116,35 @@ const Dashboard = () => {
             if (assessmentsError) {
                 console.error('Erro na query Supabase (assessments):', assessmentsError);
                 // We can continue without assessments if it's not a critical failure
+            }
+
+            // 3. Fetch Company Info from 'colaboradores' logic (Assuming patient.id matches collaborator.id)
+            // This is a workaround because patients table might not have direct company link yet
+            const { data: collaboratorsData, error: collaboratorsError } = await supabase
+                .from('colaboradores')
+                .select(`
+                    id,
+                    unidades:unidade (
+                        nome_unidade,
+                        clientes:empresaid (nome_fantasia)
+                    )
+                `)
+                .in('id', patientIds);
+
+            if (collaboratorsError) {
+                console.error('Erro ao buscar dados de empresa (colaboradores):', collaboratorsError);
+            }
+
+            // Create a map for quick access
+            const companyMap = {};
+            if (collaboratorsData) {
+                collaboratorsData.forEach(c => {
+                    const empresaName = c.unidades?.clientes?.nome_fantasia;
+                    const unidadeName = c.unidades?.nome_unidade;
+                    if (empresaName) {
+                        companyMap[c.id] = `${empresaName} ${unidadeName ? `(${unidadeName})` : ''}`;
+                    }
+                });
             }
 
             // Mapeamento para tabela
@@ -137,10 +169,13 @@ const Dashboard = () => {
                     latestAssessment = patientAssessments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
                 }
 
+                // Company Name from Map or Default
+                const companyName = companyMap[p.id] || 'Empresa não encontrada';
+
                 return {
                     id: p.id,
                     name: p.name,
-                    company: 'Carregando...',
+                    company: companyName, // Now populated!
                     role: cargoNome,
                     sector: setorNome,
                     date: date,
@@ -150,8 +185,9 @@ const Dashboard = () => {
                 };
             });
 
-            console.log('Pacientes Mapeados:', mappedPatients);
+            console.log('Pacientes Mapeados e Enriquecidos:', mappedPatients);
             setPatients(mappedPatients);
+            setFilteredPatients(mappedPatients); // Initialize filtered list
         } catch (err) {
             console.error('EXCEÇÃO em fetchPatients:', err);
             setFetchError(err.message);
@@ -166,21 +202,69 @@ const Dashboard = () => {
         fetchPatients();
     }, []);
 
+    // Search Effect
+    React.useEffect(() => {
+        if (!searchTerm) {
+            setFilteredPatients(patients);
+            return;
+        }
+
+        const lowerTerm = searchTerm.toLowerCase();
+
+        const filtered = patients.filter(p => {
+            // Field Matching
+            const matchName = p.name?.toLowerCase().includes(lowerTerm);
+            const matchCompany = p.company?.toLowerCase().includes(lowerTerm);
+            const matchRole = p.role?.toLowerCase().includes(lowerTerm);
+            const matchSector = p.sector?.toLowerCase().includes(lowerTerm);
+            const matchDate = p.date?.toLowerCase().includes(lowerTerm);
+
+            // Status Translate Match (optional, but good UX)
+            // 'pending', 'in_progress', 'completed'
+            let statusTerm = '';
+            if (p.status === 'pending') statusTerm = 'pendente';
+            if (p.status === 'in_progress') statusTerm = 'em progresso análise';
+            if (p.status === 'completed') statusTerm = 'concluído finalizado';
+            const matchStatus = statusTerm.includes(lowerTerm) || p.status?.toLowerCase().includes(lowerTerm);
+
+            // Locked/Unlocked Match
+            let matchLock = false;
+            if (lowerTerm.includes('travado') || lowerTerm.includes('bloqueado')) {
+                if (p.locked === true) matchLock = true;
+            }
+            if (lowerTerm.includes('destravado') || lowerTerm.includes('livre') || lowerTerm.includes('liberado')) {
+                if (p.locked === false) matchLock = true;
+            }
+
+            // General "Unlocked" check if user types just "destra" or similar
+            // If the user typed something that matches the *concept* of locked/unlocked
+            if (!matchLock && (lowerTerm === 'travado' || lowerTerm === 'destravado')) {
+                // Strict match handled above, this is for partial typing if needed or strict enforcement
+            }
+
+            return matchName || matchCompany || matchRole || matchSector || matchDate || matchStatus || matchLock;
+        });
+
+        setFilteredPatients(filtered);
+    }, [searchTerm, patients]);
+
     // Handlers
     const handleSort = (key, direction) => {
-        const sorted = [...patients].sort((a, b) => {
+        const sorted = [...filteredPatients].sort((a, b) => {
             if (a[key] < b[key]) return direction === 'ascending' ? -1 : 1;
             if (a[key] > b[key]) return direction === 'ascending' ? 1 : -1;
             return 0;
         });
-        setPatients(sorted);
+        setFilteredPatients(sorted);
     };
 
     const handleUpdatePatient = (field, value) => {
         if (!selectedPatient) return;
         const updated = { ...selectedPatient, [field]: value };
         setSelectedPatient(updated);
+        // Update both lists
         setPatients(patients.map(p => p.id === updated.id ? updated : p));
+        // Filtered will update via Effect or valid re-render, but usually better to update state source
     };
 
     const handleDeletePatient = async (id) => {
@@ -193,7 +277,12 @@ const Dashboard = () => {
             if (error) throw error;
 
             // Atualizar estado local
-            setPatients(patients.filter(p => p.id !== id));
+            // Atualizar estado local
+            const newPatients = patients.filter(p => p.id !== id);
+            setPatients(newPatients);
+            // setFilteredPatients will auto-update via Effect if we depended on patients, 
+            // but we added it to dependency array so it should trigger.
+
             // alert('Paciente excluído com sucesso.'); 
             // Opcional: Toast notification
 
@@ -637,7 +726,7 @@ const Dashboard = () => {
                                     </button>
                                     <button
                                         onClick={handleCreateCollaborator}
-                                        className="px-6 py-3 bg-[#04092E] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-lg transition-all active:scale-95"
+                                        className="px-6 py-3 bg-[#139690] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-lg transition-all active:scale-95"
                                     >
                                         Cadastrar
                                     </button>
@@ -655,7 +744,7 @@ const Dashboard = () => {
                             <button
                                 onClick={handleImportCollaborators}
                                 disabled={selectedCollaborators.length === 0}
-                                className="flex-1 py-3 bg-[#04092E] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Importar Selecionados ({selectedCollaborators.length})
                             </button>
@@ -685,7 +774,9 @@ const Dashboard = () => {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Buscar paciente..."
+                                placeholder="Buscar por nome, cargo, empresa, status, 'travado'..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
                             />
                         </div>
@@ -701,7 +792,7 @@ const Dashboard = () => {
 
                         <button
                             onClick={() => setIsMultipleModalOpen(true)}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-[#04092E] text-white rounded-2xl hover:bg-opacity-90 shadow-lg transition-all font-bold text-sm whitespace-nowrap"
+                            className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-[#139690] text-white rounded-2xl hover:bg-opacity-90 shadow-lg transition-all font-bold text-sm whitespace-nowrap"
                         >
                             <Users size={18} />
                             <span>Inserir Paciente</span>
@@ -779,7 +870,7 @@ const Dashboard = () => {
                                 <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors">
                                     Cancelar
                                 </button>
-                                <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-[#04092E] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-colors flex items-center justify-center gap-2">
+                                <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-colors flex items-center justify-center gap-2">
                                     <Save size={18} />
                                     Salvar
                                 </button>
@@ -809,14 +900,19 @@ const Dashboard = () => {
                                 <p className="text-sm max-w-xs text-center mt-2 opacity-80">Use o botão "Inserção Múltipla" acima para buscar colaboradores e cadastrá-los como pacientes.</p>
                             </div>
                         ) : (
-                            <DashboardTable
-                                patients={patients}
-                                onEdit={setSelectedPatient}
-                                onSort={handleSort}
-                                onDelete={handleDeletePatient}
-                                onGenerateForm={handleGenerateAssessment}
-                                onToggleLock={handleToggleLock}
-                            />
+                            <>
+                                <DashboardTable
+                                    patients={filteredPatients}
+                                    onEdit={setSelectedPatient}
+                                    onSort={handleSort}
+                                    onDelete={handleDeletePatient}
+                                    onGenerateForm={handleGenerateAssessment}
+                                    onToggleLock={handleToggleLock}
+                                />
+                                <div className="p-4 border-t border-slate-100 flex justify-center items-center text-xs text-slate-400">
+                                    Total: {filteredPatients.length} pacientes encontrados
+                                </div>
+                            </>
                         )
                     )}
                 </div>
