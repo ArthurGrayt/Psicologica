@@ -44,40 +44,42 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
             </div>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl max-h-60 flex flex-col overflow-hidden animate-fadeIn">
-                    <div className="p-2 border-b border-slate-100 bg-slate-50">
-                        <div className="relative">
-                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text"
-                                className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                placeholder="Buscar..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
-                            />
+                <div className="absolute z-[100] w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl max-h-60 flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    {options.length > 5 && (
+                        <div className="p-2 border-b border-slate-100 bg-slate-50">
+                            <div className="relative">
+                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                                    placeholder="Buscar..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    <div className="overflow-y-auto flex-1 p-1">
+                    <div className="overflow-y-auto flex-1 py-1.5">
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map((option) => (
                                 <div
                                     key={option.value}
                                     onClick={() => handleSelect(option.value)}
-                                    className={`px-3 py-2.5 rounded-lg cursor-pointer text-sm flex items-center justify-between transition-colors ${option.value === value
-                                        ? 'bg-blue-50 text-blue-700 font-medium'
+                                    className={`px-4 py-2.5 cursor-pointer text-sm flex items-center justify-between transition-colors ${option.value === value
+                                        ? 'bg-slate-50 text-brand-primary font-bold'
                                         : 'text-slate-700 hover:bg-slate-50'
                                         }`}
                                 >
-                                    <span>{option.label}</span>
-                                    {option.value === value && <Check size={16} className="text-blue-600" />}
+                                    <span className="align-middle">{option.label}</span>
+                                    {option.value === value && <Check size={14} className="text-brand-primary" />}
                                 </div>
                             ))
                         ) : (
-                            <div className="px-4 py-8 text-center text-slate-400 text-sm">
-                                Nenhum resultado encontrado.
+                            <div className="px-4 py-8 text-center text-slate-400 text-xs italic">
+                                Nenhum resultado encontrado
                             </div>
                         )}
                     </div>

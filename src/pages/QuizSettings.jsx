@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Save, X, ChevronDown, ChevronUp, GripVertical, Check, AlertCircle, List, Type, MessageSquare, Pencil } from 'lucide-react';
+import { Plus, Trash2, Save, X, ChevronDown, ChevronUp, GripVertical, Check, AlertCircle, List, Type, MessageSquare, Pencil, Search } from 'lucide-react';
+import SearchableSelect from '../components/SearchableSelect';
 
 const QuizSettings = () => {
     const [questions, setQuestions] = useState([]);
@@ -279,60 +280,51 @@ const QuizSettings = () => {
             </div>
 
             {/* Filters Bar */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                    <MessageSquare size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center overflow-visible">
+                <div className="relative w-full md:w-96 transition-all duration-500">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <Search className="h-5 w-5 text-gray-400" />
+                    </div>
                     <input
                         type="text"
                         placeholder="Pesquisar pelo texto da pergunta..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-11 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                        className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
                     />
                 </div>
 
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:w-44">
-                        <select
+                        <SearchableSelect
+                            options={[...new Set(questions.map(q => q.categories?.name || q.category_key || q.category))].filter(Boolean).sort().map(cat => ({ value: cat, label: cat }))}
                             value={filterCategory}
-                            onChange={(e) => setFilterCategory(e.target.value)}
-                            className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium text-slate-700"
-                        >
-                            <option value="">Todas Categorias</option>
-                            {[...new Set(questions.map(q => q.categories?.name || q.category_key || q.category))].filter(Boolean).sort().map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            onChange={(val) => setFilterCategory(val)}
+                            placeholder="Todas Categorias"
+                        />
                     </div>
 
                     <div className="relative flex-1 md:w-44">
-                        <select
+                        <SearchableSelect
+                            options={[
+                                { value: 'text', label: 'TEXTO LIVRE' },
+                                { value: 'yes_no', label: 'SIM / NÃO' },
+                                { value: 'select', label: 'SELEÇÃO ÚNICA' },
+                                { value: 'scale', label: 'ESCALA / MÚLTIPLA' }
+                            ]}
                             value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium text-slate-700"
-                        >
-                            <option value="">Todos os Tipos</option>
-                            <option value="text">TEXTO LIVRE</option>
-                            <option value="yes_no">SIM / NÃO</option>
-                            <option value="select">SELEÇÃO ÚNICA</option>
-                            <option value="scale">ESCALA / MÚLTIPLA</option>
-                        </select>
-                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            onChange={(val) => setFilterType(val)}
+                            placeholder="Todos os Tipos"
+                        />
                     </div>
 
                     <div className="relative flex-1 md:w-32">
-                        <select
-                            value={filterWeight}
-                            onChange={(e) => setFilterWeight(e.target.value)}
-                            className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium text-slate-700"
-                        >
-                            <option value="">Peso (Todos)</option>
-                            {[...new Set(questions.map(q => q.weight))].sort((a, b) => a - b).map(w => (
-                                <option key={w} value={w}>{w}</option>
-                            ))}
-                        </select>
-                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <SearchableSelect
+                            options={[...new Set(questions.map(q => q.weight))].sort((a, b) => a - b).map(w => ({ value: String(w), label: String(w) }))}
+                            value={String(filterWeight)}
+                            onChange={(val) => setFilterWeight(val)}
+                            placeholder="Peso (Todos)"
+                        />
                     </div>
 
                     {(searchTerm || filterType || filterWeight || filterCategory) && (
@@ -395,34 +387,33 @@ const QuizSettings = () => {
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Resposta</label>
                                                 <div className="relative">
-                                                    <select
+                                                    <SearchableSelect
+                                                        options={[
+                                                            { value: 'text', label: 'TEXTO LIVRE' },
+                                                            { value: 'yes_no', label: 'SIM / NÃO' },
+                                                            { value: 'select', label: 'SELEÇÃO ÚNICA' },
+                                                            { value: 'scale', label: 'ESCALA / MÚLTIPLA' }
+                                                        ]}
                                                         value={tempQuestion.type}
-                                                        onChange={(e) => updateTemp('type', e.target.value)}
-                                                        className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
-                                                    >
-                                                        <option value="text">TEXTO LIVRE</option>
-                                                        <option value="yes_no">SIM / NÃO</option>
-                                                        <option value="select">SELEÇÃO ÚNICA</option>
-                                                        <option value="scale">ESCALA / MÚLTIPLA</option>
-                                                    </select>
-                                                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                                        onChange={(val) => updateTemp('type', val)}
+                                                        placeholder="Selecione o tipo..."
+                                                    />
                                                 </div>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
                                                 <div className="relative">
-                                                    <select
+                                                    <SearchableSelect
+                                                        options={[
+                                                            { value: 'Satisfação Pessoal', label: 'Satisfação Pessoal' },
+                                                            { value: 'Profissional', label: 'Profissional' },
+                                                            { value: 'Relacionamentos', label: 'Relacionamentos' },
+                                                            { value: 'Saúde', label: 'Saúde' }
+                                                        ]}
                                                         value={tempQuestion.category_key || tempQuestion.category || ''}
-                                                        onChange={(e) => updateTemp('category_key', e.target.value)}
-                                                        className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
-                                                    >
-                                                        <option value="">Selecione...</option>
-                                                        <option value="Satisfação Pessoal">Satisfação Pessoal</option>
-                                                        <option value="Profissional">Profissional</option>
-                                                        <option value="Relacionamentos">Relacionamentos</option>
-                                                        <option value="Saúde">Saúde</option>
-                                                    </select>
-                                                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                                        onChange={(val) => updateTemp('category_key', val)}
+                                                        placeholder="Selecione..."
+                                                    />
                                                 </div>
                                             </div>
                                             <div>

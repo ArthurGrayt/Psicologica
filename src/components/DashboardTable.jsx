@@ -119,18 +119,22 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                 <td className="p-4">{renderCellContent(patient.company)}</td>
                                 <td className="p-4">{renderCellContent(patient.role, true)}</td>
                                 <td className="p-4">{renderCellContent(patient.sector, true)}</td>
-                                <td className="p-4 flex items-center gap-2 text-gray-400 text-sm whitespace-nowrap">
-                                    <Calendar size={14} className="opacity-70" />
-                                    <span className="text-gray-500">{patient.date}</span>
+                                <td className="p-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                        <Calendar size={14} className="opacity-70" />
+                                        <span className="text-gray-500">{patient.date}</span>
+                                    </div>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-50 text-green-700 border-green-200' :
-                                        patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                            'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${patient.locked ? 'bg-red-50 text-red-700 border-red-200' :
+                                        patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-50 text-green-700 border-green-200' :
+                                            patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
                                         }`}>
-                                        {patient.status === 'pending' ? 'Pendente' :
-                                            patient.status === 'in_progress' ? 'Em Progresso' :
-                                                patient.status === 'completed' ? 'Concluído' : patient.status}
+                                        {patient.locked ? 'Bloqueado' :
+                                            patient.status === 'pending' ? 'Pendente' :
+                                                patient.status === 'in_progress' ? 'Em Progresso' :
+                                                    patient.status === 'completed' ? 'Concluído' : patient.status}
                                     </span>
                                 </td>
                                 <td className={`p-4 text-center relative ${index === patients.length - 1 ? 'rounded-br-xl' : ''}`}>

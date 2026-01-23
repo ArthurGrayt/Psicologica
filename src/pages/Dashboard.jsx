@@ -13,6 +13,18 @@ const Dashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
 
+    // Advanced Filter State
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        name: '',
+        company: '',
+        role: '',
+        sector: '',
+        date: '',
+        status: '',
+        locked: 'all' // all, locked, unlocked
+    });
+
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [isMultipleModalOpen, setIsMultipleModalOpen] = useState(false);
 
@@ -202,51 +214,81 @@ const Dashboard = () => {
         fetchPatients();
     }, []);
 
-    // Search Effect
+    // Search & Filter Effect
     React.useEffect(() => {
-        if (!searchTerm) {
-            setFilteredPatients(patients);
-            return;
+        let result = [...patients];
+
+        // 1. General Search Term (matches any field)
+        if (searchTerm) {
+            const lowerTerm = searchTerm.toLowerCase();
+            result = result.filter(p => {
+                const matchName = p.name?.toLowerCase().includes(lowerTerm);
+                const matchCompany = p.company?.toLowerCase().includes(lowerTerm);
+                const matchRole = p.role?.toLowerCase().includes(lowerTerm);
+                const matchSector = p.sector?.toLowerCase().includes(lowerTerm);
+                const matchDate = p.date?.toLowerCase().includes(lowerTerm);
+
+                let statusTerm = '';
+                if (p.status === 'pending') statusTerm = 'pendente';
+                if (p.status === 'in_progress') statusTerm = 'em progresso análise';
+                if (p.status === 'completed') statusTerm = 'concluído finalizado';
+                const matchStatus = statusTerm.includes(lowerTerm) || p.status?.toLowerCase().includes(lowerTerm);
+
+                return matchName || matchCompany || matchRole || matchSector || matchDate || matchStatus;
+            });
         }
 
-        const lowerTerm = searchTerm.toLowerCase();
+        // 2. Specific Advanced Filters (AND logic)
+        if (filters.name) {
+            result = result.filter(p => p.name?.toLowerCase().includes(filters.name.toLowerCase()));
+        }
+        if (filters.company) {
+            result = result.filter(p => p.company === filters.company);
+        }
+        if (filters.role) {
+            result = result.filter(p => p.role === filters.role);
+        }
+        if (filters.sector) {
+            result = result.filter(p => p.sector === filters.sector);
+        }
+        if (filters.date) {
+            result = result.filter(p => p.date?.toLowerCase().includes(filters.date.toLowerCase()));
+        }
+        if (filters.status) {
+            result = result.filter(p => p.status === filters.status);
+        }
+        if (filters.locked !== 'all') {
+            const shouldBeLocked = filters.locked === 'locked';
+            result = result.filter(p => p.locked === shouldBeLocked);
+        }
 
-        const filtered = patients.filter(p => {
-            // Field Matching
-            const matchName = p.name?.toLowerCase().includes(lowerTerm);
-            const matchCompany = p.company?.toLowerCase().includes(lowerTerm);
-            const matchRole = p.role?.toLowerCase().includes(lowerTerm);
-            const matchSector = p.sector?.toLowerCase().includes(lowerTerm);
-            const matchDate = p.date?.toLowerCase().includes(lowerTerm);
+        setFilteredPatients(result);
+    }, [searchTerm, patients, filters]);
 
-            // Status Translate Match (optional, but good UX)
-            // 'pending', 'in_progress', 'completed'
-            let statusTerm = '';
-            if (p.status === 'pending') statusTerm = 'pendente';
-            if (p.status === 'in_progress') statusTerm = 'em progresso análise';
-            if (p.status === 'completed') statusTerm = 'concluído finalizado';
-            const matchStatus = statusTerm.includes(lowerTerm) || p.status?.toLowerCase().includes(lowerTerm);
+    // Unique values for dropdowns
+    const uniqueOptions = {
+        companies: [...new Set(patients.map(p => p.company))].filter(Boolean).sort(),
+        roles: [...new Set(patients.map(p => p.role))].filter(Boolean).sort(),
+        sectors: [...new Set(patients.map(p => p.sector))].filter(Boolean).sort(),
+        statuses: [...new Set(patients.map(p => p.status))].filter(Boolean).sort()
+    };
 
-            // Locked/Unlocked Match
-            let matchLock = false;
-            if (lowerTerm.includes('travado') || lowerTerm.includes('bloqueado')) {
-                if (p.locked === true) matchLock = true;
-            }
-            if (lowerTerm.includes('destravado') || lowerTerm.includes('livre') || lowerTerm.includes('liberado')) {
-                if (p.locked === false) matchLock = true;
-            }
+    const handleFilterChange = (field, value) => {
+        setFilters(prev => ({ ...prev, [field]: value }));
+    };
 
-            // General "Unlocked" check if user types just "destra" or similar
-            // If the user typed something that matches the *concept* of locked/unlocked
-            if (!matchLock && (lowerTerm === 'travado' || lowerTerm === 'destravado')) {
-                // Strict match handled above, this is for partial typing if needed or strict enforcement
-            }
-
-            return matchName || matchCompany || matchRole || matchSector || matchDate || matchStatus || matchLock;
+    const clearFilters = () => {
+        setFilters({
+            name: '',
+            company: '',
+            role: '',
+            sector: '',
+            date: '',
+            status: '',
+            locked: 'all'
         });
-
-        setFilteredPatients(filtered);
-    }, [searchTerm, patients]);
+        setSearchTerm('');
+    };
 
     // Handlers
     const handleSort = (key, direction) => {
@@ -570,9 +612,9 @@ const Dashboard = () => {
                             </button>
                         </div>
 
-                        <div className="flex gap-8 flex-1 overflow-hidden">
+                        <div className="flex gap-8 flex-1 overflow-visible">
                             {/* LADO ESQUERDO: Busca e Lista */}
-                            <div className="flex-1 flex flex-col space-y-6 overflow-hidden">
+                            <div className="flex-1 flex flex-col space-y-6 overflow-visible">
                                 {/* Seleção de Contexto */}
                                 <div className="grid grid-cols-2 gap-4 p-1">
                                     <div>
@@ -785,9 +827,12 @@ const Dashboard = () => {
 
                 {!selectedPatient && (
                     <div className="flex items-center gap-3 w-full md:w-auto overflow-hidden">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 border border-slate-200 transition-colors font-medium text-sm whitespace-nowrap">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-medium text-sm whitespace-nowrap ${showFilters ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                        >
                             <Filter size={18} />
-                            <span>Filtrar</span>
+                            <span>{showFilters ? 'Ocultar Filtros' : 'Filtrar'}</span>
                         </button>
 
                         <button
@@ -799,6 +844,101 @@ const Dashboard = () => {
                         </button>
                     </div>
                 )}
+            </div>
+
+            {/* Painel de Filtros Avançados */}
+            <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[500px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
+                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nome do Paciente</label>
+                        <input
+                            type="text"
+                            value={filters.name}
+                            onChange={(e) => handleFilterChange('name', e.target.value)}
+                            placeholder="Ex: João Silva"
+                            className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Empresa</label>
+                        <SearchableSelect
+                            options={uniqueOptions.companies.map(c => ({ value: c, label: c }))}
+                            value={filters.company}
+                            onChange={(val) => handleFilterChange('company', val)}
+                            placeholder="Todas as Empresas"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Cargo</label>
+                        <SearchableSelect
+                            options={uniqueOptions.roles.map(r => ({ value: r, label: r }))}
+                            value={filters.role}
+                            onChange={(val) => handleFilterChange('role', val)}
+                            placeholder="Todos os Cargos"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Setor</label>
+                        <SearchableSelect
+                            options={uniqueOptions.sectors.map(s => ({ value: s, label: s }))}
+                            value={filters.sector}
+                            onChange={(val) => handleFilterChange('sector', val)}
+                            placeholder="Todos os Setores"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Data</label>
+                        <input
+                            type="text"
+                            value={filters.date}
+                            onChange={(e) => handleFilterChange('date', e.target.value)}
+                            placeholder="Ex: 22 Out"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Status</label>
+                        <SearchableSelect
+                            options={[
+                                { value: 'pending', label: 'Pendente' },
+                                { value: 'in_progress', label: 'Em Progresso' },
+                                { value: 'completed', label: 'Concluído' }
+                            ]}
+                            value={filters.status}
+                            onChange={(val) => handleFilterChange('status', val)}
+                            placeholder="Todos Status"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Bloqueio</label>
+                        <SearchableSelect
+                            options={[
+                                { value: 'all', label: 'Todos' },
+                                { value: 'locked', label: 'Travado' },
+                                { value: 'unlocked', label: 'Destravado' }
+                            ]}
+                            value={filters.locked}
+                            onChange={(val) => handleFilterChange('locked', val)}
+                            placeholder="Todos"
+                        />
+                    </div>
+
+                    <div className="flex items-end">
+                        <button
+                            onClick={clearFilters}
+                            className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                        >
+                            <X size={16} />
+                            Limpar Filtros
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Container Principal: Tabela -> Edição (Split) */}
@@ -900,19 +1040,14 @@ const Dashboard = () => {
                                 <p className="text-sm max-w-xs text-center mt-2 opacity-80">Use o botão "Inserção Múltipla" acima para buscar colaboradores e cadastrá-los como pacientes.</p>
                             </div>
                         ) : (
-                            <>
-                                <DashboardTable
-                                    patients={filteredPatients}
-                                    onEdit={setSelectedPatient}
-                                    onSort={handleSort}
-                                    onDelete={handleDeletePatient}
-                                    onGenerateForm={handleGenerateAssessment}
-                                    onToggleLock={handleToggleLock}
-                                />
-                                <div className="p-4 border-t border-slate-100 flex justify-center items-center text-xs text-slate-400">
-                                    Total: {filteredPatients.length} pacientes encontrados
-                                </div>
-                            </>
+                            <DashboardTable
+                                patients={filteredPatients}
+                                onEdit={setSelectedPatient}
+                                onSort={handleSort}
+                                onDelete={handleDeletePatient}
+                                onGenerateForm={handleGenerateAssessment}
+                                onToggleLock={handleToggleLock}
+                            />
                         )
                     )}
                 </div>

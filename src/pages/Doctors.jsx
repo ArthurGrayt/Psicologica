@@ -2,12 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Plus, Filter, X, Upload, Save, User, Phone, FileBadge, ChevronLeft } from 'lucide-react';
 import DoctorTable from '../components/DoctorTable';
+import SearchableSelect from '../components/SearchableSelect';
 
 const Doctors = () => {
     const [doctors, setDoctors] = useState([]);
+    const [filteredDoctors, setFilteredDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
-    const [isCreating, setIsCreating] = useState(false); // State for creation mode
+    const [isCreating, setIsCreating] = useState(false);
+
+    // Search & Filter State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        name: '',
+        crp: '',
+        hasSignature: 'all' // all, yes, no
+    });
 
     // Fetch Doctors from DB
     const fetchDoctors = async () => {
@@ -25,18 +36,13 @@ const Doctors = () => {
                 id: d.id,
                 name: d.name,
                 crp: d.crp || '',
-                // If phone column doesn't exist in schema provided, we might need to skip or handle it.
-                // User provided schema: id, name, crp, signature_url. No phone.
-                // I'll keep phone in local state for UI consistency but it won't persist if not in DB.
-                // Or I can add it to schema? User didn't ask to create column. 
-                // I will safely ignore phone persistence or treat as transient for now, 
-                // unless I see it can be added. I'll omit phone from DB operations to be safe with schema.
                 phone: '',
                 hasSignature: !!d.signature_url,
                 signatureUrl: d.signature_url
             }));
 
             setDoctors(mapped);
+            setFilteredDoctors(mapped);
         } catch (err) {
             console.error('Error fetching doctors:', err);
             alert('Erro ao carregar médicos.');
@@ -49,14 +55,55 @@ const Doctors = () => {
         fetchDoctors();
     }, []);
 
+    // Filter Effect
+    useEffect(() => {
+        let result = [...doctors];
+
+        // 1. General Search Term
+        if (searchTerm) {
+            const lowerTerm = searchTerm.toLowerCase();
+            result = result.filter(d =>
+                d.name?.toLowerCase().includes(lowerTerm) ||
+                d.crp?.toLowerCase().includes(lowerTerm)
+            );
+        }
+
+        // 2. Advanced Filters
+        if (filters.name) {
+            result = result.filter(d => d.name?.toLowerCase().includes(filters.name.toLowerCase()));
+        }
+        if (filters.crp) {
+            result = result.filter(d => d.crp?.toLowerCase().includes(filters.crp.toLowerCase()));
+        }
+        if (filters.hasSignature !== 'all') {
+            const needsSignature = filters.hasSignature === 'yes';
+            result = result.filter(d => d.hasSignature === needsSignature);
+        }
+
+        setFilteredDoctors(result);
+    }, [searchTerm, filters, doctors]);
+
     // Handlers
     const handleSort = (key, direction) => {
-        const sorted = [...doctors].sort((a, b) => {
+        const sorted = [...filteredDoctors].sort((a, b) => {
             if (a[key] < b[key]) return direction === 'ascending' ? -1 : 1;
             if (a[key] > b[key]) return direction === 'ascending' ? 1 : -1;
             return 0;
         });
-        setDoctors(sorted);
+        setFilteredDoctors(sorted);
+    };
+
+    const handleFilterChange = (field, value) => {
+        setFilters(prev => ({ ...prev, [field]: value }));
+    };
+
+    const clearFilters = () => {
+        setFilters({
+            name: '',
+            crp: '',
+            hasSignature: 'all'
+        });
+        setSearchTerm('');
     };
 
     const handleClosePanel = () => {
@@ -185,47 +232,116 @@ const Doctors = () => {
         <div className="flex flex-col h-full gap-6">
 
             {/* 1. Card Superior (Filtros) */}
-            <div className="bg-white p-6 rounded-[32px] shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 transition-all duration-500">
-                {/* Visual dinâmico: Se houver seleção, mostra botão Voltar, senão Busca */}
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    {selectedDoctor ? (
-                        <button
-                            onClick={handleClosePanel}
-                            className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-medium"
-                        >
-                            <div className="bg-slate-100 p-2 rounded-full">
-                                <ChevronLeft size={20} />
+            <div className="bg-white p-6 rounded-[32px] shadow-sm flex flex-col gap-6 transition-all duration-500 overflow-visible">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    {/* Visual dinâmico: Se houver seleção, mostra botão Voltar, senão Busca */}
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        {selectedDoctor ? (
+                            <button
+                                onClick={handleClosePanel}
+                                className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-medium"
+                            >
+                                <div className="bg-slate-100 p-2 rounded-full">
+                                    <ChevronLeft size={20} />
+                                </div>
+                                <span>Voltar para Lista</span>
+                            </button>
+                        ) : (
+                            <div className="relative w-full md:w-96 transition-all duration-500">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                    <Search className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Buscar médico..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
+                                />
                             </div>
-                            <span>Voltar para Lista</span>
-                        </button>
-                    ) : (
-                        <div className="relative w-full md:w-96 transition-all duration-500">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Buscar médico..."
-                                className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
-                            />
+                        )}
+                    </div>
+
+                    {/* Filtros e Ações (Ocultar quando editando) */}
+                    {!selectedDoctor && (
+                        <div className="flex items-center gap-3 w-full md:w-auto overflow-hidden">
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium text-sm whitespace-nowrap border ${showFilters
+                                    ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-teal-900/20'
+                                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200'
+                                    }`}
+                            >
+                                <Filter size={18} />
+                                <span>{showFilters ? 'Ocultar Filtros' : 'Filtrar'}</span>
+                            </button>
+                            <button
+                                onClick={handleStartCreate}
+                                className="ml-auto md:ml-2 flex items-center gap-2 px-6 py-2.5 bg-[#139690] text-white rounded-2xl hover:bg-[#139690]/90 shadow-lg transition-all font-bold text-sm whitespace-nowrap"
+                            >
+                                <Plus size={18} />
+                                <span>Novo Médico</span>
+                            </button>
                         </div>
                     )}
                 </div>
 
-                {/* Filtros e Ações (Ocultar quando editando) */}
-                {!selectedDoctor && (
-                    <div className="flex items-center gap-3 w-full md:w-auto overflow-hidden">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 border border-slate-200 transition-colors font-medium text-sm whitespace-nowrap">
-                            <Filter size={18} />
-                            <span>Filtrar</span>
-                        </button>
-                        <button
-                            onClick={handleStartCreate}
-                            className="ml-auto md:ml-2 flex items-center gap-2 px-6 py-2.5 bg-[#139690] text-white rounded-2xl hover:bg-[#139690]/90 shadow-lg transition-all font-bold text-sm whitespace-nowrap"
-                        >
-                            <Plus size={18} />
-                            <span>Novo Médico</span>
-                        </button>
+                {/* Advanced Filter Panel */}
+                {!selectedDoctor && showFilters && (
+                    <div className="pt-6 border-t border-slate-100 animate-in slide-in-from-top-4 fade-in duration-300">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Nome do Médico</label>
+                                <div className="relative">
+                                    <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: João Silva"
+                                        value={filters.name}
+                                        onChange={(e) => handleFilterChange('name', e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">CRP</label>
+                                <div className="relative">
+                                    <FileBadge size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="00/00000"
+                                        value={filters.crp}
+                                        onChange={(e) => handleFilterChange('crp', e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Possui Assinatura</label>
+                                <SearchableSelect
+                                    options={[
+                                        { value: 'all', label: 'Todos' },
+                                        { value: 'yes', label: 'Sim' },
+                                        { value: 'no', label: 'Não' }
+                                    ]}
+                                    value={filters.hasSignature}
+                                    onChange={(val) => handleFilterChange('hasSignature', val)}
+                                    placeholder="Selecione..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={clearFilters}
+                                className="flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-slate-600 transition-colors text-sm font-medium"
+                            >
+                                <X size={16} />
+                                Limpar Filtros
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -299,17 +415,17 @@ const Doctors = () => {
                             </div>
                         </div>
                     ) : (
-                        // MODO VISUALIZAÇÃO: Tabela
                         loading ? (
                             <div className="flex items-center justify-center h-full text-slate-400">Carregando médicos...</div>
                         ) : (
                             <DoctorTable
-                                doctors={doctors}
+                                doctors={filteredDoctors}
                                 onSelectDoctor={(doc) => {
                                     setIsCreating(false);
                                     setSelectedDoctor(doc);
                                 }}
                                 onSort={handleSort}
+                                onDelete={handleDeleteDoctor}
                             />
                         )
                     )}

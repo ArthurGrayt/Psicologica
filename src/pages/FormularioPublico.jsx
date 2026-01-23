@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CheckCircle, Lock, User, ChevronDown, AlignLeft, ChevronUp } from 'lucide-react';
+import { CheckCircle, Lock, User, ChevronDown, AlignLeft, ChevronUp, Search, Check } from 'lucide-react';
+import SearchableSelect from '../components/SearchableSelect';
 
 /* --- Components Visuals (Styles) --- */
 const LoadingScreen = () => (
@@ -70,25 +71,17 @@ const QuestionCard = ({ question, answer, onAnswer, error }) => {
             const hasOptions = question.question_options && question.question_options.length > 0;
 
             return (
-                <div className="mt-6 relative max-w-[300px]">
+                <div className="mt-6 relative max-w-[400px]">
                     {hasOptions ? (
-                        <div className="relative">
-                            <select
-                                value={answer || ''}
-                                onChange={(e) => onAnswer(e.target.value)}
-                                className="w-full appearance-none bg-white border border-slate-200 text-[#202124] text-[14px] py-3 px-4 pr-10 rounded-md focus:outline-none focus:border-[#35b6cf] focus:ring-1 focus:ring-[#35b6cf] transition-all hover:bg-slate-50 cursor-pointer shadow-sm"
-                            >
-                                <option value="">Escolher opção...</option>
-                                {question.question_options.map(opt => (
-                                    <option key={opt.id} value={opt.label || opt.text || opt.value}>
-                                        {opt.label || opt.text || opt.value}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                                <ChevronDown size={14} />
-                            </div>
-                        </div>
+                        <SearchableSelect
+                            options={question.question_options.map(opt => ({
+                                value: String(opt.label || opt.text || opt.value),
+                                label: String(opt.label || opt.text || opt.value)
+                            }))}
+                            value={String(answer || '')}
+                            onChange={(val) => onAnswer(val)}
+                            placeholder="Escolher opção..."
+                        />
                     ) : (
                         <p className="text-red-500 text-xs italic">Erro: Nenhuma opção carregada para esta pergunta.</p>
                     )}

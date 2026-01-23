@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Pencil, Trash2, ArrowUpDown, MoreHorizontal } from 'lucide-react';
 
-const DoctorTable = ({ doctors, onSelectDoctor, onSort }) => {
+const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const dropdownRef = useRef(null);
@@ -127,7 +127,7 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort }) => {
                                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors group"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        // onDelete(doctor.id);
+                                                        onDelete(doctor.id);
                                                         setOpenDropdownId(null);
                                                     }}
                                                 >
