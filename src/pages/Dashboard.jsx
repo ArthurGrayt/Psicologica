@@ -119,7 +119,14 @@ const Dashboard = () => {
             const mappedPatients = patientsData.map(p => {
                 const cargoNome = p.cargos ? (p.cargos.nome_cargo || p.cargos.nome || 'Cargo') : 'Sem Cargo';
                 const setorNome = p.setor ? (p.setor.nome_setor || p.setor.nome || 'Setor') : 'Sem Setor';
-                const date = new Date(p.created_at).toLocaleDateString('pt-BR');
+
+                // Formatação de data customizada: "22 Out 2026"
+                const dateObj = new Date(p.created_at);
+                const day = dateObj.getDate().toString().padStart(2, '0');
+                const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                const month = months[dateObj.getMonth()];
+                const year = dateObj.getFullYear();
+                const date = `${day} ${month} ${year}`;
 
                 // Find assessments for this patient
                 const patientAssessments = (assessmentsData || []).filter(a => a.patient_id === p.id);
@@ -673,13 +680,13 @@ const Dashboard = () => {
                         </button>
                     ) : (
                         <div className="relative w-full md:w-96 transition-all duration-500">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-slate-400" />
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <Search className="h-5 w-5 text-gray-400" />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Buscar paciente..."
-                                className="pl-10 pr-4 py-2 w-full bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700"
+                                className="pl-11 pr-4 py-2.5 w-full bg-gray-50 border border-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400 transition-all text-slate-700 placeholder:text-gray-400"
                             />
                         </div>
                     )}

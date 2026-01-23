@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CheckCircle, Lock, User, ChevronDown, AlignLeft } from 'lucide-react';
+import { CheckCircle, Lock, User, ChevronDown, AlignLeft, ChevronUp } from 'lucide-react';
 
 /* --- Components Visuals (Styles) --- */
 const LoadingScreen = () => (
@@ -143,13 +143,29 @@ const FormularioPublico = () => {
     const [questions, setQuestions] = useState([]);
     const [answers, setAnswers] = useState({});
     const [validationErrors, setValidationErrors] = useState([]);
+    const [showScrollTop, setShowScrollTop] = useState(false);
 
     // Scroll ref for error focusing
     const topRef = useRef(null);
 
     useEffect(() => {
         if (assessmentId) fetchAssessment();
+
+        const handleScroll = () => {
+            if (window.scrollY > 300) {
+                setShowScrollTop(true);
+            } else {
+                setShowScrollTop(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, [assessmentId]);
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     const fetchAssessment = async () => {
         setLoading(true);
@@ -362,6 +378,17 @@ const FormularioPublico = () => {
                 </div>
 
             </div>
+
+            {/* Scroll to Top Button */}
+            {showScrollTop && (
+                <button
+                    onClick={scrollToTop}
+                    className="fixed bottom-6 right-6 bg-[#35b6cf] text-white p-3 rounded-full shadow-lg hover:bg-[#2da9c0] transition-all duration-300 animate-in fade-in zoom-in-75 z-50 flex items-center justify-center group"
+                    aria-label="Voltar ao topo"
+                >
+                    <ChevronUp size={24} className="group-hover:-translate-y-1 transition-transform" />
+                </button>
+            )}
         </div>
     );
 };
