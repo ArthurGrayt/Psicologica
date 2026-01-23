@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Calendar, Pencil, Unlock, Lock, ArrowUpDown, Trash2, Link as LinkIcon, MoreHorizontal, ChevronDown, CheckCircle } from 'lucide-react';
 
-const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, onToggleLock }) => {
+const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, onToggleLock, onGenerateReport }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const dropdownRef = useRef(null);
@@ -66,171 +66,206 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
 
     return (
         <div className="w-full h-full flex flex-col">
-            <div className="border border-gray-200 rounded-xl bg-white shadow-sm relative z-0 overflow-visible">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="bg-brand-surface border-b border-gray-200 text-slate-500 text-[11px] font-bold uppercase tracking-widest">
-                            <th
-                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group first:rounded-tl-xl"
-                                onClick={() => requestSort('name')}
-                            >
-                                <span className="flex items-center">Paciente {getSortIcon('name')}</span>
-                            </th>
-                            <th
-                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
-                                onClick={() => requestSort('company')}
-                            >
-                                <span className="flex items-center">Empresa {getSortIcon('company')}</span>
-                            </th>
-                            <th
-                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
-                                onClick={() => requestSort('role')}
-                            >
-                                <span className="flex items-center">Cargo {getSortIcon('role')}</span>
-                            </th>
-                            <th
-                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
-                                onClick={() => requestSort('sector')}
-                            >
-                                <span className="flex items-center">Setor {getSortIcon('sector')}</span>
-                            </th>
-                            <th
-                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
-                                onClick={() => requestSort('date')}
-                            >
-                                <span className="flex items-center">Data {getSortIcon('date')}</span>
-                            </th>
-                            <th
-                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
-                                onClick={() => requestSort('status')}
-                            >
-                                <span className="flex items-center">Status {getSortIcon('status')}</span>
-                            </th>
-                            <th className="p-4 text-center last:rounded-tr-xl">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y-0">
-                        {patients.map((patient, index) => (
-                            <tr
-                                key={patient.id}
-                                className={`border-b border-gray-100 last:border-0 hover:bg-brand-surface/80 transition-colors duration-200 group ${patient.id && openDropdownId === patient.id ? 'relative z-50' : ''}`}
-                            >
-                                <td className={`p-4 font-semibold text-slate-900 ${index === patients.length - 1 ? 'rounded-bl-xl' : ''}`}>{patient.name}</td>
-                                <td className="p-4">{renderCellContent(patient.company)}</td>
-                                <td className="p-4">{renderCellContent(patient.role, true)}</td>
-                                <td className="p-4">{renderCellContent(patient.sector, true)}</td>
-                                <td className="p-4 whitespace-nowrap">
-                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
-                                        <Calendar size={14} className="opacity-70" />
-                                        <span className="text-gray-500">{patient.date}</span>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${patient.locked ? 'bg-red-50 text-red-700 border-red-200' :
-                                        patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-50 text-green-700 border-green-200' :
-                                            patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
-                                        }`}>
-                                        {patient.locked ? 'Bloqueado' :
-                                            patient.status === 'pending' ? 'Pendente' :
-                                                patient.status === 'in_progress' ? 'Em Progresso' :
-                                                    patient.status === 'completed' ? 'Concluído' : patient.status}
-                                    </span>
-                                </td>
-                                <td className={`p-4 text-center relative ${index === patients.length - 1 ? 'rounded-br-xl' : ''}`}>
-                                    <div className="flex items-center justify-center">
-                                        <button
-                                            className={`p-2 rounded-md border transition-all duration-200 ${openDropdownId === patient.id
-                                                ? 'bg-gray-100 border-gray-300 text-slate-900 shadow-sm'
-                                                : 'bg-transparent border-gray-200 text-slate-600 hover:bg-gray-100 hover:border-gray-300 hover:text-slate-900'
-                                                }`}
-                                            title="Configurações"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setOpenDropdownId(openDropdownId === patient.id ? null : patient.id);
-                                            }}
-                                        >
-                                            <MoreHorizontal size={18} />
-                                        </button>
-
-                                        {/* Dropdown Menu */}
-                                        {patient.id && openDropdownId === patient.id && (
-                                            <div
-                                                ref={dropdownRef}
-                                                className="absolute right-4 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200"
+            <div className="border border-gray-200 rounded-xl bg-white shadow-sm flex flex-col relative z-0 overflow-visible">
+                <div className="w-full flex-1">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-brand-surface border-b border-gray-200 text-slate-500 text-[11px] font-bold uppercase tracking-widest">
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group first:rounded-tl-xl min-w-[220px]"
+                                    onClick={() => requestSort('name')}
+                                >
+                                    <span className="flex items-center">Paciente {getSortIcon('name')}</span>
+                                </th>
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group min-w-[140px]"
+                                    onClick={() => requestSort('cpf')}
+                                >
+                                    <span className="flex items-center">CPF {getSortIcon('cpf')}</span>
+                                </th>
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group w-[120px]"
+                                    onClick={() => requestSort('nascimento')}
+                                >
+                                    <span className="flex items-center">Nascimento {getSortIcon('nascimento')}</span>
+                                </th>
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group w-[80px]"
+                                    onClick={() => requestSort('sexo')}
+                                >
+                                    <span className="flex items-center">Sexo {getSortIcon('sexo')}</span>
+                                </th>
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group min-w-[200px]"
+                                    onClick={() => requestSort('company')}
+                                >
+                                    <span className="flex items-center">Empresa {getSortIcon('company')}</span>
+                                </th>
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group min-w-[150px]"
+                                    onClick={() => requestSort('role')}
+                                >
+                                    <span className="flex items-center">Cargo {getSortIcon('role')}</span>
+                                </th>
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group min-w-[150px]"
+                                    onClick={() => requestSort('sector')}
+                                >
+                                    <span className="flex items-center">Setor {getSortIcon('sector')}</span>
+                                </th>
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group min-w-[140px]"
+                                    onClick={() => requestSort('date')}
+                                >
+                                    <span className="flex items-center">Data {getSortIcon('date')}</span>
+                                </th>
+                                <th
+                                    className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group min-w-[140px]"
+                                    onClick={() => requestSort('status')}
+                                >
+                                    <span className="flex items-center">Status {getSortIcon('status')}</span>
+                                </th>
+                                <th className="p-4 text-center last:rounded-tr-xl w-[100px]">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y-0">
+                            {patients.map((patient, index) => (
+                                <tr
+                                    key={patient.id}
+                                    className={`border-b border-gray-100 last:border-0 hover:bg-brand-surface/80 transition-colors duration-200 group ${patient.id && openDropdownId === patient.id ? 'relative z-50' : ''}`}
+                                >
+                                    <td className={`p-4 font-semibold text-slate-900 ${index === patients.length - 1 ? 'rounded-bl-xl' : ''}`}>{patient.name}</td>
+                                    <td className="p-4">{renderCellContent(patient.cpf)}</td>
+                                    <td className="p-4">{renderCellContent(patient.nascimento)}</td>
+                                    <td className="p-4">{renderCellContent(patient.sexo)}</td>
+                                    <td className="p-4">{renderCellContent(patient.company)}</td>
+                                    <td className="p-4">{renderCellContent(patient.role, true)}</td>
+                                    <td className="p-4">{renderCellContent(patient.sector, true)}</td>
+                                    <td className="p-4 whitespace-nowrap">
+                                        <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                            <Calendar size={14} className="opacity-70" />
+                                            <span className="text-gray-500">{patient.date}</span>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 whitespace-nowrap">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap inline-block ${patient.locked ? 'bg-red-50 text-red-700 border-red-200' :
+                                            patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                    'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
+                                            }`}>
+                                            {patient.locked ? 'Bloqueado' :
+                                                patient.status === 'pending' ? 'Pendente' :
+                                                    patient.status === 'in_progress' ? 'Em Progresso' :
+                                                        patient.status === 'completed' ? 'Concluído' : patient.status}
+                                        </span>
+                                    </td>
+                                    <td className={`p-4 text-center relative w-[100px] ${index === patients.length - 1 ? 'rounded-br-xl' : ''}`}>
+                                        <div className="flex items-center justify-center">
+                                            <button
+                                                className={`p-2 rounded-md border transition-all duration-200 ${openDropdownId === patient.id
+                                                    ? 'bg-gray-100 border-gray-300 text-slate-900 shadow-sm'
+                                                    : 'bg-transparent border-gray-200 text-slate-600 hover:bg-gray-100 hover:border-gray-300 hover:text-slate-900'
+                                                    }`}
+                                                title="Configurações"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setOpenDropdownId(openDropdownId === patient.id ? null : patient.id);
+                                                }}
                                             >
-                                                <button
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onGenerateForm(patient.id);
-                                                        setOpenDropdownId(null);
-                                                    }}
-                                                >
-                                                    <LinkIcon size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
-                                                    <span className="font-medium align-middle">Gerar Link</span>
-                                                </button>
+                                                <MoreHorizontal size={18} />
+                                            </button>
 
-                                                <button
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onEdit(patient);
-                                                        setOpenDropdownId(null);
-                                                    }}
+                                            {/* Dropdown Menu */}
+                                            {patient.id && openDropdownId === patient.id && (
+                                                <div
+                                                    ref={dropdownRef}
+                                                    className="absolute right-4 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200 text-left"
                                                 >
-                                                    <Pencil size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
-                                                    <span className="font-medium align-middle">Editar</span>
-                                                </button>
-
-                                                {patient.assessmentId ? (
                                                     <button
                                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            onToggleLock(patient.id, patient.assessmentId, patient.locked);
+                                                            onGenerateForm(patient.id);
                                                             setOpenDropdownId(null);
                                                         }}
                                                     >
-                                                        {patient.locked ?
-                                                            <Unlock size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" /> :
-                                                            <Lock size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
-                                                        }
-                                                        <span className="font-medium align-middle">{patient.locked ? 'Destravar' : 'Travar'}</span>
+                                                        <LinkIcon size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
+                                                        <span className="font-medium align-middle">Gerar Link</span>
                                                     </button>
-                                                ) : (
-                                                    <div className="px-4 py-2.5 text-xs text-slate-400 italic flex items-center gap-3 select-none">
-                                                        <Unlock size={16} className="opacity-50" />
-                                                        <span className="align-middle">Não avaliado</span>
-                                                    </div>
-                                                )}
 
-                                                <div className="h-px bg-slate-100 my-1 mx-2"></div>
+                                                    <button
+                                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onGenerateReport(patient);
+                                                            setOpenDropdownId(null);
+                                                        }}
+                                                    >
+                                                        <FileText size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
+                                                        <span className="font-medium align-middle">Gerar Laudo</span>
+                                                    </button>
 
-                                                <button
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors group"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (window.confirm('Tem certeza que deseja excluir este paciente?')) {
-                                                            onDelete(patient.id);
-                                                        }
-                                                        setOpenDropdownId(null);
-                                                    }}
-                                                >
-                                                    <Trash2 size={16} className="text-red-500 group-hover:text-red-700 transition-colors" />
-                                                    <span className="font-medium align-middle">Excluir</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                                    <button
+                                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onEdit(patient);
+                                                            setOpenDropdownId(null);
+                                                        }}
+                                                    >
+                                                        <Pencil size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
+                                                        <span className="font-medium align-middle">Editar</span>
+                                                    </button>
+
+                                                    {patient.assessmentId ? (
+                                                        <button
+                                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onToggleLock(patient.id, patient.assessmentId, patient.locked);
+                                                                setOpenDropdownId(null);
+                                                            }}
+                                                        >
+                                                            {patient.locked ?
+                                                                <Unlock size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" /> :
+                                                                <Lock size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
+                                                            }
+                                                            <span className="font-medium align-middle">{patient.locked ? 'Destravar' : 'Travar'}</span>
+                                                        </button>
+                                                    ) : (
+                                                        <div className="px-4 py-2.5 text-xs text-slate-400 italic flex items-center gap-3 select-none">
+                                                            <Unlock size={16} className="opacity-50" />
+                                                            <span className="align-middle">Não avaliado</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="h-px bg-slate-100 my-1 mx-2"></div>
+
+                                                    <button
+                                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors group"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (window.confirm('Tem certeza que deseja excluir este paciente?')) {
+                                                                onDelete(patient.id);
+                                                            }
+                                                            setOpenDropdownId(null);
+                                                        }}
+                                                    >
+                                                        <Trash2 size={16} className="text-red-500 group-hover:text-red-700 transition-colors" />
+                                                        <span className="font-medium align-middle">Excluir</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
                 {/* Pagination Footer */}
-                <div className="bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-between rounded-b-xl">
+                <div className="bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-between rounded-b-xl relative z-10">
                     <div className="text-gray-400 text-sm">
                         Mostrando <span className="font-medium text-gray-600">1-{patients.length}</span> de <span className="font-medium text-gray-600">{patients.length}</span> pacientes
                     </div>

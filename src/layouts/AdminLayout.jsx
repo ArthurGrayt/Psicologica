@@ -103,7 +103,7 @@ const AdminLayout = () => {
 
             {/* Conteúdo Principal */}
             <main className="flex-1 min-w-0 h-screen overflow-y-auto scroll-smooth">
-                <div className="p-6 md:p-10 max-w-7xl mx-auto">
+                <div className="p-6 md:p-10 max-w-[1600px] mx-auto">
                     <Outlet />
                 </div>
             </main>

@@ -4,6 +4,7 @@ import DashboardTable from '../components/DashboardTable';
 import { useCompanyData } from '../hooks/useCompanyData';
 import SearchableSelect from '../components/SearchableSelect';
 import { supabase } from '../lib/supabase';
+import { generatePDF } from '../services/pdfReportGenerator';
 
 const Dashboard = () => {
     // Estado Mockado Removido. Apenas dados reais.
@@ -136,6 +137,9 @@ const Dashboard = () => {
                 .from('colaboradores')
                 .select(`
                     id,
+                    cpf,
+                    sexo,
+                    data_nascimento,
                     unidades:unidade (
                         nome_unidade,
                         clientes:empresaid (nome_fantasia)
@@ -148,14 +152,27 @@ const Dashboard = () => {
             }
 
             // Create a map for quick access
-            const companyMap = {};
+            const collabInfoMap = {};
             if (collaboratorsData) {
                 collaboratorsData.forEach(c => {
                     const empresaName = c.unidades?.clientes?.nome_fantasia;
                     const unidadeName = c.unidades?.nome_unidade;
-                    if (empresaName) {
-                        companyMap[c.id] = `${empresaName} ${unidadeName ? `(${unidadeName})` : ''}`;
+
+                    // Formatação de Nascimento (DD/MM/YYYY)
+                    let formattedNasc = '—';
+                    if (c.data_nascimento) {
+                        const d = new Date(c.data_nascimento);
+                        if (!isNaN(d.getTime())) {
+                            formattedNasc = d.toLocaleDateString('pt-BR');
+                        }
                     }
+
+                    collabInfoMap[c.id] = {
+                        companyFull: empresaName ? `${empresaName} ${unidadeName ? `(${unidadeName})` : ''}` : 'Empresa não encontrada',
+                        cpf: c.cpf || '—',
+                        sexo: c.sexo ? c.sexo.charAt(0).toUpperCase() : '—',
+                        nascimento: formattedNasc
+                    };
                 });
             }
 
@@ -181,13 +198,16 @@ const Dashboard = () => {
                     latestAssessment = patientAssessments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
                 }
 
-                // Company Name from Map or Default
-                const companyName = companyMap[p.id] || 'Empresa não encontrada';
+                // Collab Info from Map or Default
+                const info = collabInfoMap[p.id] || { companyFull: 'Empresa não encontrada', cpf: '—', sexo: '—', nascimento: '—' };
 
                 return {
                     id: p.id,
                     name: p.name,
-                    company: companyName, // Now populated!
+                    company: info.companyFull,
+                    cpf: info.cpf,
+                    sexo: info.sexo,
+                    nascimento: info.nascimento,
                     role: cargoNome,
                     sector: setorNome,
                     date: date,
@@ -227,6 +247,9 @@ const Dashboard = () => {
                 const matchRole = p.role?.toLowerCase().includes(lowerTerm);
                 const matchSector = p.sector?.toLowerCase().includes(lowerTerm);
                 const matchDate = p.date?.toLowerCase().includes(lowerTerm);
+                const matchCpf = p.cpf?.toString().toLowerCase().includes(lowerTerm);
+                const matchNasc = p.nascimento?.toString().toLowerCase().includes(lowerTerm);
+                const matchSexo = p.sexo?.toString().toLowerCase().includes(lowerTerm);
 
                 let statusTerm = '';
                 if (p.status === 'pending') statusTerm = 'pendente';
@@ -234,7 +257,7 @@ const Dashboard = () => {
                 if (p.status === 'completed') statusTerm = 'concluído finalizado';
                 const matchStatus = statusTerm.includes(lowerTerm) || p.status?.toLowerCase().includes(lowerTerm);
 
-                return matchName || matchCompany || matchRole || matchSector || matchDate || matchStatus;
+                return matchName || matchCompany || matchRole || matchSector || matchDate || matchStatus || matchCpf || matchNasc || matchSexo;
             });
         }
 
@@ -580,6 +603,62 @@ const Dashboard = () => {
         } catch (err) {
             console.error('Erro ao importar pacientes:', err.message);
             alert('Erro ao importar: ' + err.message);
+        }
+    };
+
+    // --- Generate Report Handler ---
+    const handleGenerateReport = async (patient) => {
+        if (!patient.assessmentId) {
+            alert('Este paciente ainda não possui uma avaliação iniciada para gerar laudo.');
+            return;
+        }
+
+        try {
+            // 1. Fetch Questions (for categories)
+            const { data: questionsData, error: qError } = await supabase
+                .from('questions')
+                .select('*, categories(name)')
+                .order('id', { ascending: true });
+
+            if (qError) throw qError;
+
+            // 2. Fetch Answers for this assessment
+            const { data: answersData, error: aError } = await supabase
+                .from('answers')
+                .select('*')
+                .eq('assessment_id', patient.assessmentId);
+
+            if (aError) throw aError;
+
+            // 3. Fetch full patient details (if needed beyond table data, e.g. cpf, birth_date)
+            const { data: patientFullData, error: pError } = await supabase
+                .from('patients')
+                .select('*')
+                .eq('id', patient.id)
+                .single();
+
+            if (pError) throw pError;
+
+            // 4. Load Logo (Optional)
+            let logoBase64 = null;
+            try {
+                const response = await fetch('/logo-gama-full.png');
+                const blob = await response.blob();
+                logoBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (err) {
+                console.warn('Erro ao carregar logo:', err);
+            }
+
+            // 5. Generate PDF
+            generatePDF(patientFullData, { id: patient.assessmentId }, answersData, questionsData, logoBase64);
+
+        } catch (err) {
+            console.error('Erro ao gerar laudo:', err);
+            alert('Erro ao gerar laudo. Verifique o console para mais detalhes.');
         }
     };
 
@@ -1047,6 +1126,7 @@ const Dashboard = () => {
                                 onDelete={handleDeletePatient}
                                 onGenerateForm={handleGenerateAssessment}
                                 onToggleLock={handleToggleLock}
+                                onGenerateReport={handleGenerateReport}
                             />
                         )
                     )}
