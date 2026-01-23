@@ -231,10 +231,10 @@ const Doctors = () => {
             </div>
 
             {/* Container Principal */}
-            <div className="flex flex-1 gap-6 overflow-hidden relative">
+            <div className="flex flex-1 gap-6 overflow-visible relative">
 
                 {/* Lado Esquerdo: Tabela OU Formulário */}
-                <div className={`bg-white rounded-[32px] shadow-sm flex-col overflow-hidden transition-all duration-500 ease-in-out ${selectedDoctor ? 'w-2/5 p-8' : 'w-full'}`}>
+                <div className={`bg-white rounded-[32px] shadow-sm flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedDoctor ? 'w-2/5 p-8' : 'w-full'}`}>
 
                     {selectedDoctor ? (
                         // MODO EDIÇÃO/CRIAÇÃO: Formulário

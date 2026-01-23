@@ -57,68 +57,71 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
         const isEmpty = !value || placeholders.includes(value.toString().trim());
 
         if (isEmpty) {
-            return <span className="text-gray-400 font-light">—</span>;
+            return <span className="text-gray-300 font-light text-sm">—</span>;
         }
 
         const displayValue = shouldTitleCase ? toTitleCase(value) : value;
-        return <span className="text-slate-600">{displayValue}</span>;
+        return <span className="text-gray-500 text-sm font-normal">{displayValue}</span>;
     };
 
     return (
         <div className="w-full h-full flex flex-col">
-            <div className="overflow-x-auto">
+            <div className="border border-gray-200 rounded-xl bg-white shadow-sm relative z-0 overflow-visible">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="border-b border-slate-100 text-slate-500 text-sm uppercase tracking-wider">
+                        <tr className="bg-gray-50/50 border-b border-gray-100 text-gray-500 text-[11px] font-bold uppercase tracking-widest">
                             <th
-                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none group"
+                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group first:rounded-tl-xl"
                                 onClick={() => requestSort('name')}
                             >
-                                Paciente {getSortIcon('name')}
+                                <span className="flex items-center">Paciente {getSortIcon('name')}</span>
                             </th>
                             <th
-                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none group"
+                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
                                 onClick={() => requestSort('company')}
                             >
-                                Empresa {getSortIcon('company')}
+                                <span className="flex items-center">Empresa {getSortIcon('company')}</span>
                             </th>
                             <th
-                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none group"
+                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
                                 onClick={() => requestSort('role')}
                             >
-                                Cargo {getSortIcon('role')}
+                                <span className="flex items-center">Cargo {getSortIcon('role')}</span>
                             </th>
                             <th
-                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none group"
+                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
                                 onClick={() => requestSort('sector')}
                             >
-                                Setor {getSortIcon('sector')}
+                                <span className="flex items-center">Setor {getSortIcon('sector')}</span>
                             </th>
                             <th
-                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none group"
+                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
                                 onClick={() => requestSort('date')}
                             >
-                                Data {getSortIcon('date')}
+                                <span className="flex items-center">Data {getSortIcon('date')}</span>
                             </th>
                             <th
-                                className="p-4 font-semibold cursor-pointer hover:bg-slate-50 transition-colors select-none group"
+                                className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group"
                                 onClick={() => requestSort('status')}
                             >
-                                Status {getSortIcon('status')}
+                                <span className="flex items-center">Status {getSortIcon('status')}</span>
                             </th>
-                            <th className="p-4 font-semibold text-center">Ações</th>
+                            <th className="p-4 text-center last:rounded-tr-xl">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 text-slate-700">
-                        {patients.map((patient) => (
-                            <tr key={patient.id} className="hover:bg-slate-50 transition-colors group">
-                                <td className="p-4 font-bold text-slate-900">{patient.name}</td>
+                    <tbody className="divide-y-0">
+                        {patients.map((patient, index) => (
+                            <tr
+                                key={patient.id}
+                                className={`border-b border-gray-100 last:border-0 hover:bg-gray-50/80 transition-colors duration-200 group ${patient.id && openDropdownId === patient.id ? 'relative z-50' : ''}`}
+                            >
+                                <td className={`p-4 font-semibold text-slate-900 ${index === patients.length - 1 ? 'rounded-bl-xl' : ''}`}>{patient.name}</td>
                                 <td className="p-4">{renderCellContent(patient.company)}</td>
                                 <td className="p-4">{renderCellContent(patient.role, true)}</td>
                                 <td className="p-4">{renderCellContent(patient.sector, true)}</td>
-                                <td className="p-4 flex items-center gap-2 text-slate-500 whitespace-nowrap">
-                                    <Calendar size={16} />
-                                    {patient.date}
+                                <td className="p-4 flex items-center gap-2 text-gray-400 text-sm whitespace-nowrap">
+                                    <Calendar size={14} className="opacity-70" />
+                                    <span className="text-gray-500">{patient.date}</span>
                                 </td>
                                 <td className="p-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-100 text-green-700' :
@@ -130,7 +133,7 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                                 patient.status === 'completed' ? 'Concluído' : patient.status}
                                     </span>
                                 </td>
-                                <td className="p-4 text-center relative">
+                                <td className={`p-4 text-center relative ${index === patients.length - 1 ? 'rounded-br-xl' : ''}`}>
                                     <div className="flex items-center justify-center">
                                         <button
                                             className={`p-2 rounded-md border transition-all duration-200 ${openDropdownId === patient.id
@@ -147,10 +150,10 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                         </button>
 
                                         {/* Dropdown Menu */}
-                                        {openDropdownId === patient.id && (
+                                        {patient.id && openDropdownId === patient.id && (
                                             <div
                                                 ref={dropdownRef}
-                                                className="absolute right-4 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                                                className="absolute right-4 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200"
                                             >
                                                 <button
                                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
@@ -221,8 +224,28 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                         ))}
                     </tbody>
                 </table>
+
+                {/* Pagination Footer */}
+                <div className="bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-between rounded-b-xl">
+                    <div className="text-gray-400 text-sm">
+                        Mostrando <span className="font-medium text-gray-600">1-{patients.length}</span> de <span className="font-medium text-gray-600">{patients.length}</span> pacientes
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            disabled
+                            className="px-4 py-2 text-sm font-medium text-gray-400 bg-transparent rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Anterior
+                        </button>
+                        <button
+                            className="px-4 py-2 text-sm font-medium text-gray-600 bg-transparent rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            Próximo
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
+        </div >
     );
 };
 
