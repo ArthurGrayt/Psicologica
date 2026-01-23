@@ -57,6 +57,8 @@ const Dashboard = () => {
     const [newCollaborator, setNewCollaborator] = useState({
         name: '',
         cpf: '',
+        sexo: '', // M or F
+        data_nascimento: '', // YYYY-MM-DD
         roleId: '', // ID do cargo
         sectorId: '' // ID do setor
     });
@@ -171,7 +173,8 @@ const Dashboard = () => {
                         companyFull: empresaName ? `${empresaName} ${unidadeName ? `(${unidadeName})` : ''}` : 'Empresa não encontrada',
                         cpf: c.cpf || '—',
                         sexo: c.sexo ? c.sexo.charAt(0).toUpperCase() : '—',
-                        nascimento: formattedNasc
+                        nascimento: formattedNasc,
+                        raw_nascimento: c.data_nascimento // Raw date from DB
                     };
                 });
             }
@@ -208,6 +211,7 @@ const Dashboard = () => {
                     cpf: info.cpf,
                     sexo: info.sexo,
                     nascimento: info.nascimento,
+                    raw_nascimento: info.raw_nascimento,
                     role: cargoNome,
                     sector: setorNome,
                     date: date,
@@ -323,6 +327,39 @@ const Dashboard = () => {
         setFilteredPatients(sorted);
     };
 
+    const handleSaveEdit = async () => {
+        if (!selectedPatient) return;
+        try {
+            console.log('--- SALVANDO EDIÇÃO ---', selectedPatient);
+            // 1. Atualizar Tabela Patients (Nome)
+            const { error: pError } = await supabase
+                .from('patients')
+                .update({ name: selectedPatient.name })
+                .eq('id', selectedPatient.id);
+
+            if (pError) throw pError;
+
+            // 2. Atualizar Tabela Colaboradores (CPF, Sexo, Nascimento)
+            const { error: cError } = await supabase
+                .from('colaboradores')
+                .update({
+                    cpf: selectedPatient.cpf === '—' ? null : selectedPatient.cpf,
+                    sexo: selectedPatient.sexo === '—' ? null : selectedPatient.sexo,
+                    data_nascimento: selectedPatient.raw_nascimento || null
+                })
+                .eq('id', selectedPatient.id);
+
+            if (cError) throw cError;
+
+            setSelectedPatient(null);
+            fetchPatients();
+            alert('Dados atualizados com sucesso!');
+        } catch (err) {
+            console.error('Erro ao atualizar paciente:', err.message);
+            alert('Erro ao atualizar: ' + err.message);
+        }
+    };
+
     const handleUpdatePatient = (field, value) => {
         if (!selectedPatient) return;
         const updated = { ...selectedPatient, [field]: value };
@@ -436,6 +473,8 @@ const Dashboard = () => {
                 unidade: unitId,
                 avulso: true,
                 cpf: newCollaborator.cpf || null,
+                sexo: newCollaborator.sexo || null,
+                data_nascimento: newCollaborator.data_nascimento || null,
                 cargo: newCollaborator.roleId || null,
                 setorid: newCollaborator.sectorId || null
             };
@@ -451,7 +490,7 @@ const Dashboard = () => {
             console.log('Colaborador criado:', data);
 
             // Reset
-            setNewCollaborator({ name: '', cpf: '', roleId: '', sectorId: '' });
+            setNewCollaborator({ name: '', cpf: '', sexo: '', data_nascimento: '', roleId: '', sectorId: '' });
             setIsCreatingCollaborator(false);
 
             // Refresh list
@@ -811,9 +850,33 @@ const Dashboard = () => {
                                             type="text"
                                             value={newCollaborator.cpf}
                                             onChange={(e) => setNewCollaborator({ ...newCollaborator, cpf: e.target.value })}
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
                                             placeholder="000.000.000-00"
                                         />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Data de Nascimento</label>
+                                            <input
+                                                type="date"
+                                                value={newCollaborator.data_nascimento}
+                                                onChange={(e) => setNewCollaborator({ ...newCollaborator, data_nascimento: e.target.value })}
+                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Sexo</label>
+                                            <select
+                                                value={newCollaborator.sexo}
+                                                onChange={(e) => setNewCollaborator({ ...newCollaborator, sexo: e.target.value })}
+                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="M">Masculino</option>
+                                                <option value="F">Feminino</option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -1054,9 +1117,52 @@ const Dashboard = () => {
                                     <input
                                         type="text"
                                         value={selectedPatient.company}
-                                        onChange={(e) => handleUpdatePatient('company', e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        disabled
+                                        className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed transition-all opacity-70"
+                                        placeholder="Empresa (vínculo automático)"
                                     />
+                                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-tight">Vínculo com empresa não é editável aqui.</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                                        <User size={16} className="text-slate-400" /> CPF
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={selectedPatient.cpf === '—' ? '' : selectedPatient.cpf}
+                                        onChange={(e) => handleUpdatePatient('cpf', e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                                        placeholder="000.000.000-00"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                                            <Calendar size={16} className="text-slate-400" /> Nascimento
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={selectedPatient.raw_nascimento || ''}
+                                            onChange={(e) => handleUpdatePatient('raw_nascimento', e.target.value)}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                                            <User size={16} className="text-slate-400" /> Sexo
+                                        </label>
+                                        <select
+                                            value={selectedPatient.sexo === '—' ? '' : selectedPatient.sexo}
+                                            onChange={(e) => handleUpdatePatient('sexo', e.target.value)}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        >
+                                            <option value="">Selecione...</option>
+                                            <option value="M">Masculino</option>
+                                            <option value="F">Feminino</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -1089,7 +1195,7 @@ const Dashboard = () => {
                                 <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors">
                                     Cancelar
                                 </button>
-                                <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-colors flex items-center justify-center gap-2">
+                                <button onClick={handleSaveEdit} className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-colors flex items-center justify-center gap-2">
                                     <Save size={18} />
                                     Salvar
                                 </button>
