@@ -637,7 +637,7 @@ const Dashboard = () => {
                                     </button>
                                     <button
                                         onClick={handleCreateCollaborator}
-                                        className="px-6 py-3 bg-[#050a30] text-white font-medium rounded-xl hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+                                        className="px-6 py-3 bg-[#04092E] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-lg transition-all active:scale-95"
                                     >
                                         Cadastrar
                                     </button>
@@ -655,7 +655,7 @@ const Dashboard = () => {
                             <button
                                 onClick={handleImportCollaborators}
                                 disabled={selectedCollaborators.length === 0}
-                                className="flex-1 py-3 bg-[#050a30] text-white rounded-xl font-medium hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 py-3 bg-[#04092E] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Importar Selecionados ({selectedCollaborators.length})
                             </button>
@@ -686,7 +686,7 @@ const Dashboard = () => {
                             <input
                                 type="text"
                                 placeholder="Buscar paciente..."
-                                className="pl-11 pr-4 py-2.5 w-full bg-gray-50 border border-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400 transition-all text-slate-700 placeholder:text-gray-400"
+                                className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
                             />
                         </div>
                     )}
@@ -701,7 +701,7 @@ const Dashboard = () => {
 
                         <button
                             onClick={() => setIsMultipleModalOpen(true)}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-[#050a30] text-white rounded-xl hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-all font-bold text-sm whitespace-nowrap"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-[#04092E] text-white rounded-2xl hover:bg-opacity-90 shadow-lg transition-all font-bold text-sm whitespace-nowrap"
                         >
                             <Users size={18} />
                             <span>Inserir Paciente</span>
@@ -779,7 +779,7 @@ const Dashboard = () => {
                                 <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors">
                                     Cancelar
                                 </button>
-                                <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-[#050a30] text-white rounded-xl font-medium hover:bg-[#050a30]/90 shadow-lg shadow-blue-900/20 transition-colors flex items-center justify-center gap-2">
+                                <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-[#04092E] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-colors flex items-center justify-center gap-2">
                                     <Save size={18} />
                                     Salvar
                                 </button>

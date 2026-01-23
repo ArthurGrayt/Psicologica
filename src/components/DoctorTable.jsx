@@ -62,7 +62,7 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort }) => {
             <div className="border border-gray-200 rounded-xl bg-white shadow-sm relative z-0 overflow-visible">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-gray-50/50 border-b border-gray-100 text-gray-500 text-[11px] font-bold uppercase tracking-widest">
+                        <tr className="bg-brand-surface border-b border-gray-200 text-slate-500 text-[11px] font-bold uppercase tracking-widest">
                             <th
                                 className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group first:rounded-tl-xl"
                                 onClick={() => requestSort('name')}
@@ -82,7 +82,7 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort }) => {
                         {doctors.map((doctor, index) => (
                             <tr
                                 key={doctor.id}
-                                className={`border-b border-gray-100 last:border-0 hover:bg-gray-50/80 transition-colors duration-200 group cursor-pointer ${doctor.id && openDropdownId === doctor.id ? 'relative z-50' : ''}`}
+                                className={`border-b border-gray-100 last:border-0 hover:bg-brand-surface/80 transition-colors duration-200 group cursor-pointer ${doctor.id && openDropdownId === doctor.id ? 'relative z-50' : ''}`}
                                 onClick={() => onSelectDoctor(doctor)}
                             >
                                 <td className={`p-4 font-semibold text-slate-900 ${index === doctors.length - 1 ? 'rounded-bl-xl' : ''}`}>{doctor.name}</td>

@@ -69,7 +69,7 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
             <div className="border border-gray-200 rounded-xl bg-white shadow-sm relative z-0 overflow-visible">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-gray-50/50 border-b border-gray-100 text-gray-500 text-[11px] font-bold uppercase tracking-widest">
+                        <tr className="bg-brand-surface border-b border-gray-200 text-slate-500 text-[11px] font-bold uppercase tracking-widest">
                             <th
                                 className="p-4 cursor-pointer hover:bg-gray-100/50 transition-colors select-none group first:rounded-tl-xl"
                                 onClick={() => requestSort('name')}
@@ -113,7 +113,7 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                         {patients.map((patient, index) => (
                             <tr
                                 key={patient.id}
-                                className={`border-b border-gray-100 last:border-0 hover:bg-gray-50/80 transition-colors duration-200 group ${patient.id && openDropdownId === patient.id ? 'relative z-50' : ''}`}
+                                className={`border-b border-gray-100 last:border-0 hover:bg-brand-surface/80 transition-colors duration-200 group ${patient.id && openDropdownId === patient.id ? 'relative z-50' : ''}`}
                             >
                                 <td className={`p-4 font-semibold text-slate-900 ${index === patients.length - 1 ? 'rounded-bl-xl' : ''}`}>{patient.name}</td>
                                 <td className="p-4">{renderCellContent(patient.company)}</td>
@@ -124,9 +124,9 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                     <span className="text-gray-500">{patient.date}</span>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-100 text-green-700' :
-                                        patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-yellow-100 text-yellow-700' // Default / Pending
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-50 text-green-700 border-green-200' :
+                                        patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                            'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
                                         }`}>
                                         {patient.status === 'pending' ? 'Pendente' :
                                             patient.status === 'in_progress' ? 'Em Progresso' :

@@ -352,17 +352,21 @@ const QuizSettings = () => {
                         <div
                             key={q.id}
                             style={{ marginLeft: q.level ? `${q.level * 2}rem` : '0px' }}
-                            className={`bg-white rounded-2xl border transition-all duration-300 relative ${editingId === q.id ? 'border-[#050a30] shadow-md ring-1 ring-[#050a30]/20' : 'border-slate-200 shadow-sm hover:border-slate-300'}`}
+                            className={`group relative transition-all duration-200 ${editingId === q.id
+                                ? 'bg-white rounded-2xl border border-brand-secondary shadow-lg ring-1 ring-brand-secondary/20 my-4 z-10'
+                                : 'bg-white border-b border-gray-100 hover:bg-gray-50'
+                                }`}
                         >
-                            {/* Visual connector for child questions */}
+                            {/* Visual connector for child questions - Adjusted for new layout */}
                             {q.level > 0 && (
-                                <div className="absolute -left-6 top-6 w-6 h-[2px] bg-slate-200" />
+                                <div className="absolute -left-6 top-1/2 w-6 h-[2px] bg-gray-200" />
                             )}
                             {q.level > 0 && (
-                                <div className="absolute -left-6 -top-4 w-[2px] h-[calc(100%+16px)] bg-slate-200" />
+                                <div className="absolute -left-6 -top-4 w-[2px] h-[calc(100%+8px)] bg-gray-200" />
                             )}
+
                             {editingId === q.id ? (
-                                // --- EDIT MODE ---
+                                // --- EDIT MODE (Kept mostly same but cleaner container) ---
                                 <div className="p-6">
                                     <div className="flex justify-between items-start mb-6">
                                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -381,7 +385,7 @@ const QuizSettings = () => {
                                                 type="text"
                                                 value={tempQuestion.text}
                                                 onChange={(e) => updateTemp('text', e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
                                                 placeholder="Digite a pergunta..."
                                             />
                                         </div>
@@ -394,7 +398,7 @@ const QuizSettings = () => {
                                                     <select
                                                         value={tempQuestion.type}
                                                         onChange={(e) => updateTemp('type', e.target.value)}
-                                                        className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                        className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
                                                     >
                                                         <option value="text">TEXTO LIVRE</option>
                                                         <option value="yes_no">SIM / NÃO</option>
@@ -410,7 +414,7 @@ const QuizSettings = () => {
                                                     type="text"
                                                     value={tempQuestion.category_key || tempQuestion.category || ''}
                                                     onChange={(e) => updateTemp('category_key', e.target.value)}
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
                                                     placeholder="ex: Ansiedade"
                                                 />
                                             </div>
@@ -420,7 +424,7 @@ const QuizSettings = () => {
                                                     type="number"
                                                     value={tempQuestion.weight}
                                                     onChange={(e) => updateTemp('weight', Number(e.target.value))}
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
                                                 />
                                             </div>
                                         </div>
@@ -430,7 +434,7 @@ const QuizSettings = () => {
                                             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mt-4">
                                                 <label className="block text-sm font-medium text-slate-700 mb-3 flex justify-between items-center">
                                                     <span>Opções de Resposta</span>
-                                                    <button onClick={addOption} className="text-xs font-bold text-blue-600 hover:underline">+ Adicionar Opção</button>
+                                                    <button onClick={addOption} className="text-xs font-bold text-brand-primary hover:underline">+ Adicionar Opção</button>
                                                 </label>
 
                                                 <div className="space-y-2">
@@ -443,17 +447,17 @@ const QuizSettings = () => {
                                                                 onChange={(e) => {
                                                                     const val = e.target.value;
                                                                     updateOption(idx, 'label', val);
-                                                                    updateOption(idx, 'text', val); // Keep both in sync for safety
+                                                                    updateOption(idx, 'text', val);
                                                                 }}
                                                                 placeholder="Texto da Opção"
-                                                                className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                                                                className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-brand-primary outline-none"
                                                             />
                                                             <input
                                                                 type="number"
                                                                 value={opt.score_val}
                                                                 onChange={(e) => updateOption(idx, 'score_val', Number(e.target.value))}
                                                                 placeholder="Pts"
-                                                                className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-2 text-sm focus:border-blue-500 outline-none text-center"
+                                                                className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-2 text-sm focus:border-brand-primary outline-none text-center"
                                                                 title="Valor/Pontuação"
                                                             />
                                                             <button onClick={() => removeOption(idx)} className="text-red-400 hover:text-red-600 p-1">
@@ -496,7 +500,7 @@ const QuizSettings = () => {
                                             <button onClick={handleCancel} className="px-6 py-2 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors">
                                                 Cancelar
                                             </button>
-                                            <button onClick={handleSave} className="px-6 py-2 bg-[#050a30] text-white rounded-xl font-medium hover:bg-[#050a30]/90 transition-colors flex items-center gap-2">
+                                            <button onClick={handleSave} className="px-6 py-2 bg-brand-secondary text-white rounded-xl font-medium hover:opacity-90 transition-colors flex items-center gap-2">
                                                 <Save size={18} />
                                                 Salvar Alterações
                                             </button>
@@ -504,68 +508,73 @@ const QuizSettings = () => {
                                     </div>
                                 </div>
                             ) : (
-                                // --- VIEW MODE ---
-                                <div className="p-5">
-                                    <div className="flex items-start gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h3 className="font-semibold text-slate-800 text-lg">{q.text}</h3>
-                                                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                                                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-bold uppercase tracking-wider border border-slate-200">
-                                                            ID: #{String(q.id).padStart(3, '0')}
-                                                        </span>
-                                                        <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-bold uppercase tracking-wider border border-blue-100">
-                                                            ⚡ {getTypeLabel(q.type)}
-                                                        </span>
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${getCategoryColors(q.categories?.name || q.category_key || q.category).bg} ${getCategoryColors(q.categories?.name || q.category_key || q.category).text} ${getCategoryColors(q.categories?.name || q.category_key || q.category).border}`}>
-                                                            📂 {q.categories?.name || q.category_key || q.category || 'Geral'}
-                                                        </span>
-                                                        <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-bold uppercase tracking-wider border border-emerald-100">
-                                                            ⚖️ Peso: {q.weight}
-                                                        </span>
-                                                        {q.depends_on_question_id && (
-                                                            <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-bold flex items-center gap-1 border border-amber-200">
-                                                                <AlertCircle size={10} />
-                                                                CONDICIONAL (#{q.depends_on_question_id})
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                // --- VIEW MODE (Refactored to List Row) ---
+                                <div className="px-6 py-4 flex items-center gap-5">
+                                    {/* Drag Handle */}
+                                    <div className="text-slate-300 cursor-grab active:cursor-grabbing hover:text-slate-500 transition-colors">
+                                        <GripVertical size={20} />
+                                    </div>
 
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => handleEdit(q)}
-                                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                        title="Editar"
-                                                    >
-                                                        <List size={20} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(q.id)}
-                                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Excluir"
-                                                    >
-                                                        <Trash2 size={20} />
-                                                    </button>
-                                                </div>
-                                            </div>
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                        {/* Row 1: Question Text */}
+                                        <div className="flex items-center gap-3 mb-1.5">
+                                            <span className="text-xs font-mono text-slate-400 w-8">#{String(q.id).padStart(3, '0')}</span>
+                                            <h3 className="font-medium text-slate-900 text-base truncate pr-4" title={q.text}>
+                                                {q.text}
+                                            </h3>
+                                        </div>
 
-                                            {/* Preview Options */}
-                                            {['select', 'scale'].includes(q.type) && (
-                                                <div className="mt-4 flex flex-wrap gap-2">
-                                                    {q.question_options && q.question_options.length > 0 ? (
-                                                        q.question_options.map(o => (
-                                                            <span key={o.id} className="text-xs border border-slate-200 bg-slate-50 text-slate-600 px-2 py-1 rounded-md">
-                                                                {o.label || o.text} ({o.score_val})
-                                                            </span>
-                                                        ))
-                                                    ) : (
-                                                        <p className="text-red-500 text-xs italic text-opacity-70">Nenhuma opção configurada.</p>
-                                                    )}
-                                                </div>
+                                        {/* Row 2: Metadata */}
+                                        <div className="flex items-center gap-2 text-sm flex-wrap">
+                                            {/* Priority Badge: Type */}
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                                                ⚡ {getTypeLabel(q.type)}
+                                            </span>
+
+                                            <span className="text-slate-300 text-xs">•</span>
+
+                                            {/* Category (Clean text) */}
+                                            <span className="text-slate-500 text-xs">
+                                                {q.categories?.name || q.category_key || q.category || 'Geral'}
+                                            </span>
+
+                                            <span className="text-slate-300 text-xs">•</span>
+
+                                            {/* Weight (Clean text) */}
+                                            <span className="text-slate-500 text-xs">
+                                                Peso: {q.weight}
+                                            </span>
+
+                                            {/* Logic Indicator */}
+                                            {q.depends_on_question_id && (
+                                                <>
+                                                    <span className="text-slate-300 text-xs">•</span>
+                                                    <span className="text-amber-600 flex items-center gap-1 text-xs font-medium" title={`Depende da pergunta #${q.depends_on_question_id}`}>
+                                                        <AlertCircle size={12} />
+                                                        Condicional
+                                                    </span>
+                                                </>
                                             )}
                                         </div>
+                                    </div>
+
+                                    {/* Actions (Right) */}
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => handleEdit(q)}
+                                            className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
+                                            title="Editar Pergunta"
+                                        >
+                                            <Pencil size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(q.id)}
+                                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Excluir Pergunta"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
                                 </div>
                             )}
