@@ -669,14 +669,38 @@ const Dashboard = () => {
 
             if (aError) throw aError;
 
-            // 3. Fetch full patient details (if needed beyond table data, e.g. cpf, birth_date)
-            const { data: patientFullData, error: pError } = await supabase
+            // 3. Fetch full patient details (including collaborator data)
+            const { data: patientData, error: pError } = await supabase
                 .from('patients')
                 .select('*')
                 .eq('id', patient.id)
                 .single();
 
             if (pError) throw pError;
+
+            const { data: collabData, error: cError } = await supabase
+                .from('colaboradores')
+                .select('cpf, sexo, data_nascimento')
+                .eq('id', patient.id)
+                .single();
+
+            if (cError) throw cError;
+
+            // Formatar nascimento para o PDF
+            let formattedNasc = '—';
+            if (collabData.data_nascimento) {
+                const d = new Date(collabData.data_nascimento);
+                if (!isNaN(d.getTime())) {
+                    formattedNasc = d.toLocaleDateString('pt-BR');
+                }
+            }
+
+            const patientFullData = {
+                ...patientData,
+                cpf: collabData.cpf || '—',
+                sexo: collabData.sexo || '—',
+                nascimento: formattedNasc
+            };
 
             // 4. Load Logo (Optional)
             let logoBase64 = null;

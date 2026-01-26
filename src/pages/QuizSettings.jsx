@@ -5,6 +5,7 @@ import SearchableSelect from '../components/SearchableSelect';
 
 const QuizSettings = () => {
     const [questions, setQuestions] = useState([]);
+    const [categories, setCategories] = useState([]); // Dynamic categories
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState(null); // ID of question being edited
     const [tempQuestion, setTempQuestion] = useState(null); // Draft state for editing
@@ -40,6 +41,21 @@ const QuizSettings = () => {
             alert('Erro ao carregar perguntas.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Fetch Categories
+    const fetchCategories = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('categories')
+                .select('*')
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+            setCategories(data || []);
+        } catch (err) {
+            console.error('Error fetching categories:', err);
         }
     };
 
@@ -85,6 +101,7 @@ const QuizSettings = () => {
 
     useEffect(() => {
         fetchQuestions();
+        fetchCategories();
     }, []);
 
     // Handlers
@@ -153,9 +170,7 @@ const QuizSettings = () => {
             if (['select', 'scale'].includes(tempQuestion.type)) {
                 const optionsToUpsert = tempQuestion.question_options.map(o => ({
                     question_id: savedQ.id,
-                    label: o.label || o.text,
-                    text: o.label || o.text, // Persist both to be safe
-                    value: o.value || o.label || o.text,
+                    text: o.text || o.label, // Use text, fallback to label if migrating state
                     score_val: o.score_val || 0,
                     id: typeof o.id === 'number' ? o.id : undefined // Let DB generate ID for new opts
                 }));
@@ -297,7 +312,7 @@ const QuizSettings = () => {
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:w-44">
                         <SearchableSelect
-                            options={[...new Set(questions.map(q => q.categories?.name || q.category_key || q.category))].filter(Boolean).sort().map(cat => ({ value: cat, label: cat }))}
+                            options={categories.map(c => ({ value: c.name, label: c.name }))}
                             value={filterCategory}
                             onChange={(val) => setFilterCategory(val)}
                             placeholder="Todas Categorias"
@@ -404,12 +419,7 @@ const QuizSettings = () => {
                                                 <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
                                                 <div className="relative">
                                                     <SearchableSelect
-                                                        options={[
-                                                            { value: 'Satisfação Pessoal', label: 'Satisfação Pessoal' },
-                                                            { value: 'Profissional', label: 'Profissional' },
-                                                            { value: 'Relacionamentos', label: 'Relacionamentos' },
-                                                            { value: 'Saúde', label: 'Saúde' }
-                                                        ]}
+                                                        options={categories.map(c => ({ value: c.key, label: c.name }))}
                                                         value={tempQuestion.category_key || tempQuestion.category || ''}
                                                         onChange={(val) => updateTemp('category_key', val)}
                                                         placeholder="Selecione..."

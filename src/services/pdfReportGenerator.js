@@ -106,7 +106,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64)
 
     const patientData = [
         [{ content: 'Nome:', styles: { fontStyle: 'bold' } }, patient.name, { content: 'CPF:', styles: { fontStyle: 'bold' } }, patient.cpf || 'Não informado'],
-        [{ content: 'Nascimento:', styles: { fontStyle: 'bold' } }, patient.birth_date || 'Não informado', { content: 'Sexo:', styles: { fontStyle: 'bold' } }, patient.gender || 'Não informado'],
+        [{ content: 'Nascimento:', styles: { fontStyle: 'bold' } }, patient.nascimento || 'Não informado', { content: 'Sexo:', styles: { fontStyle: 'bold' } }, patient.sexo || 'Não informado'],
     ];
 
     autoTable(doc, {
@@ -193,50 +193,63 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64)
     }
 
     // Draw Chart Base
-    const chartHeight = 80;
-    const chartWidth = contentWidth;
-    const chartX = margin;
+    const chartHeight = 60;
+    const chartWidth = contentWidth - 15;
+    const chartX = margin + 10;
     const chartY = yPos;
-    const maxScore = 25; // Scale from image seems to go to 25
+    const maxScore = 4;
 
-    // Grid lines (0, 5, 10, 15, 20, 25)
-    doc.setDrawColor(220, 220, 220); // Light Gray
+    // Grid lines (Horizontal: 0, 1, 2, 3, 4)
+    doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.1);
     doc.setFontSize(8);
     doc.setTextColor('#333333');
 
-    for (let i = 0; i <= 5; i++) {
-        const val = i * 5;
-        const yLine = chartY + chartHeight - (val / maxScore * chartHeight);
-
-        doc.text(val.toString(), chartX - 5, yLine + 1); // Y Axis Label
+    for (let i = 0; i <= maxScore; i++) {
+        const yLine = chartY + chartHeight - (i / maxScore * chartHeight);
+        doc.text(i.toString(), chartX - 6, yLine + 1.5, { align: 'right' }); // Better Y labels
         doc.line(chartX, yLine, chartX + chartWidth, yLine); // Horizontal Line
     }
 
-    // Draw Bars
-    const barWidth = 15;
-    const gap = (chartWidth - (categories.length * barWidth)) / (categories.length + 1);
+    // Draw Sections and Vertical Grid Lines
+    const barWidth = 16;
+    const numCategories = categories.length;
+    // Calculate space for each column (category block)
+    const sectionWidth = chartWidth / numCategories;
 
     categories.forEach((cat, index) => {
-        const score = Math.min(scores[cat.key] || 0, maxScore); // Cap at max
+        const score = Math.min(scores[cat.key] || 0, maxScore);
         const barHeight = (score / maxScore) * chartHeight;
-        const xBar = chartX + gap + (index * (barWidth + gap));
+
+        // Horizontal center of the current section
+        const sectionCenterX = chartX + (index * sectionWidth) + (sectionWidth / 2);
+        const xBar = sectionCenterX - (barWidth / 2);
         const yBar = chartY + chartHeight - barHeight;
+
+        // Vertical Grid Line (at start of section, except first)
+        if (index > 0) {
+            const xGrid = chartX + (index * sectionWidth);
+            doc.setDrawColor(220, 220, 220);
+            doc.line(xGrid, chartY, xGrid, chartY + chartHeight);
+        }
 
         // Draw Bar
         doc.setFillColor(cat.color);
         doc.rect(xBar, yBar, barWidth, barHeight, 'F');
 
-        // Label (Rotated for readability if needed, or staggered)
-        // Image has diagonal labels
+        // Labels - Positioned further down and centered with the bar
         doc.setFontSize(7);
-        doc.setTextColor('#000000');
-
-        // Save context for rotation
+        doc.setTextColor('#333333');
         doc.saveGraphicsState();
-        doc.text(cat.key, xBar + 2, chartY + chartHeight + 5, { angle: 25 });
+        // Start label 12 units below the 0-line and center it with the section
+        doc.text(cat.key, sectionCenterX, chartY + chartHeight + 12, { angle: 25, align: 'center' });
         doc.restoreGraphicsState();
     });
+
+    // Outer Border (to overlap the grid edges for a clean look)
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    doc.rect(chartX, chartY, chartWidth, chartHeight, 'S');
 
     // --- Footer Logo (Example: Mountain Icon) ---
     // doc.addImage(...) - Skipping real image, drawing a placeholder shape if needed 
