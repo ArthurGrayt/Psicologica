@@ -179,7 +179,7 @@ const FormularioPublico = () => {
             }
 
             setAssessment(assess);
-            if (assess.status === 'pending') {
+            if (assess.status === 'pending' || assess.status === 'sent') {
                 await supabase.from('assessments').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', assessmentId);
             }
 
@@ -235,16 +235,40 @@ const FormularioPublico = () => {
             let score = 0;
             if (q.type === 'yes_no' && val === 'Sim') score = q.weight || 0;
             if (q.type === 'scale' || q.type === 'select') {
-                const opt = q.question_options?.find(o => (o.label || o.value) === val);
-                if (opt) score = opt.score_val || 0;
+                // Fix: Match against o.text as DB uses text column. Fallback to label/value/text for robustness.
+                const opt = q.question_options?.find(o => String(o.text || o.label || o.value) === val);
+                if (opt) {
+                    score = opt.score_val || 0;
+                    // Rule: If option is purely numeric (e.g. "1", "2") and score came back as 0 (maybe unset), 
+                    // infer score from text. 
+                    // Exception: "0" should be 0.
+                    if (score === 0 && val !== '0' && /^\d+$/.test(val)) {
+                        score = parseInt(val, 10);
+                    }
+                }
             }
 
-            await supabase.from('answers').upsert({
-                assessment_id: assessmentId,
-                question_id: q.id,
-                answer_text: String(val),
-                score
-            }, { onConflict: 'assessment_id, question_id' });
+            // Manual UPSERT logic (Check -> Update/Insert) to avoid 400 error due to missing constraint
+            const { data: existing } = await supabase
+                .from('answers')
+                .select('id')
+                .eq('assessment_id', assessmentId)
+                .eq('question_id', q.id)
+                .maybeSingle();
+
+            if (existing) {
+                await supabase.from('answers').update({
+                    answer_text: String(val),
+                    score
+                }).eq('id', existing.id);
+            } else {
+                await supabase.from('answers').insert({
+                    assessment_id: assessmentId,
+                    question_id: q.id,
+                    answer_text: String(val),
+                    score
+                });
+            }
         } catch (err) {
             console.error('Auto-save error', err);
         }

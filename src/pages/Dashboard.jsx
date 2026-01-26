@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square, Link as LinkIcon, Copy, ExternalLink, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square, Link as LinkIcon, Copy, ExternalLink, CheckCircle, Lock } from 'lucide-react';
 import DashboardTable from '../components/DashboardTable';
 import { useCompanyData } from '../hooks/useCompanyData';
 import SearchableSelect from '../components/SearchableSelect';
@@ -433,7 +433,7 @@ const Dashboard = () => {
                 .from('assessments')
                 .insert({
                     patient_id: patientId,
-                    status: 'pending',
+                    status: 'sent', // Changed to 'sent' (Enviado)
                     locked: false,
                     created_at: new Date().toISOString()
                 })
@@ -602,6 +602,47 @@ const Dashboard = () => {
     }, [multipleInsertion.company, multipleInsertion.unit, isMultipleModalOpen]);
 
 
+    // --- Narrative Preview Logic (Side Panel) ---
+    const [narrativePreview, setNarrativePreview] = useState({ loading: false, data: null, error: null });
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function fetchNarrative() {
+            if (!selectedPatient || !selectedPatient.assessmentId) {
+                setNarrativePreview({ loading: false, data: null, error: null });
+                return;
+            }
+
+            setNarrativePreview({ loading: true, data: null, error: null });
+
+            try {
+                const { data, error } = await supabase
+                    .rpc('get_narrative_report', { target_assessment_id: selectedPatient.assessmentId });
+
+                if (isMounted) {
+                    if (error) throw error;
+                    setNarrativePreview({ loading: false, data, error: null });
+                }
+            } catch (err) {
+                if (isMounted) {
+                    console.error('Error fetching preview:', err);
+                    setNarrativePreview({
+                        loading: false,
+                        data: null,
+                        error: "Não foi possível carregar a análise. (Erro RPC ou Banco de Dados)"
+                    });
+                }
+            }
+        }
+
+        fetchNarrative();
+
+        return () => { isMounted = false; };
+    }, [selectedPatient?.assessmentId]); // Depend on ID to re-fetch on mount/change
+
+
+
     const toggleCollaboratorSelection = (id) => {
         if (selectedCollaborators.includes(id)) {
             setSelectedCollaborators(selectedCollaborators.filter(cId => cId !== id));
@@ -686,6 +727,27 @@ const Dashboard = () => {
 
             if (cError) throw cError;
 
+            // 3b. Fetch Narrative Report (Analysis)
+            let narrativeData = null;
+            try {
+                const { data: rpcData, error: rpcError } = await supabase
+                    .rpc('get_narrative_report', { target_assessment_id: patient.assessmentId });
+
+                if (rpcError) {
+                    console.error('Erro ao buscar narrativo (RPC):', rpcError);
+                    // Fallback to ensure PDF section appears (and notifies user of the backend issue)
+                    narrativeData = {
+                        is_apto: true,
+                        narrative: `AVISO TÉCNICO: Não foi possível gerar a análise automática.\n\nDetalhe do erro: A função 'get_narrative_report' falhou no banco de dados (${rpcError.message}).\n\nProvável Causa: A função SQL está tentando acessar uma coluna que não existe (provavelmente 'content'). Verifique se o nome correto seria 'text' ou 'answer_text'.\n\nO restante do laudo foi gerado corretamente.`
+                    };
+                } else {
+                    console.log('Narrative RPC Data:', rpcData);
+                    narrativeData = rpcData; // { narrative: string, is_apto: boolean }
+                }
+            } catch (err) {
+                console.error('Exceção ao buscar narrativo:', err);
+            }
+
             // Formatar nascimento para o PDF
             let formattedNasc = '—';
             if (collabData.data_nascimento) {
@@ -717,7 +779,23 @@ const Dashboard = () => {
             }
 
             // 5. Generate PDF
-            generatePDF(patientFullData, { id: patient.assessmentId }, answersData, questionsData, logoBase64);
+            generatePDF(patientFullData, { id: patient.assessmentId }, answersData, questionsData, logoBase64, narrativeData);
+
+            // 6. UPDATE STATUS TO 'reported' (Laudado)
+            const { error: updateError } = await supabase
+                .from('assessments')
+                .update({ status: 'reported' })
+                .eq('id', patient.assessmentId);
+
+            if (updateError) throw updateError;
+
+            // Optimistic Update
+            setPatients(prev => prev.map(p => {
+                if (p.id === patient.id) {
+                    return { ...p, status: 'reported' };
+                }
+                return p;
+            }));
 
         } catch (err) {
             console.error('Erro ao gerar laudo:', err);
@@ -1270,14 +1348,81 @@ const Dashboard = () => {
                         }`}
                 >
                     {selectedPatient && (
-                        <div className="flex flex-col h-full p-8 relative items-center justify-center text-center">
-                            <div className="p-6 bg-slate-50 rounded-full mb-4">
-                                <FileText size={48} className="text-slate-300" />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-800">Prontuário / Histórico</h3>
-                            <p className="text-slate-500 max-w-md mx-auto mt-2">
-                                Selecione uma ação ou visualize o histórico completo deste paciente aqui. (Placeholder)
-                            </p>
+                        <div className="flex flex-col h-full p-8 relative overflow-y-auto custom-scrollbar">
+                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 sticky top-0 bg-white z-10 py-2">
+                                <FileText size={20} className="text-[#35b6cf]" />
+                                Análise Psicossocial
+                            </h3>
+
+                            {narrativePreview.loading ? (
+                                <div className="flex flex-col items-center justify-center flex-1 text-slate-400">
+                                    <div className="w-8 h-8 border-4 border-[#35b6cf] border-t-transparent rounded-full animate-spin mb-4"></div>
+                                    <p>Gerando análise...</p>
+                                </div>
+                            ) : narrativePreview.error ? (
+                                <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100">
+                                    <p className="font-bold flex items-center gap-2 mb-2">
+                                        <Lock size={16} /> Erro na Análise
+                                    </p>
+                                    {narrativePreview.error}
+                                </div>
+                            ) : narrativePreview.data ? (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className={`p-4 rounded-xl mb-6 border ${narrativePreview.data.is_apto ? 'bg-green-50 border-green-200 text-green-800' : 'bg-orange-50 border-orange-200 text-orange-800'}`}>
+                                        <span className="font-bold text-lg block mb-1">
+                                            {narrativePreview.data.is_apto ? "APTO" : "INDICADO PARA AVALIAÇÃO"}
+                                        </span>
+                                        <span className="text-xs opacity-80 uppercase tracking-wide">Conclusão do Sistema</span>
+                                    </div>
+
+                                    <div className="prose prose-slate prose-sm max-w-none">
+                                        {narrativePreview.data.intro ? (
+                                            <div className="text-slate-800 -mx-6">
+                                                {/* 1. Introdução */}
+                                                <p className="mb-4 text-justify leading-relaxed whitespace-pre-line">
+                                                    {narrativePreview.data.intro}
+                                                </p>
+
+                                                {/* 2. Análise Completa (Parágrafo Único) */}
+                                                <p className="mb-8 text-justify leading-relaxed whitespace-pre-line">
+                                                    {narrativePreview.data.full_analysis || `${narrativePreview.data.mental_text || ''}\n\n${narrativePreview.data.habits_text || ''}`}
+                                                </p>
+
+                                                {/* 3. BLOCO DE CONCLUSÃO (APTO/INAPTO) */}
+                                                <div className={`mx-4 p-6 rounded-lg mb-8 text-center border-2 ${narrativePreview.data.is_apto ? 'border-green-100 bg-green-50' : 'border-amber-100 bg-amber-50'}`}>
+                                                    <h3 className={`text-2xl font-bold mb-2 ${narrativePreview.data.is_apto ? 'text-green-700' : 'text-amber-700'}`}>
+                                                        {narrativePreview.data.status_label}
+                                                    </h3>
+                                                    <p className="font-medium text-slate-700 max-w-full break-words whitespace-pre-wrap">
+                                                        {narrativePreview.data.status_message}
+                                                    </p>
+                                                </div>
+
+                                                {/* 4. Rodapé */}
+                                                <p className="text-sm text-slate-500 border-t pt-4 italic whitespace-pre-line px-4">
+                                                    {narrativePreview.data.disclaimer}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <p className="italic text-slate-400">Nenhuma análise estruturada disponível (Resultados insuficientes).</p>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-400 text-center">
+                                        Esta análise é gerada automaticamente com base nas respostas do colaborador e não substitui o laudo assinado pelo médico.
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center flex-1 text-slate-400">
+                                    <div className="bg-slate-50 p-6 rounded-full mb-4">
+                                        <FileText size={40} className="opacity-50" />
+                                    </div>
+                                    <p className="text-lg font-medium text-slate-600">Aguardando Avaliação</p>
+                                    <p className="text-sm max-w-xs text-center mt-2 opacity-80">
+                                        O colaborador ainda não completou o questionário ou a análise não pôde ser processada.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

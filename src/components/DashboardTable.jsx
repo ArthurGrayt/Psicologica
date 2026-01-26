@@ -149,14 +149,17 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                     </td>
                                     <td className="p-4 whitespace-nowrap">
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap inline-block ${patient.locked ? 'bg-red-50 text-red-700 border-red-200' :
-                                            patient.status === 'completed' || patient.status === 'Concluído' ? 'bg-green-50 text-green-700 border-green-200' :
+                                            patient.status === 'completed' || patient.status === 'Concluído' || patient.status === 'reported' || patient.status === 'Laudado' ? 'bg-green-50 text-green-700 border-green-200' :
                                                 patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                    'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
+                                                    patient.status === 'sent' || patient.status === 'Enviado' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                                        'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
                                             }`}>
                                             {patient.locked ? 'Bloqueado' :
                                                 patient.status === 'pending' ? 'Pendente' :
-                                                    patient.status === 'in_progress' ? 'Em Progresso' :
-                                                        patient.status === 'completed' ? 'Concluído' : patient.status}
+                                                    patient.status === 'sent' ? 'Enviado' :
+                                                        patient.status === 'in_progress' ? 'Em Progresso' :
+                                                            patient.status === 'completed' ? 'Concluído' :
+                                                                patient.status === 'reported' ? 'Laudado' : patient.status}
                                         </span>
                                     </td>
                                     <td className={`p-4 text-center relative w-[100px] ${index === patients.length - 1 ? 'rounded-br-xl' : ''}`}>
@@ -181,17 +184,19 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                                     ref={dropdownRef}
                                                     className="absolute right-4 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200 text-left"
                                                 >
-                                                    <button
-                                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            onGenerateForm(patient.id);
-                                                            setOpenDropdownId(null);
-                                                        }}
-                                                    >
-                                                        <LinkIcon size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
-                                                        <span className="font-medium align-middle">Gerar Link</span>
-                                                    </button>
+                                                    {patient.status !== 'reported' && patient.status !== 'Laudado' && (
+                                                        <button
+                                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onGenerateForm(patient.id);
+                                                                setOpenDropdownId(null);
+                                                            }}
+                                                        >
+                                                            <LinkIcon size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
+                                                            <span className="font-medium align-middle">Gerar Link</span>
+                                                        </button>
+                                                    )}
 
                                                     <button
                                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
