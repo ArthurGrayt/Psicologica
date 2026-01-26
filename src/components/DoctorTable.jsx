@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Pencil, Trash2, ArrowUpDown, MoreHorizontal } from 'lucide-react';
+import { Upload, Pencil, Trash2, ArrowUpDown, MoreHorizontal, ShieldCheck } from 'lucide-react';
 
 const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
@@ -75,6 +75,7 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
                             >
                                 <span className="flex items-center">CRP {getSortIcon('crp')}</span>
                             </th>
+                            <th className="p-4 text-center">Autenticação</th>
                             <th className="p-4 text-center last:rounded-tr-xl">Ações</th>
                         </tr>
                     </thead>
@@ -87,6 +88,25 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
                             >
                                 <td className={`p-4 font-semibold text-slate-900 ${index === doctors.length - 1 ? 'rounded-bl-xl' : ''}`}>{doctor.name}</td>
                                 <td className="p-4">{renderCellContent(doctor.crp)}</td>
+                                <td className="p-4">
+                                    <div className="flex items-center justify-center gap-2">
+                                        {/* Visual Signature */}
+                                        {doctor.signatureUrl && (
+                                            <div title="Assinatura Visual" className="text-blue-600 bg-blue-50 p-1.5 rounded-md border border-blue-100">
+                                                <Pencil size={14} />
+                                            </div>
+                                        )}
+                                        {/* PFX Certificate */}
+                                        {doctor.pfxUrl && (
+                                            <div title="Certificado Digital (A1/PFX)" className="text-green-600 bg-green-50 p-1.5 rounded-md border border-green-100">
+                                                <ShieldCheck size={14} />
+                                            </div>
+                                        )}
+                                        {!doctor.signatureUrl && !doctor.pfxUrl && (
+                                            <span className="text-slate-300 text-xs">—</span>
+                                        )}
+                                    </div>
+                                </td>
 
                                 <td className={`p-4 text-center relative ${index === doctors.length - 1 ? 'rounded-br-xl' : ''}`}>
                                     <div className="flex items-center justify-center relative">

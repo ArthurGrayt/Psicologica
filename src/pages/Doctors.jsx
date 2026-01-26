@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Plus, Filter, X, Upload, Save, User, Phone, FileBadge, ChevronLeft } from 'lucide-react';
+import { Search, Plus, Filter, X, Upload, Save, User, Phone, FileBadge, ChevronLeft, FileKey, ShieldCheck } from 'lucide-react';
 import DoctorTable from '../components/DoctorTable';
 import SearchableSelect from '../components/SearchableSelect';
 
@@ -10,6 +10,7 @@ const Doctors = () => {
     const [loading, setLoading] = useState(true);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [activeSignatureTab, setActiveSignatureTab] = useState('visual'); // visual | pfx
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -38,7 +39,8 @@ const Doctors = () => {
                 crp: d.crp || '',
                 phone: '',
                 hasSignature: !!d.signature_url,
-                signatureUrl: d.signature_url
+                signatureUrl: d.signature_url,
+                pfxUrl: d.pfx_url || null
             }));
 
             setDoctors(mapped);
@@ -109,6 +111,7 @@ const Doctors = () => {
     const handleClosePanel = () => {
         setSelectedDoctor(null);
         setIsCreating(false);
+        setActiveSignatureTab('visual');
     };
 
     const handleStartCreate = () => {
@@ -117,7 +120,8 @@ const Doctors = () => {
             crp: '',
             phone: '',
             hasSignature: false,
-            signatureUrl: null
+            signatureUrl: null,
+            pfxUrl: null
         });
         setIsCreating(true);
     };
@@ -132,7 +136,8 @@ const Doctors = () => {
             const payload = {
                 name: selectedDoctor.name,
                 crp: selectedDoctor.crp,
-                signature_url: selectedDoctor.signatureUrl
+                signature_url: selectedDoctor.signatureUrl,
+                pfx_url: selectedDoctor.pfxUrl
             };
 
             let error;
@@ -217,6 +222,55 @@ const Doctors = () => {
         } catch (err) {
             console.error('Error uploading signature:', err);
             alert('Erro ao fazer upload da assinatura: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Upload PFX Handler
+    const handlePfxUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validar extensão
+        const fileName = file.name.toLowerCase();
+        if (!fileName.endsWith('.pfx') && !fileName.endsWith('.p12')) {
+            alert('Por favor, envie um arquivo .pfx ou .p12');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const fileExt = fileName.split('.').pop();
+            const storageName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+            const filePath = `certificates/${storageName}`;
+
+            // 1. Upload to Supabase Storage (Assumindo mesmo bucket 'assinaturas' ou criando pasta)
+            // Use 'assinaturas' bucket for now but organize in folders if possible
+            const { error: uploadError } = await supabase.storage
+                .from('assinaturas')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // 2. Get Public URL (Note: Certificates usually shouldn't be public, but for this demo/MVP flow we need access)
+            // Ideally should be Signed URL, but Edge Function needs access. 
+            // If bucket is public, this works. If private, we need signed URL logic.
+            const { data: { publicUrl } } = supabase.storage
+                .from('assinaturas')
+                .getPublicUrl(filePath);
+
+            // 3. Update Local State
+            if (selectedDoctor) {
+                setSelectedDoctor(prev => ({
+                    ...prev,
+                    pfxUrl: publicUrl
+                }));
+            }
+
+        } catch (err) {
+            console.error('Error uploading certificate:', err);
+            alert('Erro ao fazer upload do certificado: ' + err.message);
         } finally {
             setLoading(false);
         }
@@ -443,7 +497,7 @@ const Doctors = () => {
                             {/* Cabeçalho do Painel de Assinatura */}
                             <div className="mb-6 border-b border-slate-100 pb-6 flex justify-between items-start">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-slate-800">Assinatura Digital</h2>
+                                    <h2 className="text-2xl font-bold text-slate-800">Assinatura & Certificado</h2>
                                     <p className="text-slate-500 text-sm mt-1">Gerencie a assinatura usada nos laudos.</p>
                                 </div>
                                 <button
@@ -454,58 +508,126 @@ const Doctors = () => {
                                 </button>
                             </div>
 
-                            {/* Área de Visualização da Assinatura (Centralizada) */}
-                            <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 p-10 mb-8 relative group w-full transition-all hover:bg-slate-50 hover:border-slate-300">
-                                {selectedDoctor.signatureUrl ? (
-                                    <div className="relative w-full h-full flex items-center justify-center">
-                                        <img
-                                            src={selectedDoctor.signatureUrl}
-                                            alt="Assinatura"
-                                            className="max-h-64 object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
-                                            onLoad={() => console.log('Assinatura carregada com sucesso:', selectedDoctor.signatureUrl)}
-                                            onError={(e) => {
-                                                console.error('Falha ao carregar assinatura:', selectedDoctor.signatureUrl);
-                                                // If it's just a path, try to resolve it as a public URL
-                                                if (!selectedDoctor.signatureUrl.startsWith('http')) {
-                                                    const { data } = supabase.storage.from('assinaturas').getPublicUrl(selectedDoctor.signatureUrl);
-                                                    if (data?.publicUrl) {
-                                                        e.target.src = data.publicUrl;
-                                                    }
-                                                }
-                                            }}
-                                        />
-                                        <div className="absolute top-2 right-2 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
-                                            VÁLIDA
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-slate-400">
-                                        <div className="bg-white p-6 rounded-full inline-block shadow-sm mb-4">
-                                            <Upload size={48} className="text-slate-300" />
-                                        </div>
-                                        <p className="text-lg font-medium text-slate-600">Nenhuma assinatura</p>
-                                        <p className="text-sm">Envie um arquivo PNG ou JPEG</p>
-                                    </div>
-                                )}
+                            {/* Tabs */}
+                            <div className="flex p-1 bg-slate-100 rounded-xl mb-6">
+                                <button
+                                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeSignatureTab === 'visual'
+                                        ? 'bg-white text-slate-800 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700'
+                                        }`}
+                                    onClick={() => setActiveSignatureTab('visual')}
+                                >
+                                    Assinatura Visual
+                                </button>
+                                <button
+                                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeSignatureTab === 'pfx'
+                                        ? 'bg-white text-slate-800 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700'
+                                        }`}
+                                    onClick={() => setActiveSignatureTab('pfx')}
+                                >
+                                    Certificado Digital
+                                </button>
                             </div>
 
-                            {/* Ações de Assinatura */}
-                            <div className="mt-auto">
-                                <label className={`flex items-center justify-center gap-3 w-full py-5 bg-white border-2 border-[#139690] text-[#139690] rounded-2xl hover:bg-blue-50 cursor-pointer transition-all active:scale-95 font-bold text-lg shadow-sm ${loading ? 'opacity-50 cursor-wait' : ''}`}>
-                                    <Upload size={24} />
-                                    <span>{loading ? 'Enviando...' : (selectedDoctor.signatureUrl ? 'Substituir Assinatura' : 'Fazer Upload')}</span>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/png,image/jpeg"
-                                        onChange={handleSignatureUpload}
-                                        disabled={loading}
-                                    />
-                                </label>
-                                <p className="text-center text-xs text-slate-400 mt-4">
-                                    Formatos aceitos: PNG (fundo transparente recomendado) e JPEG.
-                                </p>
-                            </div>
+
+                            {/* Área de Visualização da Assinatura (Centralizada) */}
+                            {activeSignatureTab === 'visual' ? (
+                                <>
+                                    {/* Área de Visualização da Assinatura (Centralizada) */}
+                                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 p-10 mb-8 relative group w-full transition-all hover:bg-slate-50 hover:border-slate-300">
+                                        {selectedDoctor.signatureUrl ? (
+                                            <div className="relative w-full h-full flex items-center justify-center">
+                                                <img
+                                                    src={selectedDoctor.signatureUrl}
+                                                    alt="Assinatura"
+                                                    className="max-h-64 object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
+                                                    onLoad={() => console.log('Assinatura carregada com sucesso:', selectedDoctor.signatureUrl)}
+                                                    onError={(e) => {
+                                                        // ... erro handler ...
+                                                        if (!selectedDoctor.signatureUrl.startsWith('http')) {
+                                                            const { data } = supabase.storage.from('assinaturas').getPublicUrl(selectedDoctor.signatureUrl);
+                                                            if (data?.publicUrl) e.target.src = data.publicUrl;
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="absolute top-2 right-2 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
+                                                    VÁLIDA
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center text-slate-400">
+                                                <div className="bg-white p-6 rounded-full inline-block shadow-sm mb-4">
+                                                    <Upload size={48} className="text-slate-300" />
+                                                </div>
+                                                <p className="text-lg font-medium text-slate-600">Nenhuma assinatura</p>
+                                                <p className="text-sm">Envie um arquivo PNG ou JPEG</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Ações de Assinatura */}
+                                    <div className="mt-auto">
+                                        <label className={`flex items-center justify-center gap-3 w-full py-5 bg-white border-2 border-[#139690] text-[#139690] rounded-2xl hover:bg-blue-50 cursor-pointer transition-all active:scale-95 font-bold text-lg shadow-sm ${loading ? 'opacity-50 cursor-wait' : ''}`}>
+                                            <Upload size={24} />
+                                            <span>{loading ? 'Enviando...' : (selectedDoctor.signatureUrl ? 'Substituir Assinatura' : 'Fazer Upload')}</span>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/png,image/jpeg"
+                                                onChange={handleSignatureUpload}
+                                                disabled={loading}
+                                            />
+                                        </label>
+                                        <p className="text-center text-xs text-slate-400 mt-4">
+                                            Formatos aceitos: PNG (fundo transparente recomendado) e JPEG.
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Tab Certificado Digital */}
+                                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 p-10 mb-8 relative group w-full transition-all hover:bg-slate-50 hover:border-slate-300">
+                                        {selectedDoctor.pfxUrl ? (
+                                            <div className="text-center">
+                                                <div className="bg-green-50 p-6 rounded-full inline-block shadow-sm mb-4 border border-green-100">
+                                                    <ShieldCheck size={64} className="text-green-500" />
+                                                </div>
+                                                <p className="text-lg font-bold text-slate-700">Certificado Configurado</p>
+                                                <p className="text-sm text-slate-500 mb-2">Seu arquivo PFX está pronto para uso.</p>
+                                                <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
+                                                    VÁLIDO
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center text-slate-400">
+                                                <div className="bg-white p-6 rounded-full inline-block shadow-sm mb-4">
+                                                    <FileKey size={48} className="text-slate-300" />
+                                                </div>
+                                                <p className="text-lg font-medium text-slate-600">Nenhum certificado</p>
+                                                <p className="text-sm">Envie um arquivo .PFX ou .P12</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-auto">
+                                        <label className={`flex items-center justify-center gap-3 w-full py-5 bg-white border-2 border-blue-500 text-blue-600 rounded-2xl hover:bg-blue-50 cursor-pointer transition-all active:scale-95 font-bold text-lg shadow-sm ${loading ? 'opacity-50 cursor-wait' : ''}`}>
+                                            <Upload size={24} />
+                                            <span>{loading ? 'Enviando...' : (selectedDoctor.pfxUrl ? 'Substituir Certificado' : 'Upload Certificado')}</span>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept=".pfx,.p12"
+                                                onChange={handlePfxUpload}
+                                                disabled={loading}
+                                            />
+                                        </label>
+                                        <p className="text-center text-xs text-slate-400 mt-4">
+                                            Formatos aceitos: PFX e P12 (A1).
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

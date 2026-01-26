@@ -4,9 +4,10 @@ import { FileText, Calendar, Pencil, Unlock, Lock, ArrowUpDown, Trash2, Link as 
 const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, onToggleLock, onGenerateReport }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const [openDropdownId, setOpenDropdownId] = useState(null);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
     const dropdownRef = useRef(null);
 
-    // Fechar dropdown ao clicar fora
+    // Fechar dropdown ao clicar fora ou rolar a página
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -14,12 +15,21 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
             }
         };
 
+        const handleScroll = () => {
+            if (openDropdownId) {
+                setOpenDropdownId(null);
+            }
+        };
+
         if (openDropdownId) {
             document.addEventListener('mousedown', handleClickOutside);
+            // Use capture phase to detect scroll in the table container as well
+            window.addEventListener('scroll', handleScroll, true);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
         };
     }, [openDropdownId]);
 
@@ -67,7 +77,7 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
     return (
         <div className="w-full h-full flex flex-col">
             <div className="border border-gray-200 rounded-xl bg-white shadow-sm flex flex-col relative z-0 overflow-visible">
-                <div className="w-full flex-1">
+                <div className="w-full flex-1 overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-brand-surface border-b border-gray-200 text-slate-500 text-[11px] font-bold uppercase tracking-widest">
@@ -172,6 +182,12 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                                 title="Configurações"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
+                                                    // Calculate position before opening
+                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                    setDropdownPosition({
+                                                        top: rect.bottom + 5,
+                                                        right: window.innerWidth - rect.right
+                                                    });
                                                     setOpenDropdownId(openDropdownId === patient.id ? null : patient.id);
                                                 }}
                                             >
@@ -182,7 +198,13 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                             {patient.id && openDropdownId === patient.id && (
                                                 <div
                                                     ref={dropdownRef}
-                                                    className="absolute right-4 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+                                                    style={{
+                                                        position: 'fixed',
+                                                        top: `${dropdownPosition.top}px`,
+                                                        right: `${dropdownPosition.right}px`,
+                                                        zIndex: 9999
+                                                    }}
+                                                    className="w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
                                                 >
                                                     {patient.status !== 'reported' && patient.status !== 'Laudado' && (
                                                         <button
@@ -208,6 +230,18 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                                     >
                                                         <FileText size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
                                                         <span className="font-medium align-middle">Gerar Laudo</span>
+                                                    </button>
+
+                                                    <button
+                                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onGenerateReport(patient, true); // true for signed
+                                                            setOpenDropdownId(null);
+                                                        }}
+                                                    >
+                                                        <CheckCircle size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
+                                                        <span className="font-medium align-middle">Baixar Laudo Assinado</span>
                                                     </button>
 
                                                     <button

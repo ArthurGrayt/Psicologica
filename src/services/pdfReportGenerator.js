@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-export const generatePDF = (patient, assessment, answers, questions, logoBase64, narrativeData) => {
+export const generatePDF = (patient, assessment, answers, questions, logoBase64, narrativeData, options = {}) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
@@ -435,6 +435,12 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         if (!narrativeData.intro && narrativeData.narrative) {
             printBlock(narrativeData.narrative);
         }
+    }
+
+    // Output
+    if (options?.returnBase64) {
+        const dataUri = doc.output('datauristring');
+        return dataUri.split(',')[1];
     }
 
     // Save

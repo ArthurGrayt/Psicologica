@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CheckCircle, Lock, User, ChevronDown, AlignLeft, ChevronUp, Search, Check } from 'lucide-react';
+import { CheckCircle, Lock, User, ChevronDown, AlignLeft, ChevronUp, Search, Check, X } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
+import SignatureCanvas from 'react-signature-canvas';
 
 /* --- Components Visuals (Styles) --- */
 const LoadingScreen = () => (
@@ -121,6 +122,64 @@ const QuestionCard = ({ question, answer, onAnswer, error }) => {
     );
 };
 
+/* --- Signature Modal Component --- */
+const SignatureModal = ({ isOpen, onClose, onSave, loading }) => {
+    const sigCanvas = useRef({});
+
+    const clear = () => sigCanvas.current.clear();
+    const save = () => {
+        if (sigCanvas.current.isEmpty()) {
+            alert("Por favor, assine antes de salvar.");
+            return;
+        }
+        // Fix: Use getCanvas() to avoid trim-canvas import error in Vite
+        onSave(sigCanvas.current.getCanvas().toDataURL('image/png'));
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-[#35b6cf] p-4 text-white flex justify-between items-center">
+                    <h3 className="font-bold">Assinatura Digital</h3>
+                    <button onClick={onClose} className="hover:bg-white/20 p-1 rounded"><X size={20} /></button>
+                </div>
+
+                <div className="p-4 bg-slate-50 flex justify-center">
+                    <div className="border-2 border-dashed border-slate-300 rounded bg-white relative">
+                        <SignatureCanvas
+                            ref={sigCanvas}
+                            penColor="black"
+                            canvasProps={{ width: 320, height: 180, className: 'sigCanvas' }}
+                        />
+                        <p className="text-[10px] text-slate-300 text-center absolute bottom-2 w-full pointer-events-none uppercase tracking-widest">Área de Assinatura</p>
+                    </div>
+                </div>
+
+                <div className="p-4 bg-white border-t border-slate-100 flex justify-between gap-3">
+                    <button onClick={clear} className="text-slate-500 hover:bg-slate-100 px-4 py-2 rounded text-sm transition-colors">
+                        Limpar
+                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={onClose} className="border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm hover:bg-slate-50 transition-colors">
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={save}
+                            disabled={loading}
+                            className="bg-[#35b6cf] text-white px-6 py-2 rounded text-sm hover:bg-[#2da9c0] transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {loading ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Check size={16} />}
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 /* --- Main Component --- */
 const FormularioPublico = () => {
     const { assessmentId } = useParams();
@@ -140,6 +199,11 @@ const FormularioPublico = () => {
 
     // Scroll ref for error focusing
     const topRef = useRef(null);
+
+    // Signature State
+    const [showSigModal, setShowSigModal] = useState(false);
+    const [signatureUrl, setSignatureUrl] = useState(null);
+    const [sigLoading, setSigLoading] = useState(false);
 
     useEffect(() => {
         if (assessmentId) fetchAssessment();
@@ -193,9 +257,11 @@ const FormularioPublico = () => {
 
                 if (colab) {
                     setPatient(colab);
+                    if (colab.assinatura) setSignatureUrl(colab.assinatura);
                 } else {
                     const { data: pat } = await supabase.from('patients').select('*').eq('id', assess.patient_id).single();
                     setPatient(pat);
+                    if (pat?.assinatura) setSignatureUrl(pat.assinatura);
                 }
             }
 
@@ -235,20 +301,15 @@ const FormularioPublico = () => {
             let score = 0;
             if (q.type === 'yes_no' && val === 'Sim') score = q.weight || 0;
             if (q.type === 'scale' || q.type === 'select') {
-                // Fix: Match against o.text as DB uses text column. Fallback to label/value/text for robustness.
                 const opt = q.question_options?.find(o => String(o.text || o.label || o.value) === val);
                 if (opt) {
                     score = opt.score_val || 0;
-                    // Rule: If option is purely numeric (e.g. "1", "2") and score came back as 0 (maybe unset), 
-                    // infer score from text. 
-                    // Exception: "0" should be 0.
                     if (score === 0 && val !== '0' && /^\d+$/.test(val)) {
                         score = parseInt(val, 10);
                     }
                 }
             }
 
-            // Manual UPSERT logic (Check -> Update/Insert) to avoid 400 error due to missing constraint
             const { data: existing } = await supabase
                 .from('answers')
                 .select('id')
@@ -280,7 +341,43 @@ const FormularioPublico = () => {
         return parentAns === q.show_if_value;
     };
 
+    const handleSignatureSave = async (dataUrl) => {
+        setSigLoading(true);
+        try {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            const fileName = `sig_${assessmentId}_${Date.now()}.png`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('assinaturas')
+                .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage.from('assinaturas').getPublicUrl(fileName);
+
+            if (patient && assessment?.patient_id) {
+                await supabase.from('patients').update({ assinatura: publicUrl }).eq('id', assessment.patient_id);
+            }
+
+            setSignatureUrl(publicUrl);
+            setShowSigModal(false);
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao salvar assinatura. Tente novamente.');
+        } finally {
+            setSigLoading(false);
+        }
+    };
+
     const handleSubmit = async () => {
+        if (!signatureUrl) {
+            alert("É obrigatório assinar a declaração para enviar a resposta.");
+            const el = document.getElementById('declaration-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
         const visibleQuestions = questions.filter(checkVisibility);
         const missing = visibleQuestions.filter(q => q.required !== false && !answers[q.id]).map(q => q.id);
 
@@ -372,7 +469,7 @@ const FormularioPublico = () => {
 
                 {/* Declaration Section */}
                 {patient && (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-8 py-8 mb-6 mt-8">
+                    <div id="declaration-section" className="bg-white rounded-xl shadow-sm border border-slate-200 px-8 py-8 mb-6 mt-8">
                         <p className="text-[14px] text-slate-800 leading-relaxed text-justify">
                             Eu, <span className="border-b border-slate-400 px-2 font-bold inline-block min-w-[200px] text-center">{patient.nome || patient.name || '______________________'}</span>,
                             portador do documento de identificação <span className="border-b border-slate-400 px-2 font-bold inline-block min-w-[120px] text-center">{patient.cpf || '_________________'}</span>,
@@ -380,11 +477,37 @@ const FormularioPublico = () => {
                         </p>
 
                         <div className="mt-12 flex flex-col items-center">
-                            <div className="border-b border-slate-800 w-full max-w-md"></div>
-                            <p className="text-sm text-slate-500 mt-2">Assinatura</p>
+                            {signatureUrl ? (
+                                <div className="flex flex-col items-center animate-in zoom-in-50">
+                                    <img src={signatureUrl} alt="Assinatura" className="h-16 object-contain mb-2" />
+                                    <div className="border-b border-slate-800 w-full max-w-xs mb-1"></div>
+                                    <p className="text-sm text-slate-500 mb-4">Assinatura Digital Registrada</p>
+                                    <button onClick={() => setShowSigModal(true)} className="text-xs text-[#35b6cf] hover:underline">
+                                        Alterar assinatura
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center w-full">
+                                    <button
+                                        onClick={() => setShowSigModal(true)}
+                                        className="bg-slate-800 text-white px-6 py-3 rounded-lg shadow hover:bg-slate-700 transition-all flex items-center gap-2 mb-2"
+                                    >
+                                        <div className="w-5 h-5 border border-white rounded-sm"></div>
+                                        Clique para Assinar
+                                    </button>
+                                    <p className="text-xs text-red-500 mt-2">* Obrigatório para envio</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
+
+                <SignatureModal
+                    isOpen={showSigModal}
+                    onClose={() => setShowSigModal(false)}
+                    onSave={handleSignatureSave}
+                    loading={sigLoading}
+                />
 
                 {/* Footer Buttons */}
                 <div className="flex justify-between items-center mt-6">
