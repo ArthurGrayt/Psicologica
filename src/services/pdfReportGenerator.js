@@ -336,8 +336,8 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         doc.setFont('helvetica', 'normal');
         doc.setTextColor('#333333');
 
-        const containerPadding = 8;
-        const textWidth = contentWidth - (containerPadding * 2);
+        const containerPadding = 0;
+        const textWidth = contentWidth;
 
         // Helper to print a block of text and advance Y
         const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', align = 'justify') => {

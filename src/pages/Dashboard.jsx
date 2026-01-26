@@ -1376,16 +1376,20 @@ const Dashboard = () => {
                                     </div>
 
                                     <div className="prose prose-slate prose-sm max-w-none">
-                                        {narrativePreview.data.intro ? (
+                                        {(narrativePreview.data.intro || narrativePreview.data.narrative) ? (
                                             <div className="text-slate-800 -mx-6">
                                                 {/* 1. Introdução */}
-                                                <p className="mb-4 text-justify leading-relaxed whitespace-pre-line">
-                                                    {narrativePreview.data.intro}
-                                                </p>
+                                                {narrativePreview.data.intro && (
+                                                    <p className="mb-4 text-justify leading-relaxed whitespace-pre-line">
+                                                        {narrativePreview.data.intro}
+                                                    </p>
+                                                )}
 
-                                                {/* 2. Análise Completa (Parágrafo Único) */}
+                                                {/* 2. Análise Completa (Parágrafo Único) ou Legacy Narrative */}
                                                 <p className="mb-8 text-justify leading-relaxed whitespace-pre-line">
-                                                    {narrativePreview.data.full_analysis || `${narrativePreview.data.mental_text || ''}\n\n${narrativePreview.data.habits_text || ''}`}
+                                                    {narrativePreview.data.full_analysis ||
+                                                        narrativePreview.data.narrative ||
+                                                        `${narrativePreview.data.mental_text || ''}\n\n${narrativePreview.data.habits_text || ''}`}
                                                 </p>
 
                                                 {/* 3. BLOCO DE CONCLUSÃO (APTO/INAPTO) */}
