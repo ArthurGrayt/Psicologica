@@ -370,6 +370,22 @@ const FormularioPublico = () => {
                     );
                 })}
 
+                {/* Declaration Section */}
+                {patient && (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-8 py-8 mb-6 mt-8">
+                        <p className="text-[14px] text-slate-800 leading-relaxed text-justify">
+                            Eu, <span className="border-b border-slate-400 px-2 font-bold inline-block min-w-[200px] text-center">{patient.nome || patient.name || '______________________'}</span>,
+                            portador do documento de identificação <span className="border-b border-slate-400 px-2 font-bold inline-block min-w-[120px] text-center">{patient.cpf || '_________________'}</span>,
+                            mediante a assinatura abaixo, declaro serem verdadeiras todas as informações por mim relatadas nesta avaliação.
+                        </p>
+
+                        <div className="mt-12 flex flex-col items-center">
+                            <div className="border-b border-slate-800 w-full max-w-md"></div>
+                            <p className="text-sm text-slate-500 mt-2">Assinatura</p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Footer Buttons */}
                 <div className="flex justify-between items-center mt-6">
                     <button
