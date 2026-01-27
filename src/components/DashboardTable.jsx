@@ -6,32 +6,9 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
     const dropdownRef = useRef(null);
+    const [selectedPatientDetails, setSelectedPatientDetails] = useState(null);
 
-    // Fechar dropdown ao clicar fora ou rolar a página
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setOpenDropdownId(null);
-            }
-        };
-
-        const handleScroll = () => {
-            if (openDropdownId) {
-                setOpenDropdownId(null);
-            }
-        };
-
-        if (openDropdownId) {
-            document.addEventListener('mousedown', handleClickOutside);
-            // Use capture phase to detect scroll in the table container as well
-            window.addEventListener('scroll', handleScroll, true);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            window.removeEventListener('scroll', handleScroll, true);
-        };
-    }, [openDropdownId]);
+    // No explicit click outside listener needed with backdrop approach
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -76,7 +53,286 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
 
     return (
         <div className="w-full h-full flex flex-col">
-            <div className="border border-gray-200 rounded-xl bg-white shadow-sm flex flex-col relative z-0 overflow-visible">
+            {/* Mobile/Tablet/iPad Pro Card View (Visible up to xl) */}
+            <div className="xl:hidden space-y-4 pb-32">
+                {patients.map((patient) => (
+                    <div key={patient.id} className="bg-white p-5 rounded-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100 relative">
+                        {/* Card Header: Avatar + Info + Actions */}
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex gap-4">
+                                <div className="w-12 h-12 rounded-full bg-cyan-50 flex items-center justify-center text-[#139690] font-bold text-lg">
+                                    {patient.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-800 text-[15px] leading-tight mb-0.5">{patient.name}</h3>
+                                    <p className="text-slate-400 text-xs font-medium">CPF: {patient.cpf}</p>
+                                </div>
+                            </div>
+
+                            {/* Actions Trigger */}
+                            <button
+                                className="p-2 -mr-2 text-slate-300 hover:text-slate-600 transition-colors"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setDropdownPosition({
+                                        top: rect.bottom + 5,
+                                        right: window.innerWidth - rect.right + 20 // Adjust for mobile padding
+                                    });
+                                    setOpenDropdownId(openDropdownId === patient.id ? null : patient.id);
+                                }}
+                            >
+                                <MoreHorizontal size={24} />
+                            </button>
+                        </div>
+
+                        {/* Card Body: Grid Info */}
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Empresa</p>
+                                <p className="text-sm text-slate-700 font-semibold">{patient.company || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Data</p>
+                                <p className="text-sm text-slate-700 font-semibold flex items-center gap-1.5">
+                                    <Calendar size={14} className="text-slate-400" />
+                                    {patient.date}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="h-px bg-slate-50 w-full mb-4" />
+
+                        {/* Card Footer: Status + Link */}
+                        <div className="flex justify-between items-center">
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${patient.locked ? 'bg-red-50 text-red-700 border-red-100' :
+                                patient.status === 'completed' || patient.status === 'Concluído' || patient.status === 'reported' || patient.status === 'Laudado' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                    patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                        patient.status === 'sent' || patient.status === 'Enviado' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                            'bg-yellow-50 text-yellow-700 border-yellow-100'
+                                }`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${patient.locked ? 'bg-red-500' :
+                                    patient.status === 'completed' || patient.status === 'reported' || patient.status === 'Laudado' ? 'bg-emerald-500' :
+                                        patient.status === 'in_progress' ? 'bg-blue-500' :
+                                            'bg-yellow-500' // Default
+                                    }`} />
+                                {patient.locked ? 'Bloqueado' :
+                                    patient.status === 'pending' ? 'Pendente' :
+                                        patient.status === 'sent' ? 'Enviado' :
+                                            patient.status === 'in_progress' ? 'Em Progresso' :
+                                                patient.status === 'completed' ? 'Concluído' :
+                                                    patient.status === 'reported' ? 'Laudado' : patient.status}
+                            </span>
+
+                            <button
+                                onClick={() => setSelectedPatientDetails(patient)}
+                                className="text-[#139690] text-sm font-bold flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                                Ver Detalhes <ChevronDown size={16} className="-rotate-90" />
+                            </button>
+                        </div>
+
+                        {/* Dropdown Menu (Reused) */}
+                        {patient.id && openDropdownId === patient.id && (
+                            <>
+                                {/* Transparent Backdrop for clicking outside */}
+                                <div
+                                    className="fixed inset-0 z-[9998]"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenDropdownId(null);
+                                    }}
+                                />
+
+                                <div
+                                    ref={dropdownRef}
+                                    style={{
+                                        position: 'fixed',
+                                        top: `${dropdownPosition.top}px`,
+                                        right: `${dropdownPosition.right}px`,
+                                        zIndex: 9999
+                                    }}
+                                    className="w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
+                                >
+                                    <button
+                                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onGenerateForm(patient.id);
+                                            setOpenDropdownId(null);
+                                        }}
+                                    >
+                                        <LinkIcon size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" />
+                                        <span className="font-medium">Gerar Link</span>
+                                    </button>
+
+                                    <button
+                                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onGenerateReport(patient);
+                                            setOpenDropdownId(null);
+                                        }}
+                                    >
+                                        <FileText size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" />
+                                        <span className="font-medium">Gerar Laudo</span>
+                                    </button>
+
+                                    <button
+                                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onGenerateReport(patient, true);
+                                            setOpenDropdownId(null);
+                                        }}
+                                    >
+                                        <CheckCircle size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" />
+                                        <span className="font-medium">Assinar Laudo</span>
+                                    </button>
+
+                                    {patient.assessmentId ? (
+                                        <button
+                                            className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onToggleLock(patient.id, patient.assessmentId, patient.locked);
+                                                setOpenDropdownId(null);
+                                            }}
+                                        >
+                                            {patient.locked ?
+                                                <Unlock size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" /> :
+                                                <Lock size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" />
+                                            }
+                                            <span className="font-medium">{patient.locked ? 'Destravar' : 'Travar'}</span>
+                                        </button>
+                                    ) : (
+                                        <div className="px-5 py-3 text-xs text-slate-400 italic flex items-center gap-3 select-none">
+                                            <Unlock size={18} className="opacity-50" />
+                                            <span>Não avaliado</span>
+                                        </div>
+                                    )}
+
+                                    <div className="h-px bg-slate-100 my-1 mx-4"></div>
+
+                                    <button
+                                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors group"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (window.confirm('Tem certeza que deseja excluir este paciente?')) {
+                                                onDelete(patient.id);
+                                            }
+                                            setOpenDropdownId(null);
+                                        }}
+                                    >
+                                        <Trash2 size={18} className="text-red-400 group-hover:text-red-600 transition-colors" />
+                                        <span className="font-medium">Excluir</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Patient Details Modal (Mobile/Tablet) */}
+            {selectedPatientDetails && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+                        onClick={() => setSelectedPatientDetails(null)}
+                    />
+
+                    {/* Modal Content - Centered */}
+                    <div className="bg-white w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] overflow-y-auto">
+                        <div className="flex flex-col items-center mb-6">
+                            <div className="w-D20 h-20 rounded-full bg-cyan-50 flex items-center justify-center text-[#139690] font-bold text-3xl mb-3">
+                                {selectedPatientDetails.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()}
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-800 text-center">{selectedPatientDetails.name}</h2>
+                            <p className="text-slate-400 font-medium">CPF: {selectedPatientDetails.cpf}</p>
+                        </div>
+
+                        <div className="space-y-4 mb-8">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Nascimento</label>
+                                    <p className="text-slate-800 font-medium">{renderCellContent(selectedPatientDetails.nascimento)}</p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Sexo</label>
+                                    <p className="text-slate-800 font-medium">{renderCellContent(selectedPatientDetails.sexo)}</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Empresa</label>
+                                <p className="text-slate-800 font-medium">{renderCellContent(selectedPatientDetails.company)}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Cargo</label>
+                                    <p className="text-slate-800 font-medium">{renderCellContent(selectedPatientDetails.role, true)}</p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Setor</label>
+                                    <p className="text-slate-800 font-medium">{renderCellContent(selectedPatientDetails.sector, true)}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Data</label>
+                                    <p className="text-slate-800 font-medium flex items-center gap-1">
+                                        <Calendar size={14} className="text-slate-400" />
+                                        {selectedPatientDetails.date}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Status</label>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border inline-block ${selectedPatientDetails.locked ? 'bg-red-50 text-red-700 border-red-100' :
+                                        selectedPatientDetails.status === 'completed' || selectedPatientDetails.status === 'Concluído' || selectedPatientDetails.status === 'reported' || selectedPatientDetails.status === 'Laudado' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                            selectedPatientDetails.status === 'in_progress' || selectedPatientDetails.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                                selectedPatientDetails.status === 'sent' || selectedPatientDetails.status === 'Enviado' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                                    'bg-yellow-50 text-yellow-700 border-yellow-100'
+                                        }`}>
+                                        {selectedPatientDetails.locked ? 'Bloqueado' :
+                                            selectedPatientDetails.status === 'pending' ? 'Pendente' :
+                                                selectedPatientDetails.status === 'sent' ? 'Enviado' :
+                                                    selectedPatientDetails.status === 'in_progress' ? 'Em Progresso' :
+                                                        selectedPatientDetails.status === 'completed' ? 'Concluído' :
+                                                            selectedPatientDetails.status === 'reported' ? 'Laudado' : selectedPatientDetails.status}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setSelectedPatientDetails(null)}
+                                className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                            >
+                                Fechar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    onEdit(selectedPatientDetails);
+                                    setSelectedPatientDetails(null);
+                                }}
+                                className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                            >
+                                <Pencil size={18} />
+                                Editar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Desktop Table View (Hidden on Mobile/Tablet) */}
+            <div className="hidden xl:flex border border-gray-200 rounded-xl bg-white shadow-sm flex-col relative z-0 overflow-visible">
                 <div className="w-full flex-1 overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -144,20 +400,20 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                     key={patient.id}
                                     className={`border-b border-gray-100 last:border-0 hover:bg-brand-surface/80 transition-colors duration-200 group ${patient.id && openDropdownId === patient.id ? 'relative z-50' : ''}`}
                                 >
-                                    <td className={`p-4 font-semibold text-slate-900 ${index === patients.length - 1 ? 'rounded-bl-xl' : ''}`}>{patient.name}</td>
-                                    <td className="p-4">{renderCellContent(patient.cpf)}</td>
-                                    <td className="p-4">{renderCellContent(patient.nascimento)}</td>
-                                    <td className="p-4">{renderCellContent(patient.sexo)}</td>
-                                    <td className="p-4">{renderCellContent(patient.company)}</td>
-                                    <td className="p-4">{renderCellContent(patient.role, true)}</td>
-                                    <td className="p-4">{renderCellContent(patient.sector, true)}</td>
-                                    <td className="p-4 whitespace-nowrap">
+                                    <td className={`p-3 md:p-4 font-semibold text-slate-900 ${index === patients.length - 1 ? 'rounded-bl-xl' : ''}`}>{patient.name}</td>
+                                    <td className="p-3 md:p-4">{renderCellContent(patient.cpf)}</td>
+                                    <td className="p-3 md:p-4">{renderCellContent(patient.nascimento)}</td>
+                                    <td className="p-3 md:p-4">{renderCellContent(patient.sexo)}</td>
+                                    <td className="p-3 md:p-4">{renderCellContent(patient.company)}</td>
+                                    <td className="p-3 md:p-4">{renderCellContent(patient.role, true)}</td>
+                                    <td className="p-3 md:p-4">{renderCellContent(patient.sector, true)}</td>
+                                    <td className="p-3 md:p-4 whitespace-nowrap">
                                         <div className="flex items-center gap-2 text-gray-400 text-sm">
                                             <Calendar size={14} className="opacity-70" />
                                             <span className="text-gray-500">{patient.date}</span>
                                         </div>
                                     </td>
-                                    <td className="p-4 whitespace-nowrap">
+                                    <td className="p-3 md:p-4 whitespace-nowrap">
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap inline-block ${patient.locked ? 'bg-red-50 text-red-700 border-red-200' :
                                             patient.status === 'completed' || patient.status === 'Concluído' || patient.status === 'reported' || patient.status === 'Laudado' ? 'bg-green-50 text-green-700 border-green-200' :
                                                 patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -172,7 +428,7 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                                                 patient.status === 'reported' ? 'Laudado' : patient.status}
                                         </span>
                                     </td>
-                                    <td className={`p-4 text-center relative w-[100px] ${index === patients.length - 1 ? 'rounded-br-xl' : ''}`}>
+                                    <td className={`p-3 md:p-4 text-center relative w-[100px] ${index === patients.length - 1 ? 'rounded-br-xl' : ''}`}>
                                         <div className="flex items-center justify-center">
                                             <button
                                                 className={`p-2 rounded-md border transition-all duration-200 ${openDropdownId === patient.id

@@ -16,13 +16,8 @@ const AdminLayout = () => {
 
     return (
         <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
-            {/* Sidebar */}
-            <aside className={`
-                fixed md:relative inset-y-0 left-0 z-40
-                w-72 transform transition-transform duration-300 ease-in-out
-                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-                bg-white border-r border-gray-200 text-slate-600 flex flex-col h-screen
-            `}>
+            {/* Sidebar (Hidden on Mobile/Tablet/iPad Pro) */}
+            <aside className="hidden xl:flex flex-col w-72 bg-white border-r border-gray-200 text-slate-600 h-screen z-40 relative">
                 {/* Logo Area */}
                 <div className="px-8 py-8 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -31,14 +26,6 @@ const AdminLayout = () => {
                             <span className="text-xl font-bold tracking-tight block leading-none text-[#04092E]">Gama Psic</span>
                         </div>
                     </div>
-
-                    {/* Botão Fechar Mobile */}
-                    <button
-                        className="md:hidden p-2 text-slate-400 hover:text-brand-secondary transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                        <Menu size={24} />
-                    </button>
                 </div>
 
                 {/* Navigation */}
@@ -49,7 +36,6 @@ const AdminLayout = () => {
                             <Link
                                 key={item.path}
                                 to={item.path}
-                                onClick={() => setIsMobileMenuOpen(false)}
                                 className={`
                                     group flex items-center gap-3 px-5 py-3.5 rounded-lg transition-all duration-200
                                     ${isActive
@@ -91,22 +77,42 @@ const AdminLayout = () => {
                 </div>
             </aside>
 
-            {/* Botão Menu Mobile (Fixo na tela) */}
-            {!isMobileMenuOpen && (
-                <button
-                    onClick={() => setIsMobileMenuOpen(true)}
-                    className="md:hidden fixed top-6 left-6 z-50 p-3 bg-[#373b59] text-white rounded-xl shadow-2xl"
-                >
-                    <Menu size={24} />
-                </button>
-            )}
+            {/* Mobile Header (Visible on Mobile/Tablet/iPad Pro) */}
+            <header className="xl:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-100 flex items-center px-6 z-30">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-[#ccedf3] rounded-lg flex items-center justify-center">
+                        <img src={logoGamaUrl} alt="Logo Gama" className="h-5 w-auto" />
+                    </div>
+                    <span className="text-xl font-bold tracking-tight text-[#04092E]">Gama Psic</span>
+                </div>
+            </header>
 
             {/* Conteúdo Principal */}
-            <main className="flex-1 min-w-0 h-screen overflow-y-auto scroll-smooth">
+            <main className="flex-1 min-w-0 h-screen overflow-y-auto scroll-smooth pb-24 xl:pb-0 pt-16 xl:pt-0">
                 <div className="p-6 md:p-10 max-w-[1600px] mx-auto">
                     <Outlet />
                 </div>
             </main>
+
+            {/* Mobile/Tablet Bottom Tab Bar */}
+            <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center px-2 py-3 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] safe-area-bottom">
+                {menuItems.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300 w-full ${isActive ? 'text-[#139690]' : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                        >
+                            <div className={`p-1.5 rounded-full transition-all ${isActive ? 'bg-[#139690]/10' : 'bg-transparent'}`}>
+                                <item.icon size={22} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
+                            </div>
+                            <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
+                        </Link>
+                    );
+                })}
+            </div>
         </div>
     );
 };

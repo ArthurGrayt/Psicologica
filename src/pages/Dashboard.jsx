@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square, Link as LinkIcon, Copy, ExternalLink, CheckCircle, Lock } from 'lucide-react';
+import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square, Link as LinkIcon, Copy, ExternalLink, CheckCircle, Lock, QrCode } from 'lucide-react';
 import DashboardTable from '../components/DashboardTable';
+import { QRCodeCanvas } from 'qrcode.react';
 import { useCompanyData } from '../hooks/useCompanyData';
 import SearchableSelect from '../components/SearchableSelect';
 import { supabase } from '../lib/supabase';
@@ -36,6 +37,7 @@ const Dashboard = () => {
     // Form Generation State
     const [generatedLink, setGeneratedLink] = useState(null);
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+    const [showQrCode, setShowQrCode] = useState(false);
 
     // State for Quick Create Collaborator
     const [isCreatingCollaborator, setIsCreatingCollaborator] = useState(false);
@@ -1219,9 +1221,9 @@ const Dashboard = () => {
             )}
 
 
-            {/* 1. Card Superior (Filtros) */}
-            <div className="bg-white p-6 rounded-[32px] shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 transition-all duration-500">
-                <div className="flex items-center gap-4 w-full md:w-auto">
+            {/* 1. Card Superior (Filtros e Busca) */}
+            <div className="xl:bg-white xl:p-6 xl:rounded-[32px] xl:shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4 transition-all duration-500 mb-6 xl:mb-0">
+                <div className="flex items-center gap-3 w-full xl:w-auto">
                     {selectedPatient ? (
                         <button
                             onClick={() => setSelectedPatient(null)}
@@ -1233,23 +1235,33 @@ const Dashboard = () => {
                             <span>Voltar para Lista</span>
                         </button>
                     ) : (
-                        <div className="relative w-full md:w-96 transition-all duration-500">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-gray-400" />
+                        <div className="flex gap-3 w-full lg:w-auto">
+                            <div className="relative w-full lg:w-96 transition-all duration-500">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                    <Search className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Buscar paciente..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-11 pr-4 py-3 w-full bg-white xl:bg-gray-100 border border-transparent xl:border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 shadow-sm xl:shadow-none transition-all text-slate-700 placeholder:text-gray-400"
+                                />
                             </div>
-                            <input
-                                type="text"
-                                placeholder="Buscar por nome, cargo, empresa, status, 'travado'..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
-                            />
+
+                            {/* Botão de Filtro Mobile/Tablet (Quadrado) */}
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`lg:hidden flex items-center justify-center w-12 h-12 rounded-2xl border transition-all shadow-sm ${showFilters ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-white'}`}
+                            >
+                                <Filter size={20} />
+                            </button>
                         </div>
                     )}
                 </div>
 
                 {!selectedPatient && (
-                    <div className="flex items-center gap-3 w-full md:w-auto overflow-hidden">
+                    <div className="hidden xl:flex items-center gap-3 w-full xl:w-auto overflow-hidden">
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-medium text-sm whitespace-nowrap ${showFilters ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
@@ -1269,9 +1281,19 @@ const Dashboard = () => {
                 )}
             </div>
 
+            {/* Mobile/Tablet Section Header */}
+            {!selectedPatient && (
+                <div className="flex xl:hidden items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-slate-800">Lista de Pacientes</h2>
+                    <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">
+                        Total: {filteredPatients.length}
+                    </span>
+                </div>
+            )}
+
             {/* Painel de Filtros Avançados */}
             <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[500px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
-                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 grid grid-cols-1 xl:grid-cols-4 gap-6">
                     <div>
                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nome do Paciente</label>
                         <input
@@ -1368,10 +1390,11 @@ const Dashboard = () => {
             <div className="flex flex-1 gap-6 overflow-visible relative">
 
                 {/* Lado Esquerdo: Tabela OU Formulário */}
-                <div className={`bg-white rounded-[32px] shadow-sm flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedPatient ? 'w-2/5 p-8' : 'w-full'}`}>
+                <div className={`flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedPatient ? 'hidden xl:flex xl:w-2/5 xl:bg-white xl:active-p-8 xl:p-8 xl:rounded-[32px] xl:shadow-sm' : 'w-full xl:bg-white xl:rounded-[32px] xl:shadow-sm'}`}>
 
                     {selectedPatient ? (
                         // MODO EDIÇÃO: Formulário
+                        // Mobile/Tablet: Mostra apenas o formulário (controlled by hidden above for desktop split)
                         <div className="flex flex-col h-full animate-fadeIn">
                             <div className="mb-8">
                                 <h2 className="text-2xl font-bold text-slate-800">Editar Paciente</h2>
@@ -1521,9 +1544,9 @@ const Dashboard = () => {
 
                 {/* 3. Painel Lateral (Placeholder para manter layout de Split conforme pedido) */}
                 <div
-                    className={`bg-white rounded-[32px] shadow-sm flex-1 flex flex-col transition-all duration-500 ease-in-out transform ${selectedPatient
-                        ? 'translate-x-0 opacity-100'
-                        : 'translate-x-full opacity-0 absolute right-0 w-1/2'
+                    className={`bg-white rounded-[32px] shadow-sm flex-col transition-all duration-500 ease-in-out transform ${selectedPatient
+                        ? 'w-full md:flex-1 translate-x-0 opacity-100 flex'
+                        : 'hidden md:flex translate-x-full opacity-0 absolute right-0 w-1/2'
                         }`}
                 >
                     {selectedPatient && (
@@ -1636,56 +1659,102 @@ const Dashboard = () => {
             {/* Modal de Link Gerado */}
             {isLinkModalOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-                    <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-4xl w-full animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                 <LinkIcon size={20} className="text-[#35b6cf]" />
-                                Link Gerado
+                                {showQrCode ? 'QR Code do Link' : 'Link Gerado'}
                             </h3>
-                            <button onClick={() => setIsLinkModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                            <button onClick={() => { setIsLinkModalOpen(false); setShowQrCode(false); }} className="text-slate-400 hover:text-slate-600">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <p className="text-sm text-slate-500 mb-4">
-                            Envie este link para o paciente preencher a avaliação de onde estiver.
-                        </p>
+                        {showQrCode ? (
+                            <div className="flex flex-col items-center animate-in zoom-in-95 duration-200">
+                                <div className="bg-white p-4 rounded-xl border-2 border-slate-100 shadow-sm mb-6">
+                                    <QRCodeCanvas
+                                        value={generatedLink}
+                                        size={520}
+                                        level={"H"}
+                                        includeMargin={true}
+                                    />
+                                </div>
+                                <p className="text-sm text-slate-500 mb-6 text-center max-w-xs">
+                                    Peça para o paciente escanear este código com a câmera do celular para abrir a avaliação.
+                                </p>
+                                <div className="flex gap-3 w-full">
+                                    <button
+                                        onClick={() => setShowQrCode(false)}
+                                        className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+                                    >
+                                        Voltar
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Envie este link para o paciente preencher a avaliação de onde estiver.
+                                </p>
 
-                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3 mb-6">
-                            <span className="text-sm text-slate-600 truncate font-mono select-all">
-                                {generatedLink}
-                            </span>
-                            <button
-                                onClick={() => {
-                                    navigator.clipboard.writeText(generatedLink);
-                                    alert('Link copiado!');
-                                }}
-                                className="text-blue-600 hover:text-blue-800 p-1.5 hover:bg-blue-50 rounded transition-colors"
-                                title="Copiar"
-                            >
-                                <Copy size={16} />
-                            </button>
-                        </div>
+                                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3 mb-6">
+                                    <span className="text-sm text-slate-600 truncate font-mono select-all">
+                                        {generatedLink}
+                                    </span>
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(generatedLink);
+                                            alert('Link copiado!');
+                                        }}
+                                        className="text-blue-600 hover:text-blue-800 p-1.5 hover:bg-blue-50 rounded transition-colors"
+                                        title="Copiar"
+                                    >
+                                        <Copy size={16} />
+                                    </button>
+                                </div>
 
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setIsLinkModalOpen(false)}
-                                className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
-                            >
-                                Fechar
-                            </button>
-                            <a
-                                href={generatedLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 py-2.5 bg-[#35b6cf] text-white rounded-xl font-medium hover:bg-[#2ca1b7] shadow-lg shadow-cyan-500/20 transition-colors flex items-center justify-center gap-2"
-                            >
-                                Abrir <ExternalLink size={16} />
-                            </a>
-                        </div>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={() => setShowQrCode(true)}
+                                        className="w-full py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <QrCode size={18} />
+                                        Gerar QR Code
+                                    </button>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setIsLinkModalOpen(false)}
+                                            className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+                                        >
+                                            Fechar
+                                        </button>
+                                        <a
+                                            href={generatedLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 py-2.5 bg-[#35b6cf] text-white rounded-xl font-medium hover:bg-[#2ca1b7] shadow-lg shadow-cyan-500/20 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            Abrir <ExternalLink size={16} />
+                                        </a>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
+            {/* Mobile/Tablet Floating Action Button (FAB) (Visible up to xl) */}
+            <div className="xl:hidden fixed bottom-24 right-4 z-40">
+                <button
+                    onClick={() => setIsMultipleModalOpen(true)}
+                    className="bg-[#139690] text-white px-5 py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(19,150,144,0.4)] font-bold flex items-center gap-2 active:scale-95 transition-transform"
+                >
+                    <Plus size={22} />
+                    <span>Novo Paciente</span>
+                </button>
+            </div>
         </div >
     );
 };
