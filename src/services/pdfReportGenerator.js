@@ -95,13 +95,14 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     // --- 3. Intro Text ---
     const introText = "Este laudo tem o objetivo de efetuar uma avaliação primária para captar o nível do estado de saúde mental, física e psicológica do trabalhador com a finalidade de encaminhar o mesmo para o atendimento psicológico presencial, caso possua a necessidade, diminuindo assim os riscos de ter um trabalhador fatigado, com tendências suicidas e com disposição para síndrome de Burnout. \n\nO questionário consiste em perguntas chave que verificam os níveis de satisfação com a vida pessoal e profissional, capacidade de resiliência, níveis de estresse, uso e abuso de álcool, drogas e medicação para dormir, doenças pré-existentes e fobias, já que essas patologias são as que mais afastam os colaboradores de seus serviços";
 
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor('#000000');
-    doc.text(doc.splitTextToSize(introText, contentWidth), margin, 55);
+    const introLines = doc.splitTextToSize(introText, contentWidth);
+    doc.text(introLines, margin, 55);
 
-    // --- 4. Patient Data ---
-    let yPos = 85;
+    // Dynamic Y positioning for next section
+    let yPos = 55 + (introLines.length * 5) + 10;
     drawSectionHeader('Dados do Paciente', yPos);
     yPos += 10;
 
@@ -331,7 +332,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         const textWidth = contentWidth;
 
         // Helper to print a block of text and advance Y
-        const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', align = 'justify') => {
+        const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', align = 'justify', spacing = 5) => {
             if (!text) return;
             doc.setFontSize(fontSize);
             doc.setFont('helvetica', fontStyle);
@@ -347,80 +348,35 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
             }
 
             doc.text(lines, margin + containerPadding, currentY, { align: align === 'justify' ? 'justify' : 'left', maxWidth: textWidth });
-            currentY += blockHeight + 5; // Spacing after block
+            currentY += blockHeight + spacing; // Custom spacing support
         };
 
-        // 1. Text Sections
-        if (narrativeData.intro) printBlock(narrativeData.intro);
+        // 1. Analysis Text Sections (Printed individually to avoid justification stretching)
+        // Combined Analysis Section (Intro + Mental + Habits + Status + Disclaimer)
+        // User requested a single continuous flow of text without boxes or gaps.
 
-        // Combined Analysis Section (Mental + Habits as one block)
-        const fullAnalysis = narrativeData.full_analysis || [narrativeData.mental_text, narrativeData.habits_text].filter(Boolean).join('\n\n');
+        const statusText = narrativeData.is_apto
+            ? `O paciente, portanto, se encontra APTO de exercer a função de acordo com nossa avaliação psicológica.`
+            : `O paciente, portanto, apresenta indicadores que sugerem a necessidade de avaliação mais detalhada, sendo indicado como INAPTO temporariamente.`;
 
-        if (fullAnalysis) {
-            printBlock(fullAnalysis);
-        }
+        const parts = [
+            narrativeData.intro,
+            narrativeData.full_analysis || narrativeData.mental_text,
+            !narrativeData.full_analysis ? narrativeData.habits_text : null,
+            statusText, // Status is now just a paragraph
+            narrativeData.disclaimer // Disclaimer is now just a paragraph
+        ];
+
+        // Loop through parts to print them as separate justified blocks.
+        // Spacing = 0 ensures they stack visually as one continuous text.
+        parts.filter(Boolean).forEach(part => {
+            printBlock(part, 10, 'normal', '#333333', 'justify', 0);
+        });
 
         currentY += 5;
 
-        // 2. Conclusion Box (APTO/INAPTO) with Dynamic Height
-        if (narrativeData.status_label) {
-            const isApto = narrativeData.is_apto;
-            const boxColor = isApto ? '#f0fdf4' : '#fffbeb'; // bg-green-50 vs bg-amber-50
-            const borderColor = isApto ? '#dcfce7' : '#fef3c7'; // border-green-100 vs border-amber-100
-            const textColor = isApto ? '#15803d' : '#b45309'; // text-green-700 vs text-amber-700
-
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            // Split message into lines to fit box width (padding included)
-            const messageLines = narrativeData.status_message ? doc.splitTextToSize(narrativeData.status_message, contentWidth - 30) : [];
-
-            const labelHeight = 7;
-            const padding = 6;
-            const gap = 4;
-            const messageBlockHeight = messageLines.length * 5;
-
-            // Calculate Box Height based on content
-            const boxHeight = (messageLines.length > 0)
-                ? (padding * 2) + labelHeight + gap + messageBlockHeight
-                : (padding * 2) + labelHeight;
-
-            // Page Check
-            if (currentY + boxHeight > doc.internal.pageSize.getHeight() - margin) {
-                doc.addPage();
-                currentY = margin + 10;
-            }
-
-            // Draw Box
-            doc.setDrawColor(borderColor);
-            doc.setFillColor(boxColor);
-            doc.roundedRect(margin + 10, currentY, contentWidth - 20, boxHeight, 3, 3, 'FD');
-
-            // Draw Label (APTO)
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(textColor);
-            doc.text(narrativeData.status_label, pageWidth / 2, currentY + padding + 5, { align: 'center' });
-
-            // Draw Message (Multi-line)
-            if (messageLines.length > 0) {
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor('#334155');
-
-                let textY = currentY + padding + labelHeight + gap + 2;
-                messageLines.forEach(line => {
-                    doc.text(line, pageWidth / 2, textY, { align: 'center' });
-                    textY += 5;
-                });
-            }
-
-            currentY += boxHeight + 10;
-        }
-
-        // 3. Disclaimer
-        if (narrativeData.disclaimer) {
-            printBlock(narrativeData.disclaimer, 8, 'italic', '#64748b'); // slate-500
-        }
+        // Conclusion Box REMOVED (Replaced by text above)
+        // Disclaimer Footer REMOVED (Replaced by text above)
 
         // 4. Doctor Signature (Requested Feature)
         if (doctor && doctor.name) {

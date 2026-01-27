@@ -8,6 +8,7 @@ import { generatePDF } from '../services/pdfReportGenerator';
 import SignatureUploadModal from '../components/SignatureUploadModal';
 import DoctorSelectionModal from '../components/DoctorSelectionModal';
 import { generateNarrative } from '../utils/narrativeLogic';
+import logoGamaUrl from '../assets/logo-gama.png';
 
 const Dashboard = () => {
     // Estado Mockado Removido. Apenas dados reais.
@@ -440,8 +441,19 @@ const Dashboard = () => {
             };
         }
 
-        // Logo (Mock or actual logic from hooks)
-        const logoBase64 = null; // Or user logic
+        // Load Logo Base64
+        let logoBase64 = null;
+        try {
+            const response = await fetch(logoGamaUrl);
+            const blob = await response.blob();
+            logoBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.error('Error loading logo:', error);
+        }
 
         const options = doctor ? { doctor } : {};
         if (returnBase64) {
