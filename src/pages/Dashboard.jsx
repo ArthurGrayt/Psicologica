@@ -6,6 +6,8 @@ import SearchableSelect from '../components/SearchableSelect';
 import { supabase } from '../lib/supabase';
 import { generatePDF } from '../services/pdfReportGenerator';
 import SignatureUploadModal from '../components/SignatureUploadModal';
+import DoctorSelectionModal from '../components/DoctorSelectionModal';
+import { generateNarrative } from '../utils/narrativeLogic';
 
 const Dashboard = () => {
     // Estado Mockado Removido. Apenas dados reais.
@@ -41,6 +43,10 @@ const Dashboard = () => {
     const [isSigModalOpen, setIsSigModalOpen] = useState(false);
     const [patientToSign, setPatientToSign] = useState(null);
     const [isSigningLoading, setIsSigningLoading] = useState(false);
+
+    // Doctor Selection Modal State (For Report Generation)
+    const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
+    const [selectedPatientForReport, setSelectedPatientForReport] = useState(null);
 
     // Hook de Dados de Empresa
     const { companies, units, fetchUnits } = useCompanyData();
@@ -304,13 +310,16 @@ const Dashboard = () => {
             setPatientToSign(patient);
             setIsSigModalOpen(true);
         } else {
-            // Normal generation (existing logic, maybe need to wrap it)
-            // The table passes `onGenerateReport={onGenerateReport}`.
-            // But wait, currently `Dashboard` passes `(patient) => ...` probably?
-            // See how Dashboard passes it in render.
-            // I need to check the render method.
-            // For now, I'll implement the actual logic call separately.
-            generateReportLogic(patient);
+            // New Flow: Select Doctor first
+            setSelectedPatientForReport(patient);
+            setIsDoctorModalOpen(true);
+        }
+    };
+
+    const handleDoctorConfirm = (doctor) => {
+        if (selectedPatientForReport) {
+            generateReportLogic(selectedPatientForReport, doctor);
+            setSelectedPatientForReport(null); // Clear after generating
         }
     };
 
@@ -391,7 +400,7 @@ const Dashboard = () => {
     // Existing helper refactor needed here?
     // I'll add the `generateReportData` function here.
 
-    const generateReportData = async (patient, returnBase64 = false) => {
+    const generateReportData = async (patient, returnBase64 = false, doctor = null) => {
         // Fetch Assessment
         const { data: assessment } = await supabase
             .from('assessments')
@@ -413,23 +422,34 @@ const Dashboard = () => {
         const { data: questions } = await supabase
             .from('questions')
             .select(`
-                id, text, category, category_key,
+                id, text, category_key,
                 categories:category_key (name)
             `);
 
-        // Get Narrative via RPC
-        const { data: narrativeData } = await supabase.rpc('get_narrative_report', {
-            assessment_uuid: assessment.id
-        });
+        let narrativeData = null;
+        try {
+            console.log('Calculating narrative client-side...');
+            narrativeData = generateNarrative(assessment, answers, questions);
+        } catch (err) {
+            console.error('Error in client-side narrative generation:', err);
+            narrativeData = {
+                intro: "Não foi possível gerar a análise detalhada.",
+                full_analysis: "Erro de processamento.",
+                status_label: "EM ANÁLISE",
+                is_apto: true
+            };
+        }
 
         // Logo (Mock or actual logic from hooks)
         const logoBase64 = null; // Or user logic
 
+        const options = doctor ? { doctor } : {};
         if (returnBase64) {
-            const b64 = generatePDF(patient, assessment, answers, questions, logoBase64, narrativeData, { returnBase64: true });
+            options.returnBase64 = true;
+            const b64 = generatePDF(patient, assessment, answers, questions, logoBase64, narrativeData, options);
             return { pdfBase64: b64, patientName: patient.name };
         } else {
-            generatePDF(patient, assessment, answers, questions, logoBase64, narrativeData);
+            generatePDF(patient, assessment, answers, questions, logoBase64, narrativeData, options);
         }
     };
 
@@ -437,7 +457,7 @@ const Dashboard = () => {
     // Since I can't see the render, I'll assume I have to replace where it's defined or passed.
     // I'll insert these handlers here.
 
-    const generateReportLogic = (patient) => generateReportData(patient, false);
+    const generateReportLogic = (patient, doctor = null) => generateReportData(patient, false, doctor);
 
     // Unique values for dropdowns
     const uniqueOptions = {
@@ -1589,6 +1609,16 @@ const Dashboard = () => {
                 }}
                 onSign={handleSignAndDownload}
                 loading={isSigningLoading}
+            />
+
+            {/* Modal de Seleção de Médico */}
+            <DoctorSelectionModal
+                isOpen={isDoctorModalOpen}
+                onClose={() => {
+                    setIsDoctorModalOpen(false);
+                    setSelectedPatientForReport(null);
+                }}
+                onConfirm={handleDoctorConfirm}
             />
 
             {/* Modal de Link Gerado */}

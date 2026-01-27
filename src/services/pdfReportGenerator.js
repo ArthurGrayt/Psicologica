@@ -2,6 +2,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export const generatePDF = (patient, assessment, answers, questions, logoBase64, narrativeData, options = {}) => {
+    // Extract doctor from options if passed
+    const doctor = options.doctor || null;
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
@@ -15,8 +18,6 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         const textWidth = doc.getTextWidth(text);
         doc.text(text, (pageWidth - textWidth) / 2, y);
     };
-
-
 
     const drawSectionHeader = (text, y, bgColor = '#139690') => {
         doc.setFillColor(bgColor);
@@ -134,7 +135,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     const formattedDateTime = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
     const examData = [
-        [{ content: 'Data do Laudo:', styles: { fontStyle: 'bold' } }, formattedDateTime, { content: 'Médico Responsável:', styles: { fontStyle: 'bold' } }, 'Fabianni C. N. C. Mello']
+        [{ content: 'Data do Laudo:', styles: { fontStyle: 'bold' } }, formattedDateTime, { content: 'Médico Responsável:', styles: { fontStyle: 'bold' } }, doctor ? doctor.name : 'Fabianni C. N. C. Mello']
     ];
 
     autoTable(doc, {
@@ -191,7 +192,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
 
         answers.forEach(ans => {
             const qId = ans.question_id;
-            const cat = questionCategoryMap[qId]; // From DB (e.g., "Depressao" or "SatisfacaoPessoal")
+            const cat = questionCategoryMap[qId];
 
             if (!cat) {
                 console.warn(`[Q${qId}] No category found in question map.`);
@@ -199,44 +200,41 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
             }
 
             const normCat = normalizeStr(cat);
-
-            // Find matching category in our Chart Definition
-            let matchedKey = categories.find(c => normalizeStr(c.key) === normCat)?.key;
-            let matchMethod = 'Direct/Norm';
-
-            // Manual Mapping for known mismatches (DB Key Normalized -> Chart Label)
-            const manualMapping = {
+            // More Robust Mapping Keys
+            const mapping = {
                 'insatisfacaopessoal': 'Insatisfação Pessoal',
-                'satisfacaopessoal': 'Insatisfação Pessoal', // In case legacy key exists
-                'drogas': 'Drogas ou Remédios',
-                'fumo': 'Fumo',
-                'alcool': 'Álcool',
-                'depressao': 'Depressão',
+                'satisfacaopessoal': 'Insatisfação Pessoal',
                 'ansiedade': 'Ansiedade',
+                'depressao': 'Depressão',
+                'alcool': 'Álcool',
+                'fumo': 'Fumo',
+                'drogas': 'Drogas ou Remédios',
+                'drogasouremedios': 'Drogas ou Remédios',
                 'sono': 'Sono'
             };
 
-            if (!matchedKey && manualMapping[normCat]) {
-                matchedKey = manualMapping[normCat];
-                matchMethod = 'Manual Mapping';
-            }
-            // Fallback: Check for partial inclusion (e.g. "Drogas" inside "Drogas ou Remédios")
+            let matchedKey = null;
+
+            // 1. Direct Map
+            if (mapping[normCat]) matchedKey = mapping[normCat];
+
+            // 2. Direct Match in Categories (normalized)
             if (!matchedKey) {
-                const partialMatch = categories.find(c => normalizeStr(c.key).includes(normCat) || normCat.includes(normalizeStr(c.key)))?.key;
-                if (partialMatch) {
-                    matchedKey = partialMatch;
-                    matchMethod = 'Partial Match';
-                }
+                const direct = categories.find(c => normalizeStr(c.key) === normCat);
+                if (direct) matchedKey = direct.key;
+            }
+
+            // 3. Substring match
+            if (!matchedKey) {
+                const partial = categories.find(c =>
+                    normalizeStr(c.key).includes(normCat) || normCat.includes(normalizeStr(c.key))
+                );
+                if (partial) matchedKey = partial.key;
             }
 
             if (matchedKey) {
-                // Ensure score is treated as a number to avoid string concatenation
-                const numericScore = Number(ans.score);
+                const numericScore = parseFloat(ans.score);
                 const finalScoreToAdd = isNaN(numericScore) ? 0 : numericScore;
-
-                console.log(`[Q${qId}] Cat: "${cat}" -> Norm: "${normCat}" -> Match: "${matchedKey}" (${matchMethod})`);
-                console.log(`       Score Raw: ${ans.score} -> Added: ${finalScoreToAdd}`);
-
                 scores[matchedKey] += finalScoreToAdd;
             } else {
                 console.warn(`[Q${qId}] Cat: "${cat}" (Norm: ${normCat}) -> NO MATCH FOUND!`);
@@ -251,13 +249,6 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     const chartWidth = contentWidth - 15;
     const chartX = margin + 10;
     const chartY = yPos;
-    // Calculate MAX score dynamically? Or fixed? User didn't specify, but fixed 4 is low if we are summing 15 questions.
-    // If summing 15 questions, score could be much higher (e.g., 15 * max_score_per_question).
-    // Assuming normalization or raw sum. 
-    // The previous code had `maxScore = 4`. If single question max is 4, then sum of 15 is 60.
-    // However, usually these charts show "Average" or normalized risk?
-    // User said "montada baseada na soma dos scores".
-    // I should probably find the Max Val to scale the chart properly.
 
     // Let's Find Max Score in our calculated scores to adjust scale
     const calculatedMax = Math.max(...Object.values(scores), 10); // Minimum 10 to avoid flat chart
@@ -431,9 +422,28 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
             printBlock(narrativeData.disclaimer, 8, 'italic', '#64748b'); // slate-500
         }
 
-        // Fallback for old string format
-        if (!narrativeData.intro && narrativeData.narrative) {
-            printBlock(narrativeData.narrative);
+        // 4. Doctor Signature (Requested Feature)
+        if (doctor && doctor.name) {
+            const signatureY = currentY + 35; // Approx 100px / 2.83 (pts to mm conversion) ~ 35mm
+
+            // Check page bounds
+            if (signatureY + 10 > doc.internal.pageSize.getHeight() - margin) {
+                doc.addPage();
+                // New Page: Reset Y to margin
+                // If we page break, the signature might detach from disclaimer, but better than being cut off.
+                const newSignatureY = margin + 10;
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor('#000000');
+                const signatureText = `Assinado por: ${doctor.name}, CRP-${doctor.crp || 'Não informado'}.`;
+                doc.text(signatureText, pageWidth / 2, newSignatureY, { align: 'center' });
+            } else {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor('#000000');
+                const signatureText = `Assinado por: ${doctor.name}, CRP-${doctor.crp || 'Não informado'}.`;
+                doc.text(signatureText, pageWidth / 2, signatureY, { align: 'center' });
+            }
         }
     }
 
