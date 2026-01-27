@@ -1235,8 +1235,8 @@ const Dashboard = () => {
                             <span>Voltar para Lista</span>
                         </button>
                     ) : (
-                        <div className="flex gap-3 w-full lg:w-auto">
-                            <div className="relative w-full lg:w-96 transition-all duration-500">
+                        <div className="flex gap-3 w-full xl:w-auto">
+                            <div className="relative flex-1 xl:w-96 transition-all duration-500">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                     <Search className="h-5 w-5 text-gray-400" />
                                 </div>
@@ -1252,7 +1252,7 @@ const Dashboard = () => {
                             {/* Botão de Filtro Mobile/Tablet (Quadrado) */}
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`lg:hidden flex items-center justify-center w-12 h-12 rounded-2xl border transition-all shadow-sm ${showFilters ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-white'}`}
+                                className={`xl:hidden flex items-center justify-center w-12 h-12 rounded-2xl border transition-all shadow-sm ${showFilters ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-white'}`}
                             >
                                 <Filter size={20} />
                             </button>
@@ -1292,9 +1292,9 @@ const Dashboard = () => {
             )}
 
             {/* Painel de Filtros Avançados */}
-            <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[500px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
-                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 grid grid-cols-1 xl:grid-cols-4 gap-6">
-                    <div>
+            <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[800px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
+                <div className="bg-white p-4 xl:p-8 rounded-[24px] xl:rounded-[32px] shadow-sm border border-slate-100 grid grid-cols-2 xl:grid-cols-4 gap-3 xl:gap-6">
+                    <div className="col-span-2 xl:col-span-1">
                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nome do Paciente</label>
                         <input
                             type="text"
@@ -1374,7 +1374,7 @@ const Dashboard = () => {
                         />
                     </div>
 
-                    <div className="flex items-end">
+                    <div className="flex items-end col-span-2 xl:col-span-1">
                         <button
                             onClick={clearFilters}
                             className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
