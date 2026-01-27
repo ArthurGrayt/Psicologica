@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Stethoscope, ClipboardList, Menu, Activity, LogOut } from 'lucide-react';
 
+import logoGamaUrl from '../assets/logo-gama.png';
+
 const AdminLayout = () => {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -24,11 +26,9 @@ const AdminLayout = () => {
                 {/* Logo Area */}
                 <div className="px-8 py-8 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="bg-[#04092E] p-2.5 rounded-xl shadow-lg">
-                            <Activity size={24} className="text-white" />
-                        </div>
+                        <img src={logoGamaUrl} alt="Logo Gama" className="h-10 w-auto" />
                         <div>
-                            <span className="text-xl font-bold tracking-tight block leading-none text-[#04092E]">Psico Manager</span>
+                            <span className="text-xl font-bold tracking-tight block leading-none text-[#04092E]">Gama Psic</span>
                         </div>
                     </div>
 
