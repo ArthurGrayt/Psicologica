@@ -239,7 +239,7 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                                         }}
                                                     >
                                                         <CheckCircle size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
-                                                        <span className="font-medium align-middle">Baixar Laudo Assinado</span>
+                                                        <span className="font-medium align-middle">Assinar Laudo</span>
                                                     </button>
 
                                                     <button
