@@ -89,21 +89,21 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
                                 <td className={`p-4 font-semibold text-slate-900 ${index === doctors.length - 1 ? 'rounded-bl-xl' : ''}`}>{doctor.name}</td>
                                 <td className="p-4">{renderCellContent(doctor.crp)}</td>
                                 <td className="p-4">
-                                    <div className="flex items-center justify-center gap-2">
-                                        {/* Visual Signature */}
-                                        {doctor.signatureUrl && (
-                                            <div title="Assinatura Visual" className="text-blue-600 bg-blue-50 p-1.5 rounded-md border border-blue-100">
-                                                <Pencil size={14} />
+                                    <div className="flex items-center justify-center">
+                                        {doctor.signatureUrl && doctor.pfxUrl ? (
+                                            <div title="Autenticação Completa (Visual + Digital)" className="text-emerald-600 bg-emerald-50 p-1.5 rounded-md border border-emerald-100 shadow-sm transition-all hover:scale-105">
+                                                <ShieldCheck size={16} />
                                             </div>
-                                        )}
-                                        {/* PFX Certificate */}
-                                        {doctor.pfxUrl && (
-                                            <div title="Certificado Digital (A1/PFX)" className="text-green-600 bg-green-50 p-1.5 rounded-md border border-green-100">
-                                                <ShieldCheck size={14} />
+                                        ) : doctor.pfxUrl ? (
+                                            <div title="Certificado Digital (A1/PFX)" className="text-green-600 bg-green-50 p-1.5 rounded-md border border-green-100 shadow-sm transition-all hover:scale-105">
+                                                <ShieldCheck size={16} />
                                             </div>
-                                        )}
-                                        {!doctor.signatureUrl && !doctor.pfxUrl && (
-                                            <span className="text-slate-300 text-xs">—</span>
+                                        ) : doctor.signatureUrl ? (
+                                            <div title="Assinatura Visual" className="text-blue-600 bg-blue-50 p-1.5 rounded-md border border-blue-100 shadow-sm transition-all hover:scale-105">
+                                                <Pencil size={16} />
+                                            </div>
+                                        ) : (
+                                            <span className="text-slate-200 font-light text-sm">—</span>
                                         )}
                                     </div>
                                 </td>
