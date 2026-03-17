@@ -324,21 +324,20 @@ const QuizSettings = () => {
                                             </h3>
                                         </div>
 
-                                        <div className="flex flex-wrap items-center gap-3 md:gap-4">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <span className="inline-flex shrink-0 items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#F0F2F5] text-slate-500 mix-blend-multiply transition-colors group-hover:bg-slate-100">
                                                 {getTypeLabel(q.type)}
                                             </span>
 
-                                            <div className="flex flex-wrap items-center gap-3 text-slate-500 font-medium text-[12px] md:text-[13px]">
-                                                <div className="flex items-center gap-1.5 shrink-0">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#139690]/40" />
-                                                    <span className="truncate max-w-[120px] md:max-w-none">{q.categories?.name || q.category_key || q.category || 'Geral'}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 shrink-0">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                                                    Peso {q.weight}
-                                                </div>
-                                            </div>
+                                            <span className="inline-flex shrink-0 items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#F0F2F5] text-slate-500 mix-blend-multiply transition-colors group-hover:bg-slate-100">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[#139690]/40" />
+                                                <span className="truncate max-w-[120px] md:max-w-none">{q.categories?.name || q.category_key || q.category || 'Geral'}</span>
+                                            </span>
+
+                                            <span className="inline-flex shrink-0 items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#F0F2F5] text-slate-500 mix-blend-multiply transition-colors group-hover:bg-slate-100">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                                                Peso {q.weight}
+                                            </span>
                                         </div>
                                     </div>
 

@@ -320,9 +320,6 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         drawSectionHeader('Análise', currentY);
         currentY += 15;
 
-        // Badge Removed per requirement (it is part of the text now)
-        currentY += 5;
-
         // --- Narrative Container ---
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
@@ -351,29 +348,53 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
             currentY += blockHeight + spacing; // Custom spacing support
         };
 
-        // 1. Analysis Text Sections (Printed individually to avoid justification stretching)
-        // Combined Analysis Section (Intro + Mental + Habits + Status + Disclaimer)
-        // User requested a single continuous flow of text without boxes or gaps.
-
-        const statusText = narrativeData.is_apto
-            ? `O paciente, portanto, se encontra APTO de exercer a função de acordo com nossa avaliação psicológica.`
-            : `O paciente, portanto, apresenta indicadores que sugerem a necessidade de avaliação mais detalhada, sendo indicado como INAPTO temporariamente.`;
+        const isApto = narrativeData.is_apto !== false; // Default to apto if undefined
+        
+        const statusText = isApto
+            ? `O paciente avaliado apresenta, no momento, um estado psicoemocional equilibrado perante o contexto investigado. Não foram identificados indícios de quadros graves como burnout, tendências suicidas, ou outras patologias incapacitantes. Diante disso, o colaborador encontra-se APTO para o pleno exercício de suas atividades operacionais ou administrativas.`
+            : `Observa-se que o paciente apresenta indicadores relevantes de sobrecarga psicológica ou outros aspectos clínicos citados acima, o que torna desaconselhada a continuidade de suas atividades neste momento. Recomenda-se rigorosamente uma avaliação psicológica/psiquiátrica complementar detalhada e condutas direcionadas. Portanto, o parecer provisório é INAPTO.`;
 
         const parts = [
             narrativeData.intro,
             narrativeData.full_analysis || narrativeData.mental_text,
             !narrativeData.full_analysis ? narrativeData.habits_text : null,
-            statusText, // Status is now just a paragraph
-            narrativeData.disclaimer // Disclaimer is now just a paragraph
+            statusText,
+            narrativeData.disclaimer
         ];
 
-        // Loop through parts to print them as separate justified blocks.
-        // Spacing = 0 ensures they stack visually as one continuous text.
+        // Ensure proper spacing between macro blocks (0 = continuous text)
         parts.filter(Boolean).forEach(part => {
             printBlock(part, 10, 'normal', '#333333', 'justify', 0);
         });
 
-        currentY += 5;
+        currentY += 10;
+        
+        // Add Status Badge (Requested Feature) at the Bottom Centered
+        const badgeColor = isApto ? '#22C55E' : '#EF4444'; // Green or Red
+        const badgeText = isApto ? '  Status: Apto para a Função  ' : '  Status: Inapto Temporariamente  ';
+        const badgeTextColor = '#FFFFFF';
+        
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        const badgeWidth = doc.getTextWidth(badgeText) + 10;
+        
+        const badgeX = (pageWidth - badgeWidth) / 2;
+        
+        // Check page bounds before drawing badge
+        if (currentY + 15 > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            currentY = margin + 10;
+        }
+
+        // Draw rounded rectangle for badge
+        doc.setFillColor(badgeColor);
+        doc.roundedRect(badgeX, currentY, badgeWidth, 8, 2, 2, 'F');
+        
+        // Draw text inside badge
+        doc.setTextColor(badgeTextColor);
+        doc.text(badgeText, badgeX + 5, currentY + 5.5);
+        
+        currentY += 15; // Space after badge
 
         // Conclusion Box REMOVED (Replaced by text above)
         // Disclaimer Footer REMOVED (Replaced by text above)
