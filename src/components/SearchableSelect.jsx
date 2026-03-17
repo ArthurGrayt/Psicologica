@@ -5,34 +5,52 @@ import { ChevronDown, Search, Check } from 'lucide-react';
 const SearchableSelect = ({ options, value, onChange, placeholder, disabled, className }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+    const [coords, setCoords] = useState({ top: 'auto', bottom: 'auto', left: 0, width: 0, maxHeight: 240 });
     const dropdownRef = useRef(null);
+    const portalRef = useRef(null);
+
+    // Calculate smart positioning
+    const updatePosition = () => {
+        if (!isOpen || !dropdownRef.current) return;
+        const rect = dropdownRef.current.getBoundingClientRect();
+        
+        // Window dimensions
+        const windowHeight = window.innerHeight;
+        
+        const spaceBelow = windowHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        
+        let position = {
+            left: rect.left,
+            width: rect.width,
+            top: 'auto',
+            bottom: 'auto',
+            maxHeight: 240
+        };
+
+        // Decide whether to open down or up based on available space
+        if (spaceBelow < 250 && spaceAbove > spaceBelow) {
+            // Open upwards
+            position.bottom = windowHeight - rect.top + 8;
+            position.maxHeight = Math.min(spaceAbove - 16, 240);
+        } else {
+            // Open downwards
+            position.top = rect.bottom + 8;
+            position.maxHeight = Math.min(spaceBelow - 16, 240);
+        }
+
+        setCoords(position);
+    };
 
     // Update coordinates when opening
     useEffect(() => {
-        if (isOpen && dropdownRef.current) {
-            const rect = dropdownRef.current.getBoundingClientRect();
-            setCoords({
-                top: rect.bottom + window.scrollY + 8,
-                left: rect.left + window.scrollX,
-                width: rect.width
-            });
+        if (isOpen) {
+            updatePosition();
         }
     }, [isOpen]);
 
     // Handle Resize / Scroll to update position
     useEffect(() => {
-        const updatePosition = () => {
-            if (isOpen && dropdownRef.current) {
-                const rect = dropdownRef.current.getBoundingClientRect();
-                setCoords({
-                    top: rect.bottom + window.scrollY + 8,
-                    left: rect.left + window.scrollX,
-                    width: rect.width
-                });
-            }
-        };
-
         window.addEventListener('resize', updatePosition);
         window.addEventListener('scroll', updatePosition, true); // true for capture to catch nested scrolls
 
@@ -46,11 +64,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                // Check if click is inside the portal dropdown
-                const portal = document.getElementById('searchable-select-portal');
-                if (portal && !portal.contains(event.target)) {
+                if (portalRef.current && !portalRef.current.contains(event.target)) {
                     setIsOpen(false);
-                    setCoords({ top: 0, left: 0, width: 0 }); // Reset ao clicar fora
                 }
             }
         };
@@ -66,13 +81,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
     const selectedOption = options.find(option => option.value === value);
 
     const toggleDropdown = () => {
-        if (!isOpen && dropdownRef.current) {
-            const rect = dropdownRef.current.getBoundingClientRect();
-            setCoords({
-                top: rect.bottom + window.scrollY + 8,
-                left: rect.left + window.scrollX,
-                width: rect.width
-            });
+        if (!isOpen) {
+            // position is updated via useEffect
         }
         setIsOpen(!isOpen);
     };
@@ -81,19 +91,19 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
         onChange(optionValue);
         setIsOpen(false);
         setSearchTerm('');
-        setCoords({ top: 0, left: 0, width: 0 }); // Limpa coordenadas ao fechar
     };
 
     // Portal Content
     const dropdownContent = (
         <div
-            id="searchable-select-portal"
+            ref={portalRef}
             className="fixed z-[9999] bg-white border border-slate-100 rounded-xl shadow-xl flex flex-col overflow-hidden animate-in fade-in duration-200"
             style={{
-                top: coords.top,
+                top: coords.top !== 'auto' ? coords.top : undefined,
+                bottom: coords.bottom !== 'auto' ? coords.bottom : undefined,
                 left: coords.left,
                 width: coords.width,
-                maxHeight: '240px'
+                maxHeight: coords.maxHeight
             }}
         >
             {options.length > 5 && (
