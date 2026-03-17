@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Calendar, Pencil, Unlock, Lock, ArrowUpDown, Trash2, Link as LinkIcon, MoreHorizontal, ChevronDown, CheckCircle } from 'lucide-react';
 
-const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, onToggleLock, onGenerateReport }) => {
+const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPageChange, onEdit, onSort, onDelete, onGenerateForm, onToggleLock, onGenerateReport }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
     const dropdownRef = useRef(null);
     const [selectedPatientDetails, setSelectedPatientDetails] = useState(null);
+
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
     // No explicit click outside listener needed with backdrop approach
 
@@ -92,9 +96,8 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Empresa</p>
                                 <p className="text-sm text-slate-700 font-semibold">{patient.company || '—'}</p>
                             </div>
-                            <div>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Data</p>
-                                <p className="text-sm text-slate-700 font-semibold flex items-center gap-1.5">
+                            <div className="text-right flex flex-col justify-end">
+                                <p className="text-sm text-slate-700 font-semibold flex items-center justify-end gap-1.5 mt-auto">
                                     <Calendar size={14} className="text-slate-400" />
                                     {patient.date}
                                 </p>
@@ -233,6 +236,29 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                         )}
                     </div>
                 ))}
+
+                {/* Mobile Pagination Controls */}
+                <div className="flex items-center justify-between mt-6 px-2 pb-8">
+                    <div className="text-xs text-slate-400 font-medium">
+                        {startIndex + 1}-{endIndex} de {totalItems}
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold shadow-sm disabled:opacity-50"
+                        >
+                            Anterior
+                        </button>
+                        <button
+                            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold shadow-sm disabled:opacity-50"
+                        >
+                            Próximo
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Patient Details Modal (Mobile/Tablet) */}
@@ -560,17 +586,20 @@ const DashboardTable = ({ patients, onEdit, onSort, onDelete, onGenerateForm, on
                 {/* Pagination Footer */}
                 <div className="bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-between rounded-b-xl relative z-10">
                     <div className="text-gray-400 text-sm">
-                        Mostrando <span className="font-medium text-gray-600">1-{patients.length}</span> de <span className="font-medium text-gray-600">{patients.length}</span> pacientes
+                        Mostrando <span className="font-medium text-gray-600">{totalItems === 0 ? 0 : startIndex + 1}-{endIndex}</span> de <span className="font-medium text-gray-600">{totalItems}</span> pacientes
                     </div>
                     <div className="flex gap-2">
                         <button
-                            disabled
-                            className="px-4 py-2 text-sm font-medium text-gray-400 bg-transparent rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 text-sm font-medium text-gray-600 bg-transparent rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-100"
                         >
                             Anterior
                         </button>
                         <button
-                            className="px-4 py-2 text-sm font-medium text-gray-600 bg-transparent rounded-lg hover:bg-gray-50 transition-colors"
+                            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                            className="px-4 py-2 text-sm font-medium text-gray-600 bg-transparent rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-100"
                         >
                             Próximo
                         </button>

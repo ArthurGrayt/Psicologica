@@ -50,6 +50,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
                 const portal = document.getElementById('searchable-select-portal');
                 if (portal && !portal.contains(event.target)) {
                     setIsOpen(false);
+                    setCoords({ top: 0, left: 0, width: 0 }); // Reset ao clicar fora
                 }
             }
         };
@@ -64,17 +65,30 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
 
     const selectedOption = options.find(option => option.value === value);
 
+    const toggleDropdown = () => {
+        if (!isOpen && dropdownRef.current) {
+            const rect = dropdownRef.current.getBoundingClientRect();
+            setCoords({
+                top: rect.bottom + window.scrollY + 8,
+                left: rect.left + window.scrollX,
+                width: rect.width
+            });
+        }
+        setIsOpen(!isOpen);
+    };
+
     const handleSelect = (optionValue) => {
         onChange(optionValue);
         setIsOpen(false);
         setSearchTerm('');
+        setCoords({ top: 0, left: 0, width: 0 }); // Limpa coordenadas ao fechar
     };
 
     // Portal Content
     const dropdownContent = (
         <div
             id="searchable-select-portal"
-            className="fixed z-[9999] bg-white border border-slate-100 rounded-xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+            className="fixed z-[9999] bg-white border border-slate-100 rounded-xl shadow-xl flex flex-col overflow-hidden animate-in fade-in duration-200"
             style={{
                 top: coords.top,
                 left: coords.left,
@@ -129,17 +143,17 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, cla
     return (
         <div className={`relative ${className}`} ref={dropdownRef}>
             <div
-                onClick={() => !disabled && setIsOpen(!isOpen)}
-                className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
-                    } ${isOpen ? 'ring-2 ring-blue-500/20 border-blue-500' : ''}`}
+                onClick={() => !disabled && toggleDropdown()}
+                className={`w-full h-[46px] bg-slate-50 border border-slate-100 rounded-xl px-4 flex items-center justify-between cursor-pointer transition-all duration-200 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100'
+                    } ${isOpen ? 'ring-2 ring-cyan-500/10 border-cyan-500/50 bg-white' : 'shadow-sm'}`}
             >
-                <span className={`block truncate ${selectedOption ? 'text-slate-800' : 'text-slate-400'}`}>
+                <span className={`block truncate text-sm font-medium ${selectedOption ? 'text-slate-700' : 'text-slate-400'}`}>
                     {selectedOption ? selectedOption.label : placeholder || 'Selecione...'}
                 </span>
-                <ChevronDown size={20} strokeWidth={1.5} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={18} strokeWidth={2} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-cyan-600' : ''}`} />
             </div>
 
-            {isOpen && createPortal(dropdownContent, document.body)}
+            {isOpen && coords.width > 0 && createPortal(dropdownContent, document.body)}
         </div>
     );
 };

@@ -229,10 +229,8 @@ const FormularioPublico = () => {
         try {
             // 1. Get Assessment
             const { data: assess, error: assessError } = await supabase
-                .from('assessments')
-                .select('*')
                 .eq('id', assessmentId)
-                .single();
+                .maybeSingle();
 
             if (assessError || !assess) throw new Error('Avaliação não encontrada.');
 
@@ -247,19 +245,19 @@ const FormularioPublico = () => {
                 await supabase.from('assessments').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', assessmentId);
             }
 
-            // 2. Fetch Rich Patient Data
+            // 2. Busca dados detalhados do colaborador (Paciente)
             if (assess.patient_id) {
-                const { data: colab } = await supabase
-                    .from('colaboradores')
-                    .select('*, unidade(*), cargo(*)')
+                // Prioriza a tabela 'colaboradores' conforme a nova diretiva
+                const { data: colab, error: colabError } = await supabase
                     .eq('id', assess.patient_id)
-                    .single();
+                    .maybeSingle();
 
                 if (colab) {
                     setPatient(colab);
                     if (colab.assinatura) setSignatureUrl(colab.assinatura);
                 } else {
-                    const { data: pat } = await supabase.from('patients').select('*').eq('id', assess.patient_id).single();
+                    console.warn('Colaborador não encontrado na tabela oficial. Verificando tabela legada...');
+                    const { data: pat } = await supabase.from('patients').select('*').eq('id', assess.patient_id).maybeSingle();
                     setPatient(pat);
                     if (pat?.assinatura) setSignatureUrl(pat.assinatura);
                 }
@@ -356,7 +354,10 @@ const FormularioPublico = () => {
 
             const { data: { publicUrl } } = supabase.storage.from('assinaturas').getPublicUrl(fileName);
 
+            // Salva a assinatura preferencialmente na tabela colaboradores
             if (patient && assessment?.patient_id) {
+                await supabase.from('colaboradores').update({ assinatura: publicUrl }).eq('id', assessment.patient_id);
+                // Também atualiza na tabela legada para compatibilidade, se necessário
                 await supabase.from('patients').update({ assinatura: publicUrl }).eq('id', assessment.patient_id);
             }
 

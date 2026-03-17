@@ -59,7 +59,102 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
 
     return (
         <div className="w-full h-full flex flex-col">
-            <div className="border border-gray-200 rounded-xl bg-white shadow-sm relative z-0 overflow-visible">
+            {/* Mobile/Tablet Card View (Visible up to xl) */}
+            <div className="xl:hidden space-y-4 pb-10 px-0.5">
+                {doctors.map((doctor) => (
+                    <div key={doctor.id} className="bg-white p-6 rounded-[28px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100 relative transition-all active:scale-[0.98]">
+                        {/* Card Header: Avatar + Info + Actions */}
+                        <div className="flex justify-between items-start mb-6">
+                            <div className="flex gap-4">
+                                <div className="w-14 h-14 rounded-full bg-cyan-50 flex items-center justify-center text-[#139690] font-bold text-xl shadow-sm border border-cyan-100/50">
+                                    {doctor.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()}
+                                </div>
+                                <div className="flex flex-col justify-center">
+                                    <h3 className="font-bold text-slate-800 text-[16px] leading-tight mb-1">{doctor.name}</h3>
+                                    <div className="flex items-center gap-1.5 text-slate-400">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">CRP:</span>
+                                        <span className="text-[13px] font-medium">{doctor.crp || '—'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions Trigger */}
+                            <div className="relative">
+                                <button
+                                    className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${openDropdownId === doctor.id ? 'bg-cyan-50 text-[#139690] shadow-inner' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenDropdownId(openDropdownId === doctor.id ? null : doctor.id);
+                                    }}
+                                >
+                                    <MoreHorizontal size={22} />
+                                </button>
+
+                                {openDropdownId === doctor.id && (
+                                    <>
+                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-[100] animate-in fade-in zoom-in-95 duration-200">
+                                            <button
+                                                className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onSelectDoctor(doctor);
+                                                    setOpenDropdownId(null);
+                                                }}
+                                            >
+                                                <Pencil size={18} className="text-slate-400 group-hover:text-[#139690]" />
+                                                <span className="font-semibold">Editar</span>
+                                            </button>
+                                            <div className="h-px bg-slate-100 my-1 mx-4"></div>
+                                            <button
+                                                className="w-full flex items-center gap-3 px-5 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors group"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDelete(doctor.id);
+                                                    setOpenDropdownId(null);
+                                                }}
+                                            >
+                                                <Trash2 size={18} className="text-red-300 group-hover:text-red-500" />
+                                                <span className="font-semibold">Excluir</span>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Card Footer: Status Autenticação */}
+                        <div className="flex items-center justify-between bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Autenticação</span>
+                            <div className="flex items-center">
+                                {doctor.signatureUrl && doctor.pfxUrl ? (
+                                    <span className="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1.5 shadow-sm">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Completa
+                                    </span>
+                                ) : doctor.pfxUrl ? (
+                                    <span className="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1.5 shadow-sm">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                        Digital (PFX)
+                                    </span>
+                                ) : doctor.signatureUrl ? (
+                                    <span className="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-100 flex items-center gap-1.5 shadow-sm">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                        Assinatura Visual
+                                    </span>
+                                ) : (
+                                    <span className="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-slate-100 text-slate-400 border border-slate-200 flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                                        Pendente
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Desktop Table View (Hidden on mobile) */}
+            <div className="hidden xl:block border border-gray-200 rounded-xl bg-white shadow-sm relative z-0 overflow-visible">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-brand-surface border-b border-gray-200 text-slate-500 text-[11px] font-bold uppercase tracking-widest">
@@ -127,7 +222,7 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
                                         {doctor.id && openDropdownId === doctor.id && (
                                             <div
                                                 ref={dropdownRef}
-                                                className="absolute right-0 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in slide-in-from-top-2 duration-200"
+                                                className="absolute right-0 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in duration-200"
                                             >
                                                 <button
                                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"

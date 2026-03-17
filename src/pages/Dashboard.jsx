@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square, Link as LinkIcon, Copy, ExternalLink, CheckCircle, Lock, QrCode } from 'lucide-react';
+import { Search, Plus, Filter, Calendar, X, Save, User, Building, Briefcase, MapPin, ChevronLeft, FileText, Users, CheckSquare, Square, Link as LinkIcon, Copy, ExternalLink, CheckCircle, Lock, QrCode, Trash2 } from 'lucide-react';
 import DashboardTable from '../components/DashboardTable';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useCompanyData } from '../hooks/useCompanyData';
@@ -18,6 +18,10 @@ const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState(''); // State for search input
     const [isLoading, setIsLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
     // Advanced Filter State
     const [showFilters, setShowFilters] = useState(false);
@@ -104,145 +108,158 @@ const Dashboard = () => {
 
     // Fetch Patients from DB
     const fetchPatients = async () => {
+        // Define o estado de carregamento como verdadeiro e limpa erros anteriores
         setIsLoading(true);
         setFetchError(null);
-        console.log('--- INICIANDO FETCH PATIENTS ---');
+        console.log('--- INICIANDO FETCH PATIENTS VIA AGENDAMENTOS ---');
         try {
-            // 1. Fetch Patients
-            const { data: patientsData, error: patientsError } = await supabase
-                .from('patients')
-                .select(`
-                    id, 
-                    name, 
-                    role_id, 
-                    sector_id,
-                    created_at,
-                    cargos:role_id (nome),
-                    setor:sector_id (nome)
-                `)
-                .order('created_at', { ascending: false });
+            // 1. Busca agendamentos que contêm "Avaliação Psicológica" no snapshot de exames
+            const { data: agendamentosData, error: agendamentosError } = await supabase
+                .from('agendamentos')
+                .select('colaborador_id, data_atendimento')
+                .contains('exames_snapshot', ['Avaliação Psicológica']);
 
-            if (patientsError) {
-                console.error('Erro na query Supabase (patients):', patientsError);
-                throw patientsError;
+            // Verifica se houve erro na busca de agendamentos
+            if (agendamentosError) {
+                console.error('Erro ao buscar agendamentos:', agendamentosError);
+                throw agendamentosError;
             }
 
-            console.log('Pacientes carregados (RAW):', patientsData);
-
-            if (!patientsData || patientsData.length === 0) {
-                console.warn('Query retornou array vazio.');
+            // Se não houver agendamentos, limpa a lista e encerra
+            if (!agendamentosData || agendamentosData.length === 0) {
+                console.warn('Nenhum agendamento de Avaliação Psicológica encontrado.');
                 setPatients([]);
                 setFilteredPatients([]);
                 return;
             }
 
-            // 2. Fetch Assessments separately to avoid Join error (PGRST200)
-            const patientIds = patientsData.map(p => p.id);
-            const { data: assessmentsData, error: assessmentsError } = await supabase
-                .from('assessments')
-                .select('id, patient_id, status, locked, created_at')
-                .in('patient_id', patientIds);
+            // Extrai IDs únicos de colaboradores que possuem o agendamento
+            const collaboratorIds = [...new Set(agendamentosData.map(a => a.colaborador_id))];
 
-            if (assessmentsError) {
-                console.error('Erro na query Supabase (assessments):', assessmentsError);
-                // We can continue without assessments if it's not a critical failure
-            }
-
-            // 3. Fetch Company Info from 'colaboradores' logic (Assuming patient.id matches collaborator.id)
-            // This is a workaround because patients table might not have direct company link yet
+            // 2. Busca dados detalhados dos colaboradores encontrados
             const { data: collaboratorsData, error: collaboratorsError } = await supabase
                 .from('colaboradores')
                 .select(`
                     id,
+                    nome,
                     cpf,
                     sexo,
                     data_nascimento,
+                    cargo,
+                    setorid,
+                    unidade,
+                    cargos:cargo (nome),
+                    setor:setorid (nome),
                     unidades:unidade (
                         nome_unidade,
                         clientes:empresaid (nome_fantasia)
                     )
                 `)
-                .in('id', patientIds);
+                .in('id', collaboratorIds);
 
+            // Verifica se houve erro na busca de colaboradores
             if (collaboratorsError) {
-                console.error('Erro ao buscar dados de empresa (colaboradores):', collaboratorsError);
+                console.error('Erro ao buscar colaboradores:', collaboratorsError);
+                throw collaboratorsError;
             }
 
-            // Create a map for quick access
-            const collabInfoMap = {};
-            if (collaboratorsData) {
-                collaboratorsData.forEach(c => {
-                    const empresaName = c.unidades?.clientes?.nome_fantasia;
-                    const unidadeName = c.unidades?.nome_unidade;
+            // 3. Busca avaliações (assessments) vinculadas a esses colaboradores
+            const { data: assessmentsData, error: assessmentsError } = await supabase
+                .from('assessments')
+                .select('id, patient_id, status, locked, created_at')
+                .in('patient_id', collaboratorIds);
 
-                    // Formatação de Nascimento (DD/MM/YYYY)
-                    let formattedNasc = '—';
-                    if (c.data_nascimento) {
-                        const d = new Date(c.data_nascimento);
-                        if (!isNaN(d.getTime())) {
-                            formattedNasc = d.toLocaleDateString('pt-BR');
-                        }
-                    }
-
-                    collabInfoMap[c.id] = {
-                        companyFull: empresaName ? `${empresaName} ${unidadeName ? `(${unidadeName})` : ''}` : 'Empresa não encontrada',
-                        cpf: c.cpf || '—',
-                        sexo: c.sexo ? c.sexo.charAt(0).toUpperCase() : '—',
-                        nascimento: formattedNasc,
-                        raw_nascimento: c.data_nascimento // Raw date from DB
-                    };
-                });
+            // Verifica se houve erro na busca de avaliações
+            if (assessmentsError) {
+                console.error('Erro ao buscar avaliações:', assessmentsError);
             }
 
-            // Mapeamento para tabela
-            const mappedPatients = patientsData.map(p => {
-                const cargoNome = p.cargos ? (p.cargos.nome_cargo || p.cargos.nome || 'Cargo') : 'Sem Cargo';
-                const setorNome = p.setor ? (p.setor.nome_setor || p.setor.nome || 'Setor') : 'Sem Setor';
-
-                // Formatação de data customizada: "22 Out 2026"
-                const dateObj = new Date(p.created_at);
+            // 4. Mapeamento final dos dados para exibição no Dashboard
+            const mappedPatients = collaboratorsData.map(c => {
+                // Resolve o nome do cargo e setor priorizando campos específicos
+                const cargoNome = c.cargos ? (c.cargos.nome || 'Cargo') : 'Sem Cargo';
+                const setorNome = c.setor ? (c.setor.nome || 'Setor') : 'Sem Setor';
+                
+                // Formata a data de inserção do colaborador (ou poderia ser a do agendamento)
+                const dateObj = new Date(); // Simplesmente para manter o formato visual
                 const day = dateObj.getDate().toString().padStart(2, '0');
                 const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                 const month = months[dateObj.getMonth()];
                 const year = dateObj.getFullYear();
-                const date = `${day} ${month} ${year}`;
+                const dateStr = `${day} ${month} ${year}`;
 
-                // Find assessments for this patient
-                const patientAssessments = (assessmentsData || []).filter(a => a.patient_id === p.id);
-
-                // Get latest assessment
+                // Busca avaliações correspondentes a este colaborador
+                const patientAssessments = (assessmentsData || []).filter(a => a.patient_id === c.id);
                 let latestAssessment = null;
                 if (patientAssessments.length > 0) {
+                    // Ordena para pegar a avaliação mais recente
                     latestAssessment = patientAssessments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
                 }
 
-                // Collab Info from Map or Default
-                const info = collabInfoMap[p.id] || { companyFull: 'Empresa não encontrada', cpf: '—', sexo: '—', nascimento: '—' };
+                // Resolve informações da empresa e unidade
+                // Resolve informações da empresa e unidade, evitando duplicidade
+                const empresaName = (c.unidades?.clientes?.nome_fantasia || '').trim();
+                const unidadeName = (c.unidades?.nome_unidade || '').trim();
+                
+                let companyFull = 'Empresa não encontrada';
+                if (empresaName) {
+                    if (unidadeName) {
+                        const lowEmpresa = empresaName.toLowerCase();
+                        const lowUnidade = unidadeName.toLowerCase();
+                        
+                        // Quebra o nome da empresa em palavras significativas (mais de 3 letras)
+                        const wordsEmpresa = lowEmpresa.split(/\s+/).filter(w => w.length > 3);
+                        // Verifica se o nome da unidade contém alguma dessas palavras (evita repetições como "Empresa (Empresa Filial)")
+                        const isRedundant = wordsEmpresa.some(word => lowUnidade.includes(word));
+                        
+                        if (lowUnidade === lowEmpresa || isRedundant) {
+                            // Se forem redundantes, exibe o nome mais longo/detalhado
+                            companyFull = unidadeName.length >= empresaName.length ? unidadeName : empresaName;
+                        } else {
+                            companyFull = `${empresaName} (${unidadeName})`;
+                        }
+                    } else {
+                        companyFull = empresaName;
+                    }
+                }
 
+                // Formatação da data de nascimento para exibição em PT-BR
+                let formattedNasc = '—';
+                if (c.data_nascimento) {
+                    const d = new Date(c.data_nascimento);
+                    if (!isNaN(d.getTime())) {
+                        formattedNasc = d.toLocaleDateString('pt-BR');
+                    }
+                }
+
+                // Retorna o objeto formatado para a tabela
                 return {
-                    id: p.id,
-                    name: p.name,
-                    company: info.companyFull,
-                    cpf: info.cpf,
-                    sexo: info.sexo,
-                    nascimento: info.nascimento,
-                    raw_nascimento: info.raw_nascimento,
+                    id: c.id,
+                    name: c.nome,
+                    company: companyFull,
+                    cpf: c.cpf || '—',
+                    sexo: c.sexo ? c.sexo.charAt(0).toUpperCase() : '—',
+                    nascimento: formattedNasc,
+                    raw_nascimento: c.data_nascimento,
                     role: cargoNome,
                     sector: setorNome,
-                    date: date,
+                    date: dateStr,
                     status: latestAssessment ? latestAssessment.status : 'Pendente',
                     assessmentId: latestAssessment ? latestAssessment.id : null,
                     locked: latestAssessment ? latestAssessment.locked : false
                 };
             });
 
-            console.log('Pacientes Mapeados e Enriquecidos:', mappedPatients);
+            // Atualiza os estados de pacientes carregados e filtrados
+            console.log('Pacientes carregados via Agendamentos:', mappedPatients);
             setPatients(mappedPatients);
-            setFilteredPatients(mappedPatients); // Initialize filtered list
+            setFilteredPatients(mappedPatients);
         } catch (err) {
+            // Loga o erro caso ocorra qualquer exceção durante o processo
             console.error('EXCEÇÃO em fetchPatients:', err);
             setFetchError(err.message);
         } finally {
+            // Finaliza o estado de carregamento
             setIsLoading(false);
             console.log('--- FINALIZADO FETCH PATIENTS ---');
         }
@@ -306,6 +323,15 @@ const Dashboard = () => {
 
         setFilteredPatients(result);
     }, [searchTerm, patients, filters]);
+
+    // Reset page when filters or search term change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filters]);
+
+    // Calculate Paginated Data (Outside useEffect for reactivity)
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedPatients = filteredPatients.slice(startIndex, startIndex + itemsPerPage);
 
     // Handler for Report Generation (Normal and Signed)
     const handleGenerateReportTrigger = (patient, isSigned = false) => {
@@ -404,16 +430,36 @@ const Dashboard = () => {
     // I'll add the `generateReportData` function here.
 
     const generateReportData = async (patient, returnBase64 = false, doctor = null) => {
-        // Fetch Assessment
-        const { data: assessment } = await supabase
-            .from('assessments')
-            .select('*')
-            .eq('patient_id', patient.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+        // Busca a avaliação específica vinculada ao paciente
+        let assessment = null;
+        
+        if (patient.assessmentId) {
+            // Se já temos o ID da avaliação (vindo do Dashboard), buscamos direto por ele
+            const { data, error } = await supabase
+                .from('assessments')
+                .select('*')
+                .eq('id', patient.assessmentId)
+                .maybeSingle(); // maybeSingle não joga erro 406 se não encontrar
+            
+            assessment = data;
+            if (error) console.error('Erro ao buscar avaliação por ID:', error);
+        }
 
-        if (!assessment) throw new Error("Avaliação não encontrada");
+        // Fallback: Busca pela última avaliação do patient_id (comportamento legado ou contingência)
+        if (!assessment) {
+            const { data, error } = await supabase
+                .from('assessments')
+                .select('*')
+                .eq('patient_id', patient.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            assessment = data;
+            if (error) console.error('Erro ao buscar avaliação por Patient ID:', error);
+        }
+
+        if (!assessment) throw new Error("Não foi encontrada nenhuma avaliação iniciada para este paciente.");
 
         // Fetch Answers
         const { data: answers } = await supabase
@@ -512,18 +558,12 @@ const Dashboard = () => {
         if (!selectedPatient) return;
         try {
             console.log('--- SALVANDO EDIÇÃO ---', selectedPatient);
-            // 1. Atualizar Tabela Patients (Nome)
-            const { error: pError } = await supabase
-                .from('patients')
-                .update({ name: selectedPatient.name })
-                .eq('id', selectedPatient.id);
-
-            if (pError) throw pError;
-
-            // 2. Atualizar Tabela Colaboradores (CPF, Sexo, Nascimento)
+            // 1. Atualizar Tabela Colaboradores (Nome, CPF, Sexo, Nascimento)
+            // Agora consolidamos tudo em uma única chamada na tabela colaboradores
             const { error: cError } = await supabase
                 .from('colaboradores')
                 .update({
+                    nome: selectedPatient.name,
                     cpf: selectedPatient.cpf === '—' ? null : selectedPatient.cpf,
                     sexo: selectedPatient.sexo === '—' ? null : selectedPatient.sexo,
                     data_nascimento: selectedPatient.raw_nascimento || null
@@ -552,10 +592,17 @@ const Dashboard = () => {
 
     const handleDeletePatient = async (id) => {
         try {
+            // Em vez de deletar o colaborador (pois ele vem da tabela oficial), 
+            // vamos apenas remover a "Avaliação Psicológica" do agendamento dele 
+            // ou questionar se o usuário deseja deletar o agendamento em si.
+            // Para simplificar e seguir a lógica do usuário, vamos deletar o agendamento
+            // que vincula esse colaborador à avaliação psicológica.
+            
             const { error } = await supabase
-                .from('patients')
+                .from('agendamentos')
                 .delete()
-                .eq('id', id);
+                .eq('colaborador_id', id)
+                .contains('exames_snapshot', ['Avaliação Psicológica']);
 
             if (error) throw error;
 
@@ -754,8 +801,8 @@ const Dashboard = () => {
                 const cargoObj = c.cargos;
                 const setorObj = c.setor;
 
-                const cargoNome = cargoObj ? (cargoObj.nome_cargo || cargoObj.nome || 'Cargo') : (c.cargo ? `ID: ${c.cargo}` : 'Sem Cargo');
-                const setorNome = setorObj ? (setorObj.nome_setor || setorObj.nome || 'Setor') : (c.setorid ? `ID: ${c.setorid}` : 'Sem Setor');
+                const cargoNome = cargoObj ? (cargoObj.nome || 'Cargo') : (c.cargo ? `ID: ${c.cargo}` : 'Sem Cargo');
+                const setorNome = setorObj ? (setorObj.nome || 'Setor') : (c.setorid ? `ID: ${c.setorid}` : 'Sem Setor');
 
                 return {
                     id: c.id,
@@ -836,18 +883,19 @@ const Dashboard = () => {
         try {
             const selectedCols = availableCollaborators.filter(c => selectedCollaborators.includes(c.id));
 
-            // Preparar payload para tabela 'patients'
+            // Preparar payload para tabela 'agendamentos'
+            // A partir de agora, "Importar" significa criar um agendamento de Avaliação Psicológica
             const inserts = selectedCols.map(c => ({
-                id: c.id,
-                name: c.name,
-                role_id: c.originalData.cargo,
-                sector_id: c.originalData.setorid
+                colaborador_id: c.id,
+                exames_snapshot: ['Avaliação Psicológica'],
+                status: 'pendente',
+                unidade: Number(multipleInsertion.unit) || null
             }));
 
-            console.log('Inserindo pacientes:', inserts);
+            console.log('Criando agendamentos para pacientes:', inserts);
 
             const { error } = await supabase
-                .from('patients')
+                .from('agendamentos')
                 .insert(inserts);
 
             if (error) throw error;
@@ -867,122 +915,6 @@ const Dashboard = () => {
         }
     };
 
-    // --- Generate Report Handler ---
-    const handleGenerateReport = async (patient) => {
-        if (!patient.assessmentId) {
-            alert('Este paciente ainda não possui uma avaliação iniciada para gerar laudo.');
-            return;
-        }
-
-        try {
-            // 1. Fetch Questions (for categories)
-            const { data: questionsData, error: qError } = await supabase
-                .from('questions')
-                .select('*, categories(name)')
-                .order('id', { ascending: true });
-
-            if (qError) throw qError;
-
-            // 2. Fetch Answers for this assessment
-            const { data: answersData, error: aError } = await supabase
-                .from('answers')
-                .select('*')
-                .eq('assessment_id', patient.assessmentId);
-
-            if (aError) throw aError;
-
-            // 3. Fetch full patient details (including collaborator data)
-            const { data: patientData, error: pError } = await supabase
-                .from('patients')
-                .select('*')
-                .eq('id', patient.id)
-                .single();
-
-            if (pError) throw pError;
-
-            const { data: collabData, error: cError } = await supabase
-                .from('colaboradores')
-                .select('cpf, sexo, data_nascimento')
-                .eq('id', patient.id)
-                .single();
-
-            if (cError) throw cError;
-
-            // 3b. Fetch Narrative Report (Analysis)
-            let narrativeData = null;
-            try {
-                const { data: rpcData, error: rpcError } = await supabase
-                    .rpc('get_narrative_report', { target_assessment_id: patient.assessmentId });
-
-                if (rpcError) {
-                    console.error('Erro ao buscar narrativo (RPC):', rpcError);
-                    // Fallback to ensure PDF section appears (and notifies user of the backend issue)
-                    narrativeData = {
-                        is_apto: true,
-                        narrative: `AVISO TÉCNICO: Não foi possível gerar a análise automática.\n\nDetalhe do erro: A função 'get_narrative_report' falhou no banco de dados (${rpcError.message}).\n\nProvável Causa: A função SQL está tentando acessar uma coluna que não existe (provavelmente 'content'). Verifique se o nome correto seria 'text' ou 'answer_text'.\n\nO restante do laudo foi gerado corretamente.`
-                    };
-                } else {
-                    console.log('Narrative RPC Data:', rpcData);
-                    narrativeData = rpcData; // { narrative: string, is_apto: boolean }
-                }
-            } catch (err) {
-                console.error('Exceção ao buscar narrativo:', err);
-            }
-
-            // Formatar nascimento para o PDF
-            let formattedNasc = '—';
-            if (collabData.data_nascimento) {
-                const d = new Date(collabData.data_nascimento);
-                if (!isNaN(d.getTime())) {
-                    formattedNasc = d.toLocaleDateString('pt-BR');
-                }
-            }
-
-            const patientFullData = {
-                ...patientData,
-                cpf: collabData.cpf || '—',
-                sexo: collabData.sexo || '—',
-                nascimento: formattedNasc
-            };
-
-            // 4. Load Logo (Optional)
-            let logoBase64 = null;
-            try {
-                const response = await fetch('/logo-gama-full.png');
-                const blob = await response.blob();
-                logoBase64 = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(blob);
-                });
-            } catch (err) {
-                console.warn('Erro ao carregar logo:', err);
-            }
-
-            // 5. Generate PDF
-            generatePDF(patientFullData, { id: patient.assessmentId }, answersData, questionsData, logoBase64, narrativeData);
-
-            // 6. UPDATE STATUS TO 'reported' (Laudado)
-            const { error: updateError } = await supabase
-                .from('assessments')
-                .update({ status: 'reported' })
-                .eq('id', patient.assessmentId);
-
-            if (updateError) throw updateError;
-
-            // Optimistic Update
-            setPatients(prev => prev.map(p => {
-                if (p.id === patient.id) {
-                    return { ...p, status: 'reported' };
-                }
-                return p;
-            }));
-
-        } catch (err) {
-            console.error('Erro ao gerar laudo:', err);
-            alert('Erro ao gerar laudo. Verifique o console para mais detalhes.');
-        }
-    };
 
     return (
         <div className="flex flex-col h-full gap-6 relative">
@@ -1222,7 +1154,7 @@ const Dashboard = () => {
 
 
             {/* 1. Card Superior (Filtros e Busca) */}
-            <div className="xl:bg-white xl:p-6 xl:rounded-[32px] xl:shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4 transition-all duration-500 mb-6 xl:mb-0">
+            <div className="xl:bg-white xl:p-5 xl:rounded-[32px] xl:shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4 transition-all duration-500 xl:mb-0">
                 <div className="flex items-center gap-3 w-full xl:w-auto">
                     {selectedPatient ? (
                         <button
@@ -1281,110 +1213,105 @@ const Dashboard = () => {
                 )}
             </div>
 
-            {/* Mobile/Tablet Section Header */}
+            {/* Painel de Filtros Avançados */}
+            <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[800px] opacity-100 overflow-visible mt-3' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
+                <div className="bg-white p-6 xl:p-7 rounded-[24px] xl:rounded-[32px] shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-6">
+                    
+                    {/* Linha 1: Campos Principais (Empresa, Cargo, Setor) */}
+                    <div className="flex flex-1 flex-wrap gap-4">
+                        <div className="flex-1 min-w-[200px]">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Empresa</label>
+                            <SearchableSelect
+                                options={uniqueOptions.companies.map(c => ({ value: c, label: c }))}
+                                value={filters.company}
+                                onChange={(val) => handleFilterChange('company', val)}
+                                placeholder="Todas as Empresas"
+                            />
+                        </div>
+
+                        <div className="flex-1 min-w-[180px]">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Cargo</label>
+                            <SearchableSelect
+                                options={uniqueOptions.roles.map(r => ({ value: r, label: r }))}
+                                value={filters.role}
+                                onChange={(val) => handleFilterChange('role', val)}
+                                placeholder="Todos os Cargos"
+                            />
+                        </div>
+
+                        <div className="flex-1 min-w-[180px]">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Setor</label>
+                            <SearchableSelect
+                                options={uniqueOptions.sectors.map(s => ({ value: s, label: s }))}
+                                value={filters.sector}
+                                onChange={(val) => handleFilterChange('sector', val)}
+                                placeholder="Todos os Setores"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Linha 2: Controles Secundários (Data, Status, Bloqueio, Limpar) */}
+                    <div className="flex flex-wrap xl:flex-nowrap gap-4 items-end">
+                        <div className="w-[60px]">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Data</label>
+                            <button 
+                                className="w-full h-[46px] bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-cyan-600 hover:border-cyan-500/50 hover:ring-2 hover:ring-cyan-500/10 transition-all shadow-sm"
+                                title="Filtrar por Data"
+                            >
+                                <Calendar size={18} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 xl:w-[140px] xl:flex-none">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Status</label>
+                            <SearchableSelect
+                                options={[
+                                    { value: 'pending', label: 'Status' },
+                                    { value: 'in_progress', label: 'Análise' },
+                                    { value: 'completed', label: 'Concluído' }
+                                ]}
+                                value={filters.status}
+                                onChange={(val) => handleFilterChange('status', val)}
+                                placeholder="Status"
+                            />
+                        </div>
+
+                        <div className="flex-1 xl:w-[110px] xl:flex-none">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Bloqueio</label>
+                            <SearchableSelect
+                                options={[
+                                    { value: 'all', label: 'Todos' },
+                                    { value: 'locked', label: 'Sim' },
+                                    { value: 'unlocked', label: 'Não' }
+                                ]}
+                                value={filters.locked}
+                                onChange={(val) => handleFilterChange('locked', val)}
+                                placeholder="Todos"
+                            />
+                        </div>
+
+                        <div className="xl:ml-0">
+                            <button
+                                onClick={clearFilters}
+                                className="w-[46px] h-[46px] bg-slate-50 text-slate-400 rounded-xl hover:bg-white hover:text-red-500 hover:border-red-200 border border-slate-100 transition-all flex items-center justify-center shadow-sm"
+                                title="Limpar Filtros"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile/Tablet Section Header - Movido para baixo dos filtros */}
             {!selectedPatient && (
-                <div className="flex xl:hidden items-center justify-between mb-4">
+                <div className="flex xl:hidden items-center justify-between mb-4 mt-4">
                     <h2 className="text-lg font-bold text-slate-800">Lista de Pacientes</h2>
-                    <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">
+                    <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
                         Total: {filteredPatients.length}
                     </span>
                 </div>
             )}
-
-            {/* Painel de Filtros Avançados */}
-            <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[800px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
-                <div className="bg-white p-4 xl:p-8 rounded-[24px] xl:rounded-[32px] shadow-sm border border-slate-100 grid grid-cols-2 xl:grid-cols-4 gap-3 xl:gap-6">
-                    <div className="col-span-2 xl:col-span-1">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nome do Paciente</label>
-                        <input
-                            type="text"
-                            value={filters.name}
-                            onChange={(e) => handleFilterChange('name', e.target.value)}
-                            placeholder="Ex: João Silva"
-                            className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Empresa</label>
-                        <SearchableSelect
-                            options={uniqueOptions.companies.map(c => ({ value: c, label: c }))}
-                            value={filters.company}
-                            onChange={(val) => handleFilterChange('company', val)}
-                            placeholder="Todas as Empresas"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Cargo</label>
-                        <SearchableSelect
-                            options={uniqueOptions.roles.map(r => ({ value: r, label: r }))}
-                            value={filters.role}
-                            onChange={(val) => handleFilterChange('role', val)}
-                            placeholder="Todos os Cargos"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Setor</label>
-                        <SearchableSelect
-                            options={uniqueOptions.sectors.map(s => ({ value: s, label: s }))}
-                            value={filters.sector}
-                            onChange={(val) => handleFilterChange('sector', val)}
-                            placeholder="Todos os Setores"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Data</label>
-                        <input
-                            type="text"
-                            value={filters.date}
-                            onChange={(e) => handleFilterChange('date', e.target.value)}
-                            placeholder="Ex: 22 Out"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Status</label>
-                        <SearchableSelect
-                            options={[
-                                { value: 'pending', label: 'Pendente' },
-                                { value: 'in_progress', label: 'Em Progresso' },
-                                { value: 'completed', label: 'Concluído' }
-                            ]}
-                            value={filters.status}
-                            onChange={(val) => handleFilterChange('status', val)}
-                            placeholder="Todos Status"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Bloqueio</label>
-                        <SearchableSelect
-                            options={[
-                                { value: 'all', label: 'Todos' },
-                                { value: 'locked', label: 'Travado' },
-                                { value: 'unlocked', label: 'Destravado' }
-                            ]}
-                            value={filters.locked}
-                            onChange={(val) => handleFilterChange('locked', val)}
-                            placeholder="Todos"
-                        />
-                    </div>
-
-                    <div className="flex items-end col-span-2 xl:col-span-1">
-                        <button
-                            onClick={clearFilters}
-                            className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-                        >
-                            <X size={16} />
-                            Limpar Filtros
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             {/* Container Principal: Tabela -> Edição (Split) */}
             <div className="flex flex-1 gap-6 overflow-visible relative">
@@ -1530,7 +1457,11 @@ const Dashboard = () => {
                             </div>
                         ) : (
                             <DashboardTable
-                                patients={filteredPatients}
+                                patients={paginatedPatients}
+                                totalItems={filteredPatients.length}
+                                currentPage={currentPage}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
                                 onEdit={setSelectedPatient}
                                 onSort={handleSort}
                                 onDelete={handleDeletePatient}
@@ -1746,7 +1677,7 @@ const Dashboard = () => {
                 </div>
             )}
             {/* Mobile/Tablet Floating Action Button (FAB) (Visible up to xl) */}
-            <div className="xl:hidden fixed bottom-24 right-4 z-40">
+            <div className="xl:hidden fixed bottom-32 right-6 z-40">
                 <button
                     onClick={() => setIsMultipleModalOpen(true)}
                     className="bg-[#139690] text-white px-5 py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(19,150,144,0.4)] font-bold flex items-center gap-2 active:scale-95 transition-transform"
