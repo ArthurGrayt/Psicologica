@@ -11,6 +11,7 @@ const Doctors = () => {
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
     const [activeSignatureTab, setActiveSignatureTab] = useState('visual'); // visual | pfx
+    const [activeEditTab, setActiveEditTab] = useState('data'); // data | contents (assinatura)
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -112,6 +113,7 @@ const Doctors = () => {
         setSelectedDoctor(null);
         setIsCreating(false);
         setActiveSignatureTab('visual');
+        setActiveEditTab('data');
     };
 
     const handleStartCreate = () => {
@@ -400,11 +402,29 @@ const Doctors = () => {
                 )}
             </div>
 
+            {/* Tabs Mobile/Tablet - Fora do card superior */}
+            {selectedDoctor && (
+                <div className="xl:hidden flex p-1 bg-white border border-slate-100 rounded-2xl w-full shadow-sm">
+                    <button
+                        onClick={() => setActiveEditTab('data')}
+                        className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${activeEditTab === 'data' ? 'bg-cyan-50 text-[#139690]' : 'text-slate-400 opacity-60'}`}
+                    >
+                        Dados do Médico
+                    </button>
+                    <button
+                        onClick={() => setActiveEditTab('contents')}
+                        className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${activeEditTab === 'contents' ? 'bg-cyan-50 text-[#139690]' : 'text-slate-400 opacity-60'}`}
+                    >
+                        Assinatura & Certificado
+                    </button>
+                </div>
+            )}
+
             {/* Container Principal */}
-            <div className="flex flex-1 gap-6 overflow-visible relative">
+            <div className="flex flex-1 gap-6 overflow-visible relative min-h-0">
 
                 {/* Lado Esquerdo: Tabela OU Formulário */}
-                <div className={`bg-white rounded-[32px] shadow-sm flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedDoctor ? 'w-2/5 p-8' : 'w-full'}`}>
+                <div className={`xl:bg-white rounded-[32px] xl:shadow-sm flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedDoctor ? 'xl:w-2/5 p-8 bg-white shadow-sm w-full xl:mb-0' : 'w-full bg-transparent shadow-none'} ${selectedDoctor && activeEditTab !== 'data' ? 'hidden xl:flex' : 'flex'}`}>
 
                     {selectedDoctor ? (
                         // MODO EDIÇÃO/CRIAÇÃO: Formulário
@@ -464,7 +484,7 @@ const Doctors = () => {
                                 </button>
                                 <button onClick={handleSaveDoctor} className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-medium hover:bg-[#139690]/90 shadow-lg shadow-blue-900/20 transition-colors flex items-center justify-center gap-2">
                                     <Save size={18} />
-                                    {isCreating ? 'Cadastrar' : 'Salvar Alterações'}
+                                    {isCreating ? 'Cadastrar' : 'Salvar'}
                                 </button>
                             </div>
                         </div>
@@ -487,10 +507,10 @@ const Doctors = () => {
 
                 {/* Lado Direito: Painel de Assinatura (Apenas se selecionado) */}
                 <div
-                    className={`bg-white rounded-[32px] shadow-sm flex-1 flex flex-col transition-all duration-500 ease-in-out transform ${selectedDoctor
+                    className={`bg-white rounded-[32px] shadow-sm flex-1 flex flex-col transition-all duration-500 ease-in-out transform xl:mb-0 ${selectedDoctor
                         ? 'translate-x-0 opacity-100'
-                        : 'translate-x-full opacity-0 absolute right-0 w-1/2'
-                        }`}
+                        : 'translate-x-full opacity-0 absolute right-0 xl:w-1/2'
+                        } ${selectedDoctor && activeEditTab !== 'contents' ? 'hidden xl:flex' : 'flex'}`}
                 >
                     {selectedDoctor && (
                         <div className="flex flex-col h-full p-8 relative">

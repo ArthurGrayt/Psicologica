@@ -36,6 +36,7 @@ const Dashboard = () => {
     });
 
     const [selectedPatient, setSelectedPatient] = useState(null);
+    const [activeEditTab, setActiveEditTab] = useState('data'); // 'data' | 'analysis'
     const [isMultipleModalOpen, setIsMultipleModalOpen] = useState(false);
 
     // Form Generation State
@@ -923,31 +924,34 @@ const Dashboard = () => {
 
             {/* Modal de Inserção Múltipla */}
             {isMultipleModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
+                <div className="fixed inset-0 z-[999] flex items-start justify-center bg-black/50 backdrop-blur-sm p-4 pt-10 animate-fadeIn">
                     <div
-                        className={`bg-white rounded-[32px] p-8 shadow-2xl transform transition-all duration-500 ease-in-out flex flex-col max-h-[90vh] ${isCreatingCollaborator ? 'w-full max-w-6xl' : 'w-full max-w-2xl'
+                        className={`bg-white rounded-[32px] p-5 md:p-8 shadow-2xl transform transition-all duration-500 ease-in-out flex flex-col max-h-[75vh] md:max-h-[90vh] overflow-hidden ${isCreatingCollaborator ? 'w-full max-w-6xl' : 'w-full max-w-2xl'
                             }`}
                     >
                         {/* DEBUG LOG */}
                         {console.log('[RENDER] Modal. isCreatingCollaborator:', isCreatingCollaborator)}
 
                         <div className="flex justify-between items-center mb-6">
-                            <div>
+                            <div className="flex items-center gap-3">
+                                {isCreatingCollaborator && (
+                                    <button
+                                        onClick={() => setIsCreatingCollaborator(false)}
+                                        className="lg:hidden p-2 rounded-full hover:bg-slate-200 text-slate-600 transition-colors bg-slate-100"
+                                    >
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                )}
                                 <h2 className="text-2xl font-bold text-slate-800">Inserir Paciente</h2>
-                                <p className="text-slate-500 text-sm">
-                                    {isCreatingCollaborator
-                                        ? "Busque ou cadastre um novo colaborador."
-                                        : "Selecione empresa e unidade para listar colaboradores."}
-                                </p>
                             </div>
                             <button onClick={() => setIsMultipleModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
 
-                        <div className="flex gap-8 flex-1 overflow-visible">
+                        <div className="flex gap-8 flex-1 overflow-hidden relative">
                             {/* LADO ESQUERDO: Busca e Lista */}
-                            <div className="flex-1 flex flex-col space-y-6 overflow-visible">
+                            <div className={`flex-1 flex flex-col space-y-6 overflow-hidden transition-all duration-300 ${isCreatingCollaborator ? 'hidden lg:flex' : 'flex'}`}>
                                 {/* Seleção de Contexto */}
                                 <div className="grid grid-cols-2 gap-4 p-1">
                                     <div>
@@ -979,7 +983,7 @@ const Dashboard = () => {
                                             {selectedCollaborators.length} selecionados
                                         </div>
                                     </div>
-                                    <div className="overflow-y-auto p-2 space-y-1 bg-white flex-1 min-h-[150px]">
+                                    <div className="overflow-y-auto p-2 space-y-1 bg-white flex-1 min-h-0">
                                         {availableCollaborators.length > 0 ? (
                                             availableCollaborators.map((collab) => (
                                                 <div
@@ -1031,25 +1035,12 @@ const Dashboard = () => {
                             <div className={`
                                 flex-1 bg-slate-50 rounded-2xl p-6 border border-slate-200 flex flex-col
                                 transition-all duration-500 ease-in-out transform origin-left
-                                ${isCreatingCollaborator ? 'opacity-100 translate-x-0 w-1/2 block' : 'opacity-0 -translate-x-10 w-0 hidden'}
+                                ${isCreatingCollaborator ? 'opacity-100 translate-x-0 lg:w-1/2 flex' : 'opacity-0 -translate-x-10 w-0 hidden'}
                             `}>
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                        <User size={20} className="text-[#050a30]" />
-                                        Novo Colaborador
-                                    </h3>
-                                    <button
-                                        onClick={() => setIsCreatingCollaborator(false)}
-                                        className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-200 rounded-full"
-                                        title="Fechar formulário"
-                                    >
-                                        <X size={20} />
-                                    </button>
-                                </div>
 
                                 <div className="space-y-4 overflow-y-auto flex-1 pr-2">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome Completo *</label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Nome Completo *</label>
                                         <input
                                             type="text"
                                             value={newCollaborator.name}
@@ -1060,7 +1051,7 @@ const Dashboard = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">CPF</label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">CPF</label>
                                         <input
                                             type="text"
                                             value={newCollaborator.cpf}
@@ -1070,22 +1061,22 @@ const Dashboard = () => {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Data de Nascimento</label>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Data de Nascimento</label>
                                             <input
                                                 type="date"
                                                 value={newCollaborator.data_nascimento}
                                                 onChange={(e) => setNewCollaborator({ ...newCollaborator, data_nascimento: e.target.value })}
-                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#139690]/20 focus:border-[#139690] transition-all"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Sexo</label>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Sexo</label>
                                             <select
                                                 value={newCollaborator.sexo}
                                                 onChange={(e) => setNewCollaborator({ ...newCollaborator, sexo: e.target.value })}
-                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#139690]/20 focus:border-[#139690] transition-all appearance-none"
                                             >
                                                 <option value="">Selecione...</option>
                                                 <option value="M">Masculino</option>
@@ -1094,7 +1085,7 @@ const Dashboard = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 mb-1">Cargo</label>
                                             <SearchableSelect
@@ -1116,36 +1107,36 @@ const Dashboard = () => {
                                     </div>
                                 </div>
 
-                                <div className="mt-6 pt-6 border-t border-slate-200 flex justify-end gap-3">
+                                <div className="mt-8 pt-6 border-t border-slate-200 flex flex-col md:flex-row justify-end gap-3">
                                     <button
                                         onClick={() => setIsCreatingCollaborator(false)}
-                                        className="px-6 py-3 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors"
+                                        className="w-full md:w-auto px-6 py-3 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors order-2 md:order-1"
                                     >
                                         Cancelar
                                     </button>
                                     <button
                                         onClick={handleCreateCollaborator}
-                                        className="px-6 py-3 bg-[#139690] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-lg transition-all active:scale-95"
+                                        className="w-full md:w-auto px-8 py-3 bg-[#139690] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-lg shadow-[#139690]/20 transition-all active:scale-95 order-1 md:order-2"
                                     >
-                                        Cadastrar
+                                        Cadastrar Colaborador
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-8 flex gap-3 pt-4 border-t border-slate-100">
+                        <div className={`mt-4 flex gap-3 pt-4 border-t border-slate-100 flex-shrink-0 ${isCreatingCollaborator ? 'hidden lg:flex' : 'flex'}`}>
                             <button
                                 onClick={() => setIsMultipleModalOpen(false)}
-                                className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+                                className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors text-sm"
                             >
                                 Fechar
                             </button>
                             <button
                                 onClick={handleImportCollaborators}
                                 disabled={selectedCollaborators.length === 0}
-                                className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                             >
-                                Importar Selecionados ({selectedCollaborators.length})
+                                Importar ({selectedCollaborators.length})
                             </button>
                         </div>
                     </div>
@@ -1156,17 +1147,38 @@ const Dashboard = () => {
             {/* 1. Card Superior (Filtros e Busca) */}
             <div className="xl:bg-white xl:p-5 xl:rounded-[32px] xl:shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4 transition-all duration-500 xl:mb-0">
                 <div className="flex items-center gap-3 w-full xl:w-auto">
-                    {selectedPatient ? (
-                        <button
-                            onClick={() => setSelectedPatient(null)}
-                            className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-medium"
-                        >
-                            <div className="bg-slate-100 p-2 rounded-full">
-                                <ChevronLeft size={20} />
+                        {selectedPatient ? (
+                            <div className="flex flex-col gap-4 w-full">
+                                <button
+                                    onClick={() => {
+                                        setSelectedPatient(null);
+                                        setActiveEditTab('data');
+                                    }}
+                                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-medium"
+                                >
+                                    <div className="bg-slate-100 p-2 rounded-full">
+                                        <ChevronLeft size={20} />
+                                    </div>
+                                    <span>Voltar para Lista</span>
+                                </button>
+
+                                {/* Tabs Mobile/Tablet - Paciente */}
+                                <div className="xl:hidden flex p-1 bg-slate-100 rounded-2xl w-full">
+                                    <button
+                                        onClick={() => setActiveEditTab('data')}
+                                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${activeEditTab === 'data' ? 'bg-white text-[#139690] shadow-sm' : 'text-slate-400'}`}
+                                    >
+                                        Editar Paciente
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveEditTab('analysis')}
+                                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${activeEditTab === 'analysis' ? 'bg-white text-[#139690] shadow-sm' : 'text-slate-400'}`}
+                                    >
+                                        Análise Psicossocial
+                                    </button>
+                                </div>
                             </div>
-                            <span>Voltar para Lista</span>
-                        </button>
-                    ) : (
+                        ) : (
                         <div className="flex gap-3 w-full xl:w-auto">
                             <div className="relative flex-1 xl:w-96 transition-all duration-500">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -1317,18 +1329,18 @@ const Dashboard = () => {
             <div className="flex flex-1 gap-6 overflow-visible relative">
 
                 {/* Lado Esquerdo: Tabela OU Formulário */}
-                <div className={`flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedPatient ? 'hidden xl:flex xl:w-2/5 xl:bg-white xl:active-p-8 xl:p-8 xl:rounded-[32px] xl:shadow-sm' : 'w-full xl:bg-white xl:rounded-[32px] xl:shadow-sm'}`}>
+                <div className={`flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedPatient ? 'xl:w-2/5 bg-white p-6 xl:p-8 rounded-[32px] shadow-sm w-full' : 'w-full xl:bg-white xl:rounded-[32px] xl:shadow-sm'} ${selectedPatient && activeEditTab !== 'data' ? 'hidden xl:flex' : 'flex'}`}>
 
                     {selectedPatient ? (
                         // MODO EDIÇÃO: Formulário
                         // Mobile/Tablet: Mostra apenas o formulário (controlled by hidden above for desktop split)
                         <div className="flex flex-col h-full animate-fadeIn">
-                            <div className="mb-8">
+                            <div className="mb-6 xl:mb-8">
                                 <h2 className="text-2xl font-bold text-slate-800">Editar Paciente</h2>
                                 <p className="text-slate-500">Atualize os dados cadastrais.</p>
                             </div>
 
-                            <div className="space-y-6 overflow-y-auto pr-2">
+                            <div className="space-y-4 xl:space-y-6 overflow-y-auto pr-2">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
                                         <User size={16} className="text-slate-400" /> Nome Completo
@@ -1422,8 +1434,8 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
-                            <div className="mt-auto pt-6 flex gap-3">
-                                <button onClick={() => setSelectedPatient(null)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors">
+                            <div className="mt-auto pt-4 xl:pt-6 flex gap-3">
+                                <button onClick={() => { setSelectedPatient(null); setActiveEditTab('data'); }} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors">
                                     Cancelar
                                 </button>
                                 <button onClick={handleSaveEdit} className="flex-1 py-3 bg-[#139690] text-white rounded-xl font-bold hover:bg-opacity-90 shadow-lg transition-colors flex items-center justify-center gap-2">
@@ -1476,9 +1488,9 @@ const Dashboard = () => {
                 {/* 3. Painel Lateral (Placeholder para manter layout de Split conforme pedido) */}
                 <div
                     className={`bg-white rounded-[32px] shadow-sm flex-col transition-all duration-500 ease-in-out transform ${selectedPatient
-                        ? 'w-full md:flex-1 translate-x-0 opacity-100 flex'
-                        : 'hidden md:flex translate-x-full opacity-0 absolute right-0 w-1/2'
-                        }`}
+                        ? 'w-full xl:flex-1 translate-x-0 opacity-100 flex'
+                        : 'translate-x-full opacity-0 absolute right-0 xl:w-1/2'
+                        } ${selectedPatient && activeEditTab !== 'analysis' ? 'hidden xl:flex' : 'flex'}`}
                 >
                     {selectedPatient && (
                         <div className="flex flex-col h-full p-8 relative overflow-y-auto custom-scrollbar">
@@ -1501,44 +1513,41 @@ const Dashboard = () => {
                                 </div>
                             ) : narrativePreview.data ? (
                                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className={`p-4 rounded-xl mb-6 border ${narrativePreview.data.is_apto ? 'bg-green-50 border-green-200 text-green-800' : 'bg-orange-50 border-orange-200 text-orange-800'}`}>
-                                        <span className="font-bold text-lg block mb-1">
-                                            {narrativePreview.data.is_apto ? "APTO" : "INDICADO PARA AVALIAÇÃO"}
-                                        </span>
-                                        <span className="text-xs opacity-80 uppercase tracking-wide">Conclusão do Sistema</span>
+                                    <div className={`p-6 rounded-[24px] mb-8 border-2 flex items-center justify-between gap-4 transition-all duration-300 ${narrativePreview.data.is_apto ? 'bg-emerald-50/50 border-emerald-100 text-emerald-900 shadow-sm shadow-emerald-900/5' : 'bg-amber-50/50 border-amber-100 text-amber-900 shadow-sm shadow-amber-900/5'}`}>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] opacity-60 uppercase tracking-[0.15em] font-black mb-1">Status da Avaliação</span>
+                                            <span className="text-xl font-black leading-none tracking-tight">
+                                                {narrativePreview.data.is_apto ? "APTO PARA FUNÇÃO" : "AVALIAÇÃO REQUERIDA"}
+                                            </span>
+                                        </div>
+                                        <div className={`p-3 rounded-2xl ${narrativePreview.data.is_apto ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'}`}>
+                                            {narrativePreview.data.is_apto ? <CheckCircle size={24} /> : <FileBadge size={24} />}
+                                        </div>
                                     </div>
 
                                     <div className="prose prose-slate prose-sm max-w-none">
                                         {(narrativePreview.data.intro || narrativePreview.data.narrative) ? (
-                                            <div className="text-slate-800 -mx-6">
+                                            <div className="text-slate-700 space-y-6">
                                                 {/* 1. Introdução */}
                                                 {narrativePreview.data.intro && (
-                                                    <p className="mb-4 text-justify leading-relaxed whitespace-pre-line">
+                                                    <p className="text-[15px] leading-relaxed text-justify font-medium">
                                                         {narrativePreview.data.intro}
                                                     </p>
                                                 )}
 
-                                                {/* 2. Análise Completa (Parágrafo Único) ou Legacy Narrative */}
-                                                <p className="mb-8 text-justify leading-relaxed whitespace-pre-line">
+                                                {/* 2. Análise Completa */}
+                                                <p className="text-[15px] leading-relaxed text-justify opacity-90 border-l-2 border-slate-100 pl-6 italic">
                                                     {narrativePreview.data.full_analysis ||
                                                         narrativePreview.data.narrative ||
                                                         `${narrativePreview.data.mental_text || ''}\n\n${narrativePreview.data.habits_text || ''}`}
                                                 </p>
 
-                                                {/* 3. BLOCO DE CONCLUSÃO (APTO/INAPTO) */}
-                                                <div className={`mx-4 p-6 rounded-lg mb-8 text-center border-2 ${narrativePreview.data.is_apto ? 'border-green-100 bg-green-50' : 'border-amber-100 bg-amber-50'}`}>
-                                                    <h3 className={`text-2xl font-bold mb-2 ${narrativePreview.data.is_apto ? 'text-green-700' : 'text-amber-700'}`}>
-                                                        {narrativePreview.data.status_label}
-                                                    </h3>
-                                                    <p className="font-medium text-slate-700 max-w-full break-words whitespace-pre-wrap">
-                                                        {narrativePreview.data.status_message}
+                                                {/* 4. Rodapé */}
+                                                <div className="pt-6 border-t border-slate-100">
+                                                    <p className="text-[11px] text-slate-400 font-medium text-center uppercase tracking-widest leading-loose">
+                                                        {narrativePreview.data.disclaimer}
                                                     </p>
                                                 </div>
-
-                                                {/* 4. Rodapé */}
-                                                <p className="text-sm text-slate-500 border-t pt-4 italic whitespace-pre-line px-4">
-                                                    {narrativePreview.data.disclaimer}
-                                                </p>
                                             </div>
                                         ) : (
                                             <p className="italic text-slate-400">Nenhuma análise estruturada disponível (Resultados insuficientes).</p>
@@ -1677,15 +1686,17 @@ const Dashboard = () => {
                 </div>
             )}
             {/* Mobile/Tablet Floating Action Button (FAB) (Visible up to xl) */}
-            <div className="xl:hidden fixed bottom-32 right-6 z-40">
-                <button
-                    onClick={() => setIsMultipleModalOpen(true)}
-                    className="bg-[#139690] text-white px-5 py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(19,150,144,0.4)] font-bold flex items-center gap-2 active:scale-95 transition-transform"
-                >
-                    <Plus size={22} />
-                    <span>Novo Paciente</span>
-                </button>
-            </div>
+            {!selectedPatient && (
+                <div className="xl:hidden fixed bottom-32 right-6 z-40">
+                    <button
+                        onClick={() => setIsMultipleModalOpen(true)}
+                        className="bg-[#139690] text-white px-5 py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(19,150,144,0.4)] font-bold flex items-center gap-2 active:scale-95 transition-transform"
+                    >
+                        <Plus size={22} />
+                        <span>Novo Paciente</span>
+                    </button>
+                </div>
+            )}
         </div >
     );
 };

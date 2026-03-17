@@ -229,6 +229,8 @@ const FormularioPublico = () => {
         try {
             // 1. Get Assessment
             const { data: assess, error: assessError } = await supabase
+                .from('assessments')
+                .select('*')
                 .eq('id', assessmentId)
                 .maybeSingle();
 
@@ -248,9 +250,12 @@ const FormularioPublico = () => {
             // 2. Busca dados detalhados do colaborador (Paciente)
             if (assess.patient_id) {
                 // Prioriza a tabela 'colaboradores' conforme a nova diretiva
+                // Busca o colaborador na tabela 'colaboradores' com os dados da unidade
                 const { data: colab, error: colabError } = await supabase
-                    .eq('id', assess.patient_id)
-                    .maybeSingle();
+                    .from('colaboradores') // Especifica a tabela colaboradores
+                    .select('*, unidade:unidade(nome_unidade)') // Seleciona todos os campos e faz join com unidade
+                    .eq('id', assess.patient_id) // Filtra pelo ID do colaborador
+                    .maybeSingle(); // Retorna o primeiro registro ou null
 
                 if (colab) {
                     setPatient(colab);

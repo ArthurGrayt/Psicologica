@@ -6,15 +6,7 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const dropdownRef = useRef(null);
 
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setOpenDropdownId(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    // O fechamento dos menus agora é gerenciado por backdrops individuais para maior confiabilidade no mobile
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -60,9 +52,9 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
     return (
         <div className="w-full h-full flex flex-col">
             {/* Mobile/Tablet Card View (Visible up to xl) */}
-            <div className="xl:hidden space-y-4 pb-10 px-0.5">
+            <div className="xl:hidden space-y-6 pb-20 px-2">
                 {doctors.map((doctor) => (
-                    <div key={doctor.id} className="bg-white p-6 rounded-[28px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100 relative transition-all active:scale-[0.98]">
+                    <div key={doctor.id} className="bg-white p-6 rounded-[24px] shadow-md border border-slate-100/50 relative transition-all active:scale-[0.98]">
                         {/* Card Header: Avatar + Info + Actions */}
                         <div className="flex justify-between items-start mb-6">
                             <div className="flex gap-4">
@@ -92,7 +84,17 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
 
                                 {openDropdownId === doctor.id && (
                                     <>
-                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-[100] animate-in fade-in zoom-in-95 duration-200">
+                                        {/* Backdrop transparente para capturar o clique fora e fechar o menu de forma confiável no mobile */}
+                                        <div 
+                                            className="fixed inset-0 z-[90] bg-transparent" 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenDropdownId(null);
+                                            }}
+                                        />
+                                        <div 
+                                            className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-[100] animate-in fade-in zoom-in-95 duration-200"
+                                        >
                                             <button
                                                 className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
                                                 onClick={(e) => {
@@ -220,10 +222,18 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
 
                                         {/* Dropdown Menu */}
                                         {doctor.id && openDropdownId === doctor.id && (
-                                            <div
-                                                ref={dropdownRef}
-                                                className="absolute right-0 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in duration-200"
-                                            >
+                                            <>
+                                                {/* Backdrop transparente para desktop também */}
+                                                <div 
+                                                    className="fixed inset-0 z-[90] bg-transparent cursor-default" 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOpenDropdownId(null);
+                                                    }}
+                                                />
+                                                <div
+                                                    className="absolute right-0 top-full mt-px w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-[100] animate-in fade-in duration-200"
+                                                >
                                                 <button
                                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
                                                     onClick={(e) => {
@@ -249,7 +259,8 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
                                                     <Trash2 size={16} className="text-red-500 group-hover:text-red-700 transition-colors" />
                                                     <span className="font-medium align-middle">Excluir</span>
                                                 </button>
-                                            </div>
+                                                </div>
+                                            </>
                                         )}
                                     </div>
                                 </td>
