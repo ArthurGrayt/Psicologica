@@ -312,7 +312,7 @@ const Doctors = () => {
                                     placeholder="Buscar médico..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
+                                    className="pl-11 pr-4 py-2.5 w-full bg-gray-100 border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#139690]/20 focus:bg-white transition-all text-slate-700 placeholder:text-gray-400"
                                 />
                             </div>
                         )}
@@ -324,7 +324,7 @@ const Doctors = () => {
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium text-sm whitespace-nowrap border ${showFilters
-                                    ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-teal-900/20'
+                                    ? 'bg-[#139690] text-white border-[#139690] shadow-lg shadow-teal-900/20'
                                     : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200'
                                     }`}
                             >
@@ -355,7 +355,7 @@ const Doctors = () => {
                                         placeholder="Ex: João Silva"
                                         value={filters.name}
                                         onChange={(e) => handleFilterChange('name', e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#139690]/20 focus:border-[#139690] transition-all"
                                     />
                                 </div>
                             </div>
@@ -369,7 +369,7 @@ const Doctors = () => {
                                         placeholder="00/00000"
                                         value={filters.crp}
                                         onChange={(e) => handleFilterChange('crp', e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#139690]/20 focus:border-[#139690] transition-all"
                                     />
                                 </div>
                             </div>

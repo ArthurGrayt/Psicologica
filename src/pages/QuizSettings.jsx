@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Save, X, ChevronDown, ChevronUp, GripVertical, Check, AlertCircle, List, Type, MessageSquare, Pencil, Search, Activity } from 'lucide-react';
+import { Plus, Trash2, Save, X, ChevronDown, ChevronUp, GripVertical, Check, AlertCircle, List, Type, MessageSquare, Pencil, Search, Activity, MoreVertical } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import QuestionEditPanel from '../components/QuestionEditPanel';
 
@@ -10,6 +10,7 @@ const QuizSettings = () => {
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState(null); // ID of question being edited
     const [tempQuestion, setTempQuestion] = useState(null); // Draft state for editing
+    const [openDropdownId, setOpenDropdownId] = useState(null); // Controlled dropdown state
 
     // Filter States
     const [searchTerm, setSearchTerm] = useState('');
@@ -231,17 +232,16 @@ const QuizSettings = () => {
     return (
         <div className="min-h-screen bg-[#F8FAFC] -m-6 md:-m-10 p-6 md:p-10 font-sans selection:bg-[#139690]/10">
             <div className="max-w-5xl mx-auto pb-20">
-                <div className="flex items-center justify-between mb-10 mt-4">
+                <div className="flex items-center justify-between mb-8 mt-2">
                     <div>
                         <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Perguntas</h2>
-                        <p className="text-slate-500 font-medium mt-1">Gerenciamento e configuração de fluxos.</p>
                     </div>
                     <button
                         onClick={handleAddNew}
                         disabled={!!editingId}
-                        className="flex items-center gap-2 px-6 py-3 bg-[#139690] text-white rounded-2xl hover:brightness-105 active:scale-95 shadow-lg shadow-[#139690]/20 transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#139690] text-white rounded-xl hover:brightness-105 active:scale-95 shadow-md shadow-[#139690]/20 transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Plus size={20} />
+                        <Plus size={18} />
                         <span>Nova Pergunta</span>
                     </button>
                 </div>
@@ -311,54 +311,85 @@ const QuizSettings = () => {
                                 style={{ paddingLeft: q.level ? `${q.level * 1.5}rem` : '0px' }}
                                 className={`group relative transition-all duration-300 ${index !== filteredQuestions.length - 1 ? 'border-b border-slate-100' : ''}`}
                             >
-                                <div className="px-8 py-6 flex items-center gap-6 hover:bg-[#F8FAFC]/50 transition-colors">
-                                    <div className="text-slate-200 cursor-grab active:cursor-grabbing hover:text-slate-300 transition-colors shrink-0">
-                                        <GripVertical size={22} />
-                                    </div>
-
+                                <div className="px-5 py-5 md:px-8 md:py-6 flex items-start md:items-center gap-4 hover:bg-[#F8FAFC]/50 transition-colors">
                                     <div className="flex-1 min-w-0">
                                         <div className="mb-2">
-                                            <h3 className="font-bold text-slate-800 text-[17px] leading-tight flex items-center gap-3">
-                                                {q.text}
+                                            <h3 className="font-bold text-slate-800 text-[15px] md:text-[17px] leading-tight flex flex-wrap items-center gap-2 md:gap-3">
+                                                <span className="break-words line-clamp-2 md:line-clamp-none whitespace-normal">{q.text}</span>
                                                 {q.depends_on_question_id && (
-                                                    <span className="text-amber-600 flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 px-2 py-0.5 rounded-full uppercase tracking-tighter ring-1 ring-amber-100">
+                                                    <span className="text-amber-600 flex shrink-0 items-center gap-1 text-[10px] font-extrabold bg-amber-50 px-2 py-0.5 rounded-full uppercase tracking-tighter ring-1 ring-amber-100">
                                                         Lógica
                                                     </span>
                                                 )}
                                             </h3>
                                         </div>
 
-                                        <div className="flex items-center gap-4">
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#F0F2F5] text-slate-500 mix-blend-multiply transition-colors group-hover:bg-slate-100">
+                                        <div className="flex flex-wrap items-center gap-3 md:gap-4">
+                                            <span className="inline-flex shrink-0 items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#F0F2F5] text-slate-500 mix-blend-multiply transition-colors group-hover:bg-slate-100">
                                                 {getTypeLabel(q.type)}
                                             </span>
 
-                                            <div className="flex items-center gap-3 text-slate-500 font-medium text-[13px]">
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                                                    {q.categories?.name || q.category_key || q.category || 'Geral'}
+                                            <div className="flex flex-wrap items-center gap-3 text-slate-500 font-medium text-[12px] md:text-[13px]">
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#139690]/40" />
+                                                    <span className="truncate max-w-[120px] md:max-w-none">{q.categories?.name || q.category_key || q.category || 'Geral'}</span>
                                                 </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                                                     Peso {q.weight}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                                    {/* Menu Dropdown de Ações */}
+                                    <div className="relative shrink-0">
                                         <button
-                                            onClick={() => handleEdit(q)}
-                                            className="p-3 text-slate-400 hover:text-[#139690] hover:bg-[#139690]/5 rounded-2xl transition-all"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenDropdownId(openDropdownId === q.id ? null : q.id);
+                                            }}
+                                            className={`p-2 rounded-full transition-colors ${openDropdownId === q.id ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
                                         >
-                                            <Pencil size={20} />
+                                            <MoreVertical size={20} />
                                         </button>
-                                        <button
-                                            onClick={() => handleDelete(q.id)}
-                                            className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-                                        >
-                                            <Trash2 size={20} />
-                                        </button>
+
+                                        {openDropdownId === q.id && (
+                                            <>
+                                                {/* Overlay invisível para fechar ao clicar fora */}
+                                                <div 
+                                                    className="fixed inset-0 z-40 cursor-default" 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOpenDropdownId(null);
+                                                    }}
+                                                />
+                                                <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden py-1 animate-fadeIn origin-top-right">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenDropdownId(null);
+                                                            handleEdit(q);
+                                                        }}
+                                                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
+                                                    >
+                                                        <Pencil size={16} className="text-slate-400 shrink-0" />
+                                                        <span className="font-semibold">Editar</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenDropdownId(null);
+                                                            handleDelete(q.id);
+                                                        }}
+                                                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors text-left border-t border-slate-50"
+                                                    >
+                                                        <Trash2 size={16} className="text-red-500 shrink-0" />
+                                                        <span className="font-semibold">Excluir</span>
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
