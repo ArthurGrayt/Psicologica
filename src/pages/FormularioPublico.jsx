@@ -249,22 +249,26 @@ const FormularioPublico = () => {
 
             // 2. Busca dados detalhados do colaborador (Paciente)
             if (assess.patient_id) {
-                // Prioriza a tabela 'colaboradores' conforme a nova diretiva
-                // Busca o colaborador na tabela 'colaboradores' com os dados da unidade
-                const { data: colab, error: colabError } = await supabase
-                    .from('colaboradores') // Especifica a tabela colaboradores
-                    .select('*, unidade:unidade(nome_unidade)') // Seleciona todos os campos e faz join com unidade
-                    .eq('id', assess.patient_id) // Filtra pelo ID do colaborador
-                    .maybeSingle(); // Retorna o primeiro registro ou null
+                // Busca os dados do paciente exclusivamente na tabela 'patients', conforme solicitado
+                const { data: pat, error: patError } = await supabase
+                    // Especifíca a tabela 'patients' para a busca
+                    .from('patients')
+                    // Seleciona todos os campos da tabela
+                    .select('*')
+                    // Filtra pelo UUID do colaborador (uuid_colab) contido na avaliação
+                    .eq('uuid_colab', assess.patient_id)
+                    // Retorna um único registro ou nulo, caso não exista
+                    .maybeSingle();
 
-                if (colab) {
-                    setPatient(colab);
-                    if (colab.assinatura) setSignatureUrl(colab.assinatura);
-                } else {
-                    console.warn('Colaborador não encontrado na tabela oficial. Verificando tabela legada...');
-                    const { data: pat } = await supabase.from('patients').select('*').eq('id', assess.patient_id).maybeSingle();
+                // Verifica se o paciente foi encontrado
+                if (pat) {
+                    // Armazena os dados do paciente no estado do componente
                     setPatient(pat);
-                    if (pat?.assinatura) setSignatureUrl(pat.assinatura);
+                    // Caso o paciente já possua uma assinatura, atualiza a url no estado
+                    if (pat.assinatura) setSignatureUrl(pat.assinatura);
+                } else {
+                    // Exibe um aviso no console caso os dados do paciente não sejam encontrados
+                    console.warn('Paciente não encontrado na tabela patients.');
                 }
             }
 
@@ -359,11 +363,14 @@ const FormularioPublico = () => {
 
             const { data: { publicUrl } } = supabase.storage.from('assinaturas').getPublicUrl(fileName);
 
-            // Salva a assinatura preferencialmente na tabela colaboradores
+            // Salva a assinatura exclusivamente na tabela patients
             if (patient && assessment?.patient_id) {
-                await supabase.from('colaboradores').update({ assinatura: publicUrl }).eq('id', assessment.patient_id);
-                // Também atualiza na tabela legada para compatibilidade, se necessário
-                await supabase.from('patients').update({ assinatura: publicUrl }).eq('id', assessment.patient_id);
+                // Executa a instrução update referenciando a tabela patients
+                await supabase.from('patients')
+                    // Insere a URL pública gerada na coluna 'assinatura'
+                    .update({ assinatura: publicUrl })
+                    // Aplica a edição à linha correspondente ao ID do paciente da avaliação
+                    .eq('id', assessment.patient_id);
             }
 
             setSignatureUrl(publicUrl);

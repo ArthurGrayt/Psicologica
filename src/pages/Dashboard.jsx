@@ -106,119 +106,95 @@ const Dashboard = () => {
         };
         fetchParams();
     }, []);
-
-    // Fetch Patients from DB
+    // Fetch Patients from DB
     const fetchPatients = async () => {
         // Define o estado de carregamento como verdadeiro e limpa erros anteriores
         setIsLoading(true);
         setFetchError(null);
-        console.log('--- INICIANDO FETCH PATIENTS VIA AGENDAMENTOS ---');
+        console.log('--- INICIANDO FETCH PATIENTS EXCLUSIVO VIA TABELA PATIENTS ---');
         try {
-            // 1. Busca agendamentos que contêm "Avaliação Psicológica" no snapshot de exames
-            const { data: agendamentosData, error: agendamentosError } = await supabase
-                .from('agendamentos')
-                .select('colaborador_id, data_atendimento')
-                .contains('exames_snapshot', ['Avaliação Psicológica']);
+            // 1. Busca dados diretamente da tabela 'patients' com joins para cargos, setores e colaboradores
+            const { data: patientsData, error: patientsError } = await supabase
+                .from('patients')
+                .select(`
+                    id,
+                    uuid_colab,
+                    name,
+                    status,
+                    assinatura,
+                    created_at,
+                    role_id,
+                    sector_id,
+                    cargos:role_id (nome),
+                    setor:sector_id (nome),
+                    colaboradores:uuid_colab (
+                        cpf,
+                        sexo,
+                        data_nascimento,
+                        unidade (
+                            nome_unidade,
+                            clientes:empresaid (nome_fantasia)
+                        )
+                    )
+                `);
 
-            // Verifica se houve erro na busca de agendamentos
-            if (agendamentosError) {
-                console.error('Erro ao buscar agendamentos:', agendamentosError);
-                throw agendamentosError;
+            // Verifica se houve erro na busca de pacientes
+            if (patientsError) {
+                console.error('Erro ao buscar pacientes:', patientsError);
+                throw patientsError;
             }
 
-            // Se não houver agendamentos, limpa a lista e encerra
-            if (!agendamentosData || agendamentosData.length === 0) {
-                console.warn('Nenhum agendamento de Avaliação Psicológica encontrado.');
+            // Se não houver pacientes, limpa a lista e encerra
+            if (!patientsData || patientsData.length === 0) {
+                console.warn('Nenhum paciente encontrado na tabela patients.');
                 setPatients([]);
                 setFilteredPatients([]);
                 return;
             }
 
-            // Extrai IDs únicos de colaboradores que possuem o agendamento
-            const collaboratorIds = [...new Set(agendamentosData.map(a => a.colaborador_id))];
-
-            // 2. Busca dados detalhados dos colaboradores encontrados
-            const { data: collaboratorsData, error: collaboratorsError } = await supabase
-                .from('colaboradores')
-                .select(`
-                    id,
-                    nome,
-                    cpf,
-                    sexo,
-                    data_nascimento,
-                    cargo,
-                    setorid,
-                    unidade,
-                    cargos:cargo (nome),
-                    setor:setorid (nome),
-                    unidades:unidade (
-                        nome_unidade,
-                        clientes:empresaid (nome_fantasia)
-                    )
-                `)
-                .in('id', collaboratorIds);
-
-            // Verifica se houve erro na busca de colaboradores
-            if (collaboratorsError) {
-                console.error('Erro ao buscar colaboradores:', collaboratorsError);
-                throw collaboratorsError;
-            }
-
-            // 3. Busca avaliações (assessments) vinculadas a esses colaboradores
+            // 2. Busca avaliações (assessments) vinculadas a esses pacientes (via uuid_colab)
+            const patientUuids = patientsData.map(p => p.uuid_colab).filter(Boolean);
             const { data: assessmentsData, error: assessmentsError } = await supabase
                 .from('assessments')
                 .select('id, patient_id, status, locked, created_at')
-                .in('patient_id', collaboratorIds);
+                .in('patient_id', patientUuids);
 
             // Verifica se houve erro na busca de avaliações
             if (assessmentsError) {
                 console.error('Erro ao buscar avaliações:', assessmentsError);
             }
 
-            // 4. Mapeamento final dos dados para exibição no Dashboard
-            const mappedPatients = collaboratorsData.map(c => {
-                // Resolve o nome do cargo e setor priorizando campos específicos
-                const cargoNome = c.cargos ? (c.cargos.nome || 'Cargo') : 'Sem Cargo';
-                const setorNome = c.setor ? (c.setor.nome || 'Setor') : 'Sem Setor';
+            // 3. Mapeamento final dos dados para exibição no Dashboard
+            const mappedPatients = patientsData.map(p => {
+                // Resolve o nome do cargo e setor usando os joins realizados
+                const cargoNome = p.cargos ? (p.cargos.nome || 'Cargo') : 'Sem Cargo';
+                const setorNome = p.setor ? (p.setor.nome || 'Setor') : 'Sem Setor';
                 
-                // Formata a data de inserção do colaborador (ou poderia ser a do agendamento)
-                const dateObj = new Date(); // Simplesmente para manter o formato visual
+                // Formata a data de criação do registro no formato de exibição
+                const dateObj = new Date(p.created_at || new Date());
                 const day = dateObj.getDate().toString().padStart(2, '0');
                 const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                 const month = months[dateObj.getMonth()];
                 const year = dateObj.getFullYear();
                 const dateStr = `${day} ${month} ${year}`;
 
-                // Busca avaliações correspondentes a este colaborador
-                const patientAssessments = (assessmentsData || []).filter(a => a.patient_id === c.id);
+                // Busca avaliações correspondentes a este paciente (usando uuid_colab)
+                const patientAssessments = (assessmentsData || []).filter(a => a.patient_id === p.uuid_colab);
                 let latestAssessment = null;
                 if (patientAssessments.length > 0) {
                     // Ordena para pegar a avaliação mais recente
                     latestAssessment = patientAssessments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
                 }
 
-                // Resolve informações da empresa e unidade
-                // Resolve informações da empresa e unidade, evitando duplicidade
-                const empresaName = (c.unidades?.clientes?.nome_fantasia || '').trim();
-                const unidadeName = (c.unidades?.nome_unidade || '').trim();
+                // Resolve dados detalhados via join com colaboradores
+                const colab = p.colaboradores || {};
+                const empresaName = (colab.unidade?.clientes?.nome_fantasia || '').trim();
+                const unidadeName = (colab.unidade?.nome_unidade || '').trim();
                 
-                let companyFull = 'Empresa não encontrada';
+                let companyFull = '—';
                 if (empresaName) {
-                    if (unidadeName) {
-                        const lowEmpresa = empresaName.toLowerCase();
-                        const lowUnidade = unidadeName.toLowerCase();
-                        
-                        // Quebra o nome da empresa em palavras significativas (mais de 3 letras)
-                        const wordsEmpresa = lowEmpresa.split(/\s+/).filter(w => w.length > 3);
-                        // Verifica se o nome da unidade contém alguma dessas palavras (evita repetições como "Empresa (Empresa Filial)")
-                        const isRedundant = wordsEmpresa.some(word => lowUnidade.includes(word));
-                        
-                        if (lowUnidade === lowEmpresa || isRedundant) {
-                            // Se forem redundantes, exibe o nome mais longo/detalhado
-                            companyFull = unidadeName.length >= empresaName.length ? unidadeName : empresaName;
-                        } else {
-                            companyFull = `${empresaName} (${unidadeName})`;
-                        }
+                    if (unidadeName && unidadeName !== empresaName) {
+                        companyFull = `${empresaName} (${unidadeName})`;
                     } else {
                         companyFull = empresaName;
                     }
@@ -226,33 +202,34 @@ const Dashboard = () => {
 
                 // Formatação da data de nascimento para exibição em PT-BR
                 let formattedNasc = '—';
-                if (c.data_nascimento) {
-                    const d = new Date(c.data_nascimento);
+                if (colab.data_nascimento) {
+                    const d = new Date(colab.data_nascimento);
                     if (!isNaN(d.getTime())) {
                         formattedNasc = d.toLocaleDateString('pt-BR');
                     }
                 }
 
-                // Retorna o objeto formatado para a tabela
+                // Retorna o objeto formatado para a tabela (com dados restaurados)
                 return {
-                    id: c.id,
-                    name: c.nome,
-                    company: companyFull,
-                    cpf: c.cpf || '—',
-                    sexo: c.sexo ? c.sexo.charAt(0).toUpperCase() : '—',
+                    id: p.id,
+                    uuid_colab: p.uuid_colab,
+                    name: p.name,
+                    company: companyFull, 
+                    cpf: colab.cpf || '—',     
+                    sexo: colab.sexo ? colab.sexo.charAt(0).toUpperCase() : '—',    
                     nascimento: formattedNasc,
-                    raw_nascimento: c.data_nascimento,
                     role: cargoNome,
                     sector: setorNome,
                     date: dateStr,
-                    status: latestAssessment ? latestAssessment.status : 'Pendente',
+                    status: latestAssessment ? latestAssessment.status : (p.status || 'Pendente'),
                     assessmentId: latestAssessment ? latestAssessment.id : null,
-                    locked: latestAssessment ? latestAssessment.locked : false
+                    locked: latestAssessment ? latestAssessment.locked : false,
+                    assinatura: p.assinatura
                 };
             });
 
             // Atualiza os estados de pacientes carregados e filtrados
-            console.log('Pacientes carregados via Agendamentos:', mappedPatients);
+            console.log('Pacientes carregados via Tabela Patients:', mappedPatients);
             setPatients(mappedPatients);
             setFilteredPatients(mappedPatients);
         } catch (err) {
@@ -559,19 +536,16 @@ const Dashboard = () => {
         if (!selectedPatient) return;
         try {
             console.log('--- SALVANDO EDIÇÃO ---', selectedPatient);
-            // 1. Atualizar Tabela Colaboradores (Nome, CPF, Sexo, Nascimento)
-            // Agora consolidamos tudo em uma única chamada na tabela colaboradores
-            const { error: cError } = await supabase
-                .from('colaboradores')
+            // 1. Atualizar Tabela Patients (Nome)
+            // Agora atualizamos exclusivamente na tabela patients
+            const { error: pError } = await supabase
+                .from('patients')
                 .update({
-                    nome: selectedPatient.name,
-                    cpf: selectedPatient.cpf === '—' ? null : selectedPatient.cpf,
-                    sexo: selectedPatient.sexo === '—' ? null : selectedPatient.sexo,
-                    data_nascimento: selectedPatient.raw_nascimento || null
+                    name: selectedPatient.name
                 })
                 .eq('id', selectedPatient.id);
 
-            if (cError) throw cError;
+            if (pError) throw pError;
 
             setSelectedPatient(null);
             fetchPatients();
@@ -593,17 +567,11 @@ const Dashboard = () => {
 
     const handleDeletePatient = async (id) => {
         try {
-            // Em vez de deletar o colaborador (pois ele vem da tabela oficial), 
-            // vamos apenas remover a "Avaliação Psicológica" do agendamento dele 
-            // ou questionar se o usuário deseja deletar o agendamento em si.
-            // Para simplificar e seguir a lógica do usuário, vamos deletar o agendamento
-            // que vincula esse colaborador à avaliação psicológica.
-            
+            // Deletar o paciente diretamente da tabela patients
             const { error } = await supabase
-                .from('agendamentos')
+                .from('patients')
                 .delete()
-                .eq('colaborador_id', id)
-                .contains('exames_snapshot', ['Avaliação Psicológica']);
+                .eq('id', id);
 
             if (error) throw error;
 
@@ -717,6 +685,21 @@ const Dashboard = () => {
             if (error) throw error;
 
             console.log('Colaborador criado:', data);
+
+            // 2. Criar registro correspondente na tabela 'patients' para que apareça no Dashboard
+            const { error: patientError } = await supabase
+                .from('patients')
+                .insert({
+                    uuid_colab: data.id,
+                    name: data.nome,
+                    role_id: data.cargo,
+                    sector_id: data.setorid,
+                    status: 'Pendente'
+                });
+
+            if (patientError) {
+                console.error('Erro ao criar registro em patients:', patientError);
+            }
 
             // Reset
             setNewCollaborator({ name: '', cpf: '', sexo: '', data_nascimento: '', roleId: '', sectorId: '' });
@@ -900,6 +883,26 @@ const Dashboard = () => {
                 .insert(inserts);
 
             if (error) throw error;
+
+            // 2. Sincronizar com a tabela 'patients'
+            // Criamos ou atualizamos registros em 'patients' para cada colaborador importado
+            const patientInserts = selectedCols.map(c => ({
+                uuid_colab: c.id,
+                name: c.name || c.nome,
+                role_id: (c.originalData?.cargo) || c.role_id || null,
+                sector_id: (c.originalData?.setorid) || c.sector_id || null,
+                status: 'Pendente'
+            }));
+
+            console.log('Sincronizando tabela patients:', patientInserts);
+
+            const { error: patientError } = await supabase
+                .from('patients')
+                .upsert(patientInserts, { onConflict: 'uuid_colab' });
+
+            if (patientError) {
+                console.error('Erro ao sincronizar com patients:', patientError);
+            }
 
             // Sucesso
             setIsMultipleModalOpen(false);
