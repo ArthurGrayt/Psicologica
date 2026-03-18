@@ -18,7 +18,7 @@ const LoadingScreen = () => (
 const SuccessScreen = () => (
     <div className="min-h-screen bg-gradient-to-b from-white to-[#ccedf3] flex items-center justify-center p-6 font-sans">
         <div className="bg-white p-8 rounded-xl shadow border-t-[10px] border-t-[#35b6cf] max-w-[640px] w-full text-center animate-in zoom-in-95 duration-500">
-            <h1 className="text-2xl font-normal text-slate-800 mb-6">Levantamento Preliminar Psicossocial</h1>
+            <h1 className="text-2xl font-normal text-slate-800 mb-6">Avaliação Psicológica</h1>
             <div className="mb-6 text-left p-4 bg-slate-50 rounded text-slate-800 text-[14px]">
                 Sua resposta foi registrada.
             </div>
@@ -250,14 +250,12 @@ const FormularioPublico = () => {
             // 2. Busca dados detalhados do colaborador (Paciente)
             if (assess.patient_id) {
                 // Busca os dados do paciente exclusivamente na tabela 'patients', conforme solicitado
+                // Busca os dados do paciente com joins profundos para obter CPF, Unidade e Empresa
                 const { data: pat, error: patError } = await supabase
-                    // Especifíca a tabela 'patients' para a busca
                     .from('patients')
-                    // Seleciona todos os campos da tabela
-                    .select('*')
-                    // Filtra pelo UUID do colaborador (uuid_colab) contido na avaliação
+                    // Join complexo: Patients -> Colaboradores -> Unidade -> Clientes (Empresa)
+                    .select('*, colaboradores:uuid_colab(cpf, unidade(nome_unidade, clientes:empresaid(nome_fantasia)))')
                     .eq('uuid_colab', assess.patient_id)
-                    // Retorna um único registro ou nulo, caso não exista
                     .maybeSingle();
 
                 // Verifica se o paciente foi encontrado
@@ -324,18 +322,36 @@ const FormularioPublico = () => {
                 .eq('question_id', q.id)
                 .maybeSingle();
 
+            // Verifica se a resposta já existe no banco de dados para decidir entre update ou insert
             if (existing) {
-                await supabase.from('answers').update({
+                // Define o objeto com os dados a serem atualizados (texto da resposta e pontuação calculada)
+                const payload = {
                     answer_text: String(val),
                     score
-                }).eq('id', existing.id);
+                };
+                // Gera um log detalhado no console para depuração, mostrando o destino, filtros e os dados enviados
+                console.log("Atualizando resposta na tabela 'answers':", {
+                    destino: 'answers',
+                    filtro: { id: existing.id },
+                    payload
+                });
+                // Executa a atualização na tabela 'answers' filtrando pelo ID do registro existente
+                await supabase.from('answers').update(payload).eq('id', existing.id);
             } else {
-                await supabase.from('answers').insert({
+                // Define o objeto com os dados para uma nova inserção (ID da avaliação, ID da pergunta, resposta e pontuação)
+                const payload = {
                     assessment_id: assessmentId,
                     question_id: q.id,
                     answer_text: String(val),
                     score
+                };
+                // Gera um log descritivo indicando a inserção de uma nova resposta e os dados contidos nela
+                console.log("Inserindo nova resposta na tabela 'answers':", {
+                    destino: 'answers',
+                    payload
                 });
+                // Realiza a inserção do novo registro na tabela 'answers'
+                await supabase.from('answers').insert(payload);
             }
         } catch (err) {
             console.error('Auto-save error', err);
@@ -363,17 +379,25 @@ const FormularioPublico = () => {
 
             const { data: { publicUrl } } = supabase.storage.from('assinaturas').getPublicUrl(fileName);
 
-            // Salva a assinatura exclusivamente na tabela patients
+            // Salva a assinatura exclusivamente na tabela patients para centralizar os dados do colaborador
             if (patient && assessment?.patient_id) {
-                // Executa a instrução update referenciando a tabela patients
+                // Cria o payload contendo apenas a URL pública da imagem da assinatura
+                const payload = { assinatura: publicUrl };
+                // Registra no log o início do salvamento da assinatura, informando tabela, filtro e payload
+                console.log("Salvando URL da assinatura na tabela 'patients':", {
+                    destino: 'patients',
+                    filtro: { uuid_colab: assessment.patient_id },
+                    payload
+                });
+                // Atualiza a assinatura na tabela 'patients' usando uuid_colab como filtro
                 await supabase.from('patients')
-                    // Insere a URL pública gerada na coluna 'assinatura'
-                    .update({ assinatura: publicUrl })
-                    // Aplica a edição à linha correspondente ao ID do paciente da avaliação
-                    .eq('id', assessment.patient_id);
+                    .update(payload)
+                    // Importante: Filtra por uuid_colab pois o patient_id da avaliação é um UUID
+                    .eq('uuid_colab', assessment.patient_id);
             }
 
-            setSignatureUrl(publicUrl);
+            // Define a URL da assinatura localmente (Base64) para exibição instantânea e sem erro
+            setSignatureUrl(dataUrl);
             setShowSigModal(false);
         } catch (err) {
             console.error(err);
@@ -403,17 +427,49 @@ const FormularioPublico = () => {
 
         if (!window.confirm('Deseja enviar suas respostas agora?')) return;
 
+        // Define o estado de carregamento como true para fornecer feedback visual ao usuário durante o processamento
         setLoading(true);
         try {
-            await supabase.from('assessments').update({
+            // Prepara os dados de conclusão da avaliação, incluindo status, data e bloqueio de edições futuras
+            const assessmentPayload = {
                 status: 'completed',
                 completed_at: new Date().toISOString(),
                 locked: true
-            }).eq('id', assessmentId);
+            };
+            // Registra um log detalhado do envio para a tabela de avaliações, facilitando o rastreio da operação
+            console.log("Enviando atualização de avaliação para a tabela 'assessments':", {
+                destino: 'assessments',
+                filtro: { id: assessmentId },
+                payload: assessmentPayload
+            });
+
+            // Realiza a atualização do registro da avaliação no Supabase para marcar como concluída
+            await supabase.from('assessments').update(assessmentPayload).eq('id', assessmentId);
+
+            // Verifica se existe um ID de paciente vinculado para atualizar seu status na listagem principal
+            if (assessment?.patient_id) {
+                // Define o novo status do paciente como "Respondido" conforme solicitado
+                const patientPayload = {
+                    status: 'Respondido'
+                };
+                // Registra um log descritivo da atualização do status do paciente para a tabela 'patients'
+                console.log("Enviando atualização de status do paciente para a tabela 'patients':", {
+                    destino: 'patients',
+                    filtro: { uuid_colab: assessment.patient_id },
+                    payload: patientPayload
+                });
+
+                // Executa a atualização do status na tabela de pacientes usando o UUID como filtro
+                await supabase.from('patients').update(patientPayload).eq('uuid_colab', assessment.patient_id);
+            }
+
+            // Altera o estado de status local para 'finished' para renderizar a tela de sucesso
             setStatus('finished');
         } catch (err) {
+            // Em caso de erro na requisição, exibe um alerta contendo a mensagem de erro detalhada
             alert('Erro ao enviar: ' + err.message);
         } finally {
+            // Independentemente do sucesso ou erro, desativa o indicador de carregamento
             setLoading(false);
         }
     };
@@ -443,7 +499,7 @@ const FormularioPublico = () => {
                 {/* Header Card */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-[10px] border-t-[#35b6cf] p-6 mb-3 relative overflow-hidden">
                     <h1 className="text-[24px] md:text-[32px] font-normal text-slate-900 mb-6 mt-2 leading-tight">
-                        Levantamento Preliminar Psicossocial - {patient?.unidade?.nome_unidade || 'Fábrica Criativa'}
+                        Avaliação Psicológica - {patient?.colaboradores?.unidade?.clientes?.nome_fantasia || ''}
                     </h1>
 
                     {patient && (
@@ -457,7 +513,7 @@ const FormularioPublico = () => {
                                 </div>
                                 <div className="text-[#6b7280] text-[12px] mt-1">
                                     {patient.unidade?.nome_unidade || 'Unidade não informada'}
-                                    {patient.cpf && <span> (CPF: {patient.cpf})</span>}
+                                    {(patient.colaboradores?.cpf || patient.cpf) && <span> (CPF: {patient.colaboradores?.cpf || patient.cpf})</span>}
                                 </div>
                             </div>
                         </div>
@@ -485,14 +541,16 @@ const FormularioPublico = () => {
                     <div id="declaration-section" className="bg-white rounded-xl shadow-sm border border-slate-200 px-8 py-8 mb-6 mt-8">
                         <p className="text-[14px] text-slate-800 leading-relaxed text-justify">
                             Eu, <span className="border-b border-slate-400 px-2 font-bold inline-block min-w-[200px] text-center">{patient.nome || patient.name || '______________________'}</span>,
-                            portador do documento de identificação <span className="border-b border-slate-400 px-2 font-bold inline-block min-w-[120px] text-center">{patient.cpf || '_________________'}</span>,
+                            portador do documento de identificação <span className="border-b border-slate-400 px-2 font-bold inline-block min-w-[120px] text-center">{patient.colaboradores?.cpf || patient.cpf || '_________________'}</span>,
                             mediante a assinatura abaixo, declaro serem verdadeiras todas as informações por mim relatadas nesta avaliação.
                         </p>
 
                         <div className="mt-12 flex flex-col items-center">
                             {signatureUrl ? (
                                 <div className="flex flex-col items-center animate-in zoom-in-50">
-                                    <img src={signatureUrl} alt="Assinatura" className="h-16 object-contain mb-2" />
+                                    <div className="bg-slate-50 p-2 rounded border border-slate-100 mb-2">
+                                        <img src={signatureUrl} alt="Assinatura" className="h-16 object-contain" />
+                                    </div>
                                     <div className="border-b border-slate-800 w-full max-w-xs mb-1"></div>
                                     <p className="text-sm text-slate-500 mb-4">Assinatura Digital Registrada</p>
                                     <button onClick={() => setShowSigModal(true)} className="text-xs text-[#35b6cf] hover:underline">

@@ -109,23 +109,25 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
 
                         {/* Card Footer: Status + Link */}
                         <div className="flex justify-between items-center">
-                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${patient.locked ? 'bg-red-50 text-red-700 border-red-100' :
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
                                 patient.status === 'completed' || patient.status === 'Concluído' || patient.status === 'reported' || patient.status === 'Laudado' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                    patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                        patient.status === 'sent' || patient.status === 'Enviado' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                                            'bg-yellow-50 text-yellow-700 border-yellow-100'
+                                    patient.locked ? 'bg-red-50 text-red-700 border-red-100' :
+                                        patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                            patient.status === 'sent' || patient.status === 'Enviado' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                                'bg-yellow-50 text-yellow-700 border-yellow-100'
                                 }`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${patient.locked ? 'bg-red-500' :
+                                <div className={`w-1.5 h-1.5 rounded-full ${
                                     patient.status === 'completed' || patient.status === 'reported' || patient.status === 'Laudado' ? 'bg-emerald-500' :
-                                        patient.status === 'in_progress' ? 'bg-blue-500' :
-                                            'bg-yellow-500' // Default
+                                        patient.locked ? 'bg-red-500' :
+                                            patient.status === 'in_progress' ? 'bg-blue-500' :
+                                                'bg-yellow-500' // Default
                                     }`} />
-                                {patient.locked ? 'Bloqueado' :
-                                    patient.status === 'pending' ? 'Pendente' :
-                                        patient.status === 'sent' ? 'Enviado' :
-                                            patient.status === 'in_progress' ? 'Em Progresso' :
-                                                patient.status === 'completed' ? 'Concluído' :
-                                                    patient.status === 'reported' ? 'Laudado' : patient.status}
+                                {patient.status === 'reported' || patient.status === 'Laudado' ? 'Laudado' :
+                                    patient.status === 'completed' || patient.status === 'Concluído' ? 'Respondido' :
+                                        patient.locked ? 'Bloqueado' :
+                                            patient.status === 'pending' ? 'Pendente' :
+                                                patient.status === 'sent' ? 'Enviado' :
+                                                    patient.status === 'in_progress' ? 'Em Progresso' : patient.status}
                             </span>
 
                             <button
@@ -162,7 +164,8 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                         className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            onGenerateForm(patient.id);
+                                            // Passa uuid_colab (UUID) em vez de id (numérico) para evitar erro de tipo no Supabase
+                                            onGenerateForm(patient.uuid_colab);
                                             setOpenDropdownId(null);
                                         }}
                                     >
@@ -440,18 +443,19 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                         </div>
                                     </td>
                                     <td className="p-3 md:p-4 whitespace-nowrap">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap inline-block ${patient.locked ? 'bg-red-50 text-red-700 border-red-200' :
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap inline-block ${
                                             patient.status === 'completed' || patient.status === 'Concluído' || patient.status === 'reported' || patient.status === 'Laudado' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                    patient.status === 'sent' || patient.status === 'Enviado' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                                        'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
+                                                patient.locked ? 'bg-red-50 text-red-700 border-red-200' :
+                                                    patient.status === 'in_progress' || patient.status === 'Em Análise' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                        patient.status === 'sent' || patient.status === 'Enviado' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                                            'bg-yellow-50 text-yellow-700 border-yellow-200' // Default / Pending
                                             }`}>
-                                            {patient.locked ? 'Bloqueado' :
-                                                patient.status === 'pending' ? 'Pendente' :
-                                                    patient.status === 'sent' ? 'Enviado' :
-                                                        patient.status === 'in_progress' ? 'Em Progresso' :
-                                                            patient.status === 'completed' ? 'Concluído' :
-                                                                patient.status === 'reported' ? 'Laudado' : patient.status}
+                                            {patient.status === 'reported' || patient.status === 'Laudado' ? 'Laudado' :
+                                                patient.status === 'completed' || patient.status === 'Concluído' ? 'Respondido' :
+                                                    patient.locked ? 'Bloqueado' :
+                                                        patient.status === 'pending' ? 'Pendente' :
+                                                            patient.status === 'sent' ? 'Enviado' :
+                                                                patient.status === 'in_progress' ? 'Em Progresso' : patient.status}
                                         </span>
                                     </td>
                                     <td className={`p-3 md:p-4 text-center relative w-[100px] ${index === patients.length - 1 ? 'rounded-br-xl' : ''}`}>
@@ -492,7 +496,8 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            onGenerateForm(patient.id);
+                                                            // Passa uuid_colab (UUID) em vez de id (numérico) para evitar erro de tipo no Supabase
+                                                            onGenerateForm(patient.uuid_colab);
                                                             setOpenDropdownId(null);
                                                         }}
                                                     >
