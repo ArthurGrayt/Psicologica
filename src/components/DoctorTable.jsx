@@ -58,7 +58,7 @@ const DoctorTable = ({ doctors, onSelectDoctor, onSort, onDelete }) => {
                         {/* Card Header: Avatar + Info + Actions */}
                         <div className="flex justify-between items-start mb-6">
                             <div className="flex gap-4">
-                                <div className="w-14 h-14 rounded-full bg-cyan-50 flex items-center justify-center text-[#139690] font-bold text-xl shadow-sm border border-cyan-100/50">
+                                <div className="w-14 h-14 rounded-full bg-cyan-50 flex-shrink-0 flex items-center justify-center text-[#139690] font-bold text-xl shadow-sm border border-cyan-100/50">
                                     {doctor.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()}
                                 </div>
                                 <div className="flex flex-col justify-center">

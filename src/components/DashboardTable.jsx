@@ -64,7 +64,7 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                         {/* Card Header: Avatar + Info + Actions */}
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex gap-4">
-                                <div className="w-12 h-12 rounded-full bg-cyan-50 flex items-center justify-center text-[#139690] font-bold text-lg">
+                                <div className="w-12 h-12 rounded-full bg-cyan-50 flex-shrink-0 flex items-center justify-center text-[#139690] font-bold text-lg">
                                     {patient.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()}
                                 </div>
                                 <div>
@@ -276,7 +276,7 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                     {/* Modal Content - Centered */}
                     <div className="bg-white w-full max-w-sm rounded-[32px] p-6 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] overflow-y-auto">
                         <div className="flex flex-col items-center mb-6">
-                            <div className="w-D20 h-20 rounded-full bg-cyan-50 flex items-center justify-center text-[#139690] font-bold text-3xl mb-3">
+                            <div className="w-20 h-20 rounded-full bg-cyan-50 flex-shrink-0 flex items-center justify-center text-[#139690] font-bold text-3xl mb-3">
                                 {selectedPatientDetails.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()}
                             </div>
                             <h2 className="text-xl font-bold text-slate-800 text-center">{selectedPatientDetails.name}</h2>

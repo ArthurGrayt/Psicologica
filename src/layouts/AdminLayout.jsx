@@ -105,7 +105,7 @@ const AdminLayout = () => {
                             className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300 w-full ${isActive ? 'text-[#139690]' : 'text-slate-400 hover:text-slate-600'
                                 }`}
                         >
-                            <div className={`p-1.5 rounded-full transition-all ${isActive ? 'bg-[#139690]/10' : 'bg-transparent'}`}>
+                            <div className="p-1.5 rounded-full bg-transparent transition-all">
                                 <item.icon size={22} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
                             </div>
                             <span className="text-[10px] font-medium tracking-wide">{item.label}</span>

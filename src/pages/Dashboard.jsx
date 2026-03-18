@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { generatePDF } from '../services/pdfReportGenerator';
 import SignatureUploadModal from '../components/SignatureUploadModal';
 import DoctorSelectionModal from '../components/DoctorSelectionModal';
+import DateRangePicker from '../components/DateRangePicker';
 import { generateNarrative } from '../utils/narrativeLogic';
 import logoGamaUrl from '../assets/logo-gama.png';
 
@@ -221,6 +222,7 @@ const Dashboard = () => {
                     role: cargoNome,
                     sector: setorNome,
                     date: dateStr,
+                    raw_date: p.created_at,
                     status: latestAssessment ? latestAssessment.status : (p.status || 'Pendente'),
                     assessmentId: latestAssessment ? latestAssessment.id : null,
                     locked: latestAssessment ? latestAssessment.locked : false,
@@ -289,7 +291,22 @@ const Dashboard = () => {
             result = result.filter(p => p.sector === filters.sector);
         }
         if (filters.date) {
-            result = result.filter(p => p.date?.toLowerCase().includes(filters.date.toLowerCase()));
+            const { from, to } = filters.date;
+            result = result.filter(p => {
+                const pDate = new Date(p.raw_date);
+                if (from && to) {
+                    // Normalize para comparar apenas as datas (sem considerar hora)
+                    const start = new Date(from.setHours(0, 0, 0, 0));
+                    const end = new Date(to.setHours(23, 59, 59, 999));
+                    return pDate >= start && pDate <= end;
+                }
+                if (from) {
+                    const singleDate = new Date(from.setHours(0, 0, 0, 0));
+                    const pDateNormalized = new Date(pDate.setHours(0, 0, 0, 0));
+                    return pDateNormalized.getTime() === singleDate.getTime();
+                }
+                return true;
+            });
         }
         if (filters.status) {
             result = result.filter(p => p.status === filters.status);
@@ -1216,14 +1233,6 @@ const Dashboard = () => {
                             <Filter size={18} />
                             <span>{showFilters ? 'Ocultar Filtros' : 'Filtrar'}</span>
                         </button>
-
-                        <button
-                            onClick={() => setIsMultipleModalOpen(true)}
-                            className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-[#139690] text-white rounded-2xl hover:bg-opacity-90 shadow-lg transition-all font-bold text-sm whitespace-nowrap"
-                        >
-                            <Users size={18} />
-                            <span>Inserir Paciente</span>
-                        </button>
                     </div>
                 )}
             </div>
@@ -1267,14 +1276,12 @@ const Dashboard = () => {
 
                     {/* Linha 2: Controles Secundários (Data, Status, Bloqueio, Limpar) */}
                     <div className="flex flex-wrap xl:flex-nowrap gap-4 items-end">
-                        <div className="w-[60px]">
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Data</label>
-                            <button 
-                                className="w-full h-[46px] bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-cyan-600 hover:border-cyan-500/50 hover:ring-2 hover:ring-cyan-500/10 transition-all shadow-sm"
-                                title="Filtrar por Data"
-                            >
-                                <Calendar size={18} />
-                            </button>
+                        <div className="flex-none">
+                            <DateRangePicker 
+                                value={filters.date} 
+                                onChange={(range) => handleFilterChange('date', range)}
+                                onClear={() => handleFilterChange('date', null)}
+                            />
                         </div>
 
                         <div className="flex-1 xl:w-[140px] xl:flex-none">
@@ -1686,18 +1693,6 @@ const Dashboard = () => {
                             </>
                         )}
                     </div>
-                </div>
-            )}
-            {/* Mobile/Tablet Floating Action Button (FAB) (Visible up to xl) */}
-            {!selectedPatient && (
-                <div className="xl:hidden fixed bottom-32 right-6 z-40">
-                    <button
-                        onClick={() => setIsMultipleModalOpen(true)}
-                        className="bg-[#139690] text-white px-5 py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(19,150,144,0.4)] font-bold flex items-center gap-2 active:scale-95 transition-transform"
-                    >
-                        <Plus size={22} />
-                        <span>Novo Paciente</span>
-                    </button>
                 </div>
             )}
         </div >
