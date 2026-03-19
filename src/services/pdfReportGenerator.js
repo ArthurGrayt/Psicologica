@@ -372,17 +372,18 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
             ? `O paciente avaliado apresenta, no momento, um estado psicoemocional equilibrado perante o contexto investigado. Não foram identificados indícios de quadros graves como burnout, tendências suicidas, ou outras patologias incapacitantes. Diante disso, o colaborador encontra-se APTO para o pleno exercício de suas atividades operacionais ou administrativas.`
             : `Observa-se que o paciente apresenta indicadores relevantes de sobrecarga psicológica ou outros aspectos clínicos citados acima, o que torna desaconselhada a continuidade de suas atividades neste momento. Recomenda-se rigorosamente uma avaliação psicológica/psiquiátrica complementar detalhada e condutas direcionadas. Portanto, o parecer provisório é INAPTO.`;
 
-        const parts = [
-            narrativeData.intro,
-            narrativeData.full_analysis || narrativeData.mental_text,
-            !narrativeData.full_analysis ? narrativeData.habits_text : null,
-            statusText,
-            narrativeData.disclaimer
+        // Define styled segments for better visual hierarchy and spacing
+        const styledParts = [
+            { text: narrativeData.intro, style: 'normal', color: '#333333' },
+            { text: narrativeData.full_analysis || narrativeData.mental_text, style: 'normal', color: '#333333' },
+            { text: !narrativeData.full_analysis ? narrativeData.habits_text : null, style: 'normal', color: '#333333' },
+            { text: statusText, style: 'bold', color: isApto ? '#2D6A4F' : '#D90429' }, // Cores dinâmicas para o parecer
+            { text: narrativeData.disclaimer, style: 'normal', color: '#666666' }
         ];
 
-        // Ensure proper spacing between macro blocks (0 = continuous text)
-        parts.filter(Boolean).forEach(part => {
-            printBlock(part, 10, 'normal', '#333333', 'justify', 0);
+        // Print each styled part with left alignment (to fix word spacing issues) and 4 spacing
+        styledParts.filter(p => p.text).forEach(p => {
+            printBlock(p.text, 10, p.style, p.color, 'left', 4);
         });
 
         currentY += 10;
