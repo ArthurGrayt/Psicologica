@@ -846,12 +846,27 @@ const Dashboard = () => {
             setNarrativePreview({ loading: true, data: null, error: null });
 
             try {
-                const { data, error } = await supabase
-                    .rpc('get_narrative_report', { target_assessment_id: selectedPatient.assessmentId });
+                // Fetch Assessment
+                const { data: assessment } = await supabase
+                    .from('assessments')
+                    .select('*')
+                    .eq('id', selectedPatient.assessmentId)
+                    .single();
+
+                // Fetch Answers
+                const { data: answers } = await supabase
+                    .from('answers')
+                    .select('*')
+                    .eq('assessment_id', selectedPatient.assessmentId);
+
+                // Fetch Questions
+                const { data: questions } = await supabase
+                    .from('questions')
+                    .select('*, categories:category_key(name)');
 
                 if (isMounted) {
-                    if (error) throw error;
-                    setNarrativePreview({ loading: false, data, error: null });
+                    const narrativeData = generateNarrative(assessment, answers, questions);
+                    setNarrativePreview({ loading: false, data: narrativeData, error: null });
                 }
             } catch (err) {
                 if (isMounted) {
@@ -859,7 +874,7 @@ const Dashboard = () => {
                     setNarrativePreview({
                         loading: false,
                         data: null,
-                        error: "Não foi possível carregar a análise. (Erro RPC ou Banco de Dados)"
+                        error: "Não foi possível carregar a análise. (Erro no processamento Local)"
                     });
                 }
             }

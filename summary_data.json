@@ -1,0 +1,1295 @@
+{
+  "Álcool": [
+    {
+      "id": 48,
+      "text": "Faz uso de bebidas alcoólicas?",
+      "type": "yes_no",
+      "options": []
+    },
+    {
+      "id": 49,
+      "text": "Com que frequência consome bebidas que contêm álcool?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Uma vez por mês ou menos",
+          "score": 1
+        },
+        {
+          "text": "De 2 a 4 vezes por mês",
+          "score": 2
+        },
+        {
+          "text": "De 2 a 3 vezes por semana ",
+          "score": 3
+        },
+        {
+          "text": "4 vezes ou mais por semana",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "text": "Quando bebe, quantas bebidas contendo álcool consome num dia normal?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "1 ou 2",
+          "score": 0
+        },
+        {
+          "text": "3 ou 4",
+          "score": 1
+        },
+        {
+          "text": "5 ou 6",
+          "score": 2
+        },
+        {
+          "text": "7 a 9",
+          "score": 3
+        },
+        {
+          "text": "10 ou mais",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "text": "Com que frequência consome seis bebidas ou mais numa única ocasião?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Uma vez por mês ou menos",
+          "score": 1
+        },
+        {
+          "text": "De 2 a 4 vezes por mês ",
+          "score": 2
+        },
+        {
+          "text": "De 2 a 3 vezes por semana",
+          "score": 3
+        },
+        {
+          "text": "4 ou mais vezes por semana",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "text": "Nos últimos 12 meses, com que frequência se apercebeu de que não conseguia parar de beber depois de começar?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Uma vez por mês ou menos",
+          "score": 1
+        },
+        {
+          "text": "De 2 a 3 vezes por semana",
+          "score": 2
+        },
+        {
+          "text": "De 2 a 4 vezes por mês ",
+          "score": 3
+        },
+        {
+          "text": "4 ou mais vezes por semana",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "text": "Nos últimos 12 meses, com que frequência não conseguiu cumprir as tarefas que habitualmente se lhe exige, por ter bebido?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Uma vez por mês ou menos",
+          "score": 1
+        },
+        {
+          "text": "De 2 a 4 vezes por mês ",
+          "score": 2
+        },
+        {
+          "text": "De 2 a 3 vezes por semana",
+          "score": 3
+        },
+        {
+          "text": "4 vezes ou mais por semana",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "text": "Nos últimos 12 meses, com que frequência precisou de beber logo de manhã para \"curar\" uma ressaca?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Uma vez por mês ou menos",
+          "score": 1
+        },
+        {
+          "text": "De 2 a 4 vezes por mês",
+          "score": 2
+        },
+        {
+          "text": "De 2 a 3 vezes por semana",
+          "score": 3
+        },
+        {
+          "text": "4 vezes ou mais por semana",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "text": "Nos últimos 12 meses, com que frequência teve sentimentos de culpa ou de remorsos por ter bebido?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Uma vez por mês ou menos",
+          "score": 1
+        },
+        {
+          "text": "De 2 a 4 vezes por mês ",
+          "score": 2
+        },
+        {
+          "text": "De 2 a 3 vezes por semana",
+          "score": 3
+        },
+        {
+          "text": "4 vezes na semana ou mais",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "text": "Nos últimos 12 meses, com que frequência não se lembrou do que aconteceu na noite anterior por ter bebido?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Uma vez por mês ou menos",
+          "score": 1
+        },
+        {
+          "text": "De 2 a 4 vezes por mês",
+          "score": 2
+        },
+        {
+          "text": "De 2 a 3 vezes por semana",
+          "score": 3
+        },
+        {
+          "text": "4 vezes na semana ou mais",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "text": "Já alguma vez ficou ferido ou ficou alguém ferido por ter bebido?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Não",
+          "score": 0
+        },
+        {
+          "text": "Sim,mas não nos últimos 12 meses",
+          "score": 1
+        },
+        {
+          "text": "Sim,nos últimos 12 meses",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "text": "Já alguma vez um familiar ou médico manifestou preocupação pelo seu consumo de álcool?",
+      "type": "select",
+      "options": [
+        {
+          "text": "Não",
+          "score": 0
+        },
+        {
+          "text": "Sim, mas não nos últimos 12 meses",
+          "score": 2
+        },
+        {
+          "text": "Sim, nos últimos 12 meses",
+          "score": 4
+        }
+      ]
+    }
+  ],
+  "Ansiedade": [
+    {
+      "id": 12,
+      "text": "Seus pensamentos são rápidos?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "text": "Se concentra com facilidade?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 0
+        },
+        {
+          "text": "Não",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "text": "Acha difícil ficar sentado por muito tempo?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "text": "Compra coisas impulsivamente, sem pensar?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "text": "Sente-se inquieto em reuniões e palestras?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "text": "Se interessa mais pelo futuro do que pelo presente?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "text": "Ultimamente tem se sentido irritado com frequência?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "text": "Já passou por situações constrangedoras em ambiente de trabalho que lhe travaram?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "text": "Sente medo de altura?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "text": "Sente medo de locais fechados?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "text": "Sente medo de trabalhar a céu aberto?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "text": "Sente medo de agulhas?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "text": "Sente medo de ficar doente?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "text": "Tem medo de andar de avião?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "text": "Sente medo de alguma coisa que não relacionamos anteriormente?",
+      "type": "text",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "text": "Você sente que o medo está comprometendo sua qualidade de vida?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    }
+  ],
+  "Depressão": [
+    {
+      "id": 20,
+      "text": "Se sente triste sem motivo?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "text": "Se sente angustiado?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "text": "Perda de auto confiança?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "text": "Vontade de desistir da vida?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "text": "Já sentiu vontade de acabar com a própria vida?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "text": "Sente que sua vida perdeu o sentido?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "text": "Está sempre triste e não consegue sair dessa tristeza?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "text": "Se sente culpado por alguma coisa?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "text": "Perdeu o interesse por outras pessoas?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "text": "Sente que é incapaz de ter um papel útil em sua própria vida?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "text": "Sente que perdeu o interesse nas coisas?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "text": "Nesta semana, você chorou com mais frequência do que antes?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "text": "Nesta semana, você se sentiu desapontado consigo mesmo ou se odiou?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "text": "Nesta semana, você encarou o futuro com mais desânimo?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "text": "Perda de libido?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "text": "Sente falta de apetite?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "text": "Sente apetite demasiado?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "text": "Sente cansado demasiadamente?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    }
+  ],
+  "Drogas ou Remédios": [
+    {
+      "id": 59,
+      "text": "Já utilizou algum tipo de drogas ilícitas?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "text": "Ainda faz uso?",
+      "type": "select",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Raramente",
+          "score": 1
+        },
+        {
+          "text": "Às vezes",
+          "score": 2
+        },
+        {
+          "text": "Muitas vezes",
+          "score": 3
+        },
+        {
+          "text": "Sempre",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "text": "Com que frequência?",
+      "type": "select",
+      "options": [
+        {
+          "text": "Nunca",
+          "score": 0
+        },
+        {
+          "text": "Uma vez na semana",
+          "score": 2
+        },
+        {
+          "text": "Todos os dias",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "text": "O consumo de drogas já resultou em algum problema de saúde?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "text": "O consumo de drogas já fez com que você perdesse algum compromisso?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "text": "Sente dificuldade em parar de usar drogas?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "text": "Faz uso de alguma medicação para dormir?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "text": "Fez ou faz uso de alguma medicação para tratamento de patologia ou doença pré existente?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 6601,
+      "text": "Descreva qual medicação você usa para tratamento da patologia ou doença pré existente.",
+      "type": "text",
+      "options": []
+    }
+  ],
+  "Fumo": [
+    {
+      "id": 71,
+      "text": "Você Fuma?",
+      "type": "yes_no",
+      "options": []
+    },
+    {
+      "id": 72,
+      "text": "Em quanto tempo depois de acordar você fuma o primeiro cigarro?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Dentro de 5 minutos",
+          "score": 3
+        },
+        {
+          "text": "De 6 a 30 minutos",
+          "score": 2
+        },
+        {
+          "text": "De 31 a 60 minutos",
+          "score": 1
+        },
+        {
+          "text": "Mais de 60 minutos",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "text": "Você acha difícil ficar sem fumar em lugares onde é proibido?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "text": "Qual o cigarro do dia que traz mais satisfação?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "O primeiro da manhã",
+          "score": 2
+        },
+        {
+          "text": "Outros",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "text": "Quantos cigarros você fuma por dia?",
+      "type": "scale",
+      "options": [
+        {
+          "text": "Menos de 10",
+          "score": 0
+        },
+        {
+          "text": "De 11 a 20",
+          "score": 1
+        },
+        {
+          "text": "De 21 a 30",
+          "score": 2
+        },
+        {
+          "text": "Mais de 31",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "text": "Você fuma mais frequentemente pela manhã?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "text": "Você fuma mesmo doente quando precisa ficar na cama a maior parte do tempo?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    }
+  ],
+  "Insatisfação Pessoal": [
+    {
+      "id": 1,
+      "text": "Se sente frustrado em relação a sua vida?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Sente que a sua vida não tomou o rumo planejado?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Se sente satisfeito com sua estrutura familiar?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 0
+        },
+        {
+          "text": "Não",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "Se sente satisfeito com sua vida amorosa?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 0
+        },
+        {
+          "text": "Não",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "text": "Se sente satisfeito com o lugar que mora?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 0
+        },
+        {
+          "text": "Não",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "text": "Sente que sua saúde física e mental tem deixado a desejar?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "text": "Sente que o tempo que tem para lazer é pouco (vida social)?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "text": "Sente dificuldade para guardar dinheiro?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "text": "Você costuma ter uma visão otimista perante a cenários não tão favoráveis?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 0
+        },
+        {
+          "text": "Não",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "text": "Você costuma terminar o que começa?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 0
+        },
+        {
+          "text": "Não",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "text": "Planeja suas atividades com cuidado?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 0
+        },
+        {
+          "text": "Não",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "text": "Se cuida para não ficar doente?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 0
+        },
+        {
+          "text": "Não",
+          "score": 2
+        }
+      ]
+    }
+  ],
+  "Sono": [
+    {
+      "id": 19,
+      "text": "Tem dificuldades para dormir?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "text": "Sente dificuldades em adormecer?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "text": "Acordou várias vezes durante a noite e depois não conseguiu dormir novamente?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "text": "Tem sonhado bastante ou tendo pesadelos?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "text": "Tem sono agitado?",
+      "type": "yes_no",
+      "options": [
+        {
+          "text": "Sim",
+          "score": 2
+        },
+        {
+          "text": "Não",
+          "score": 0
+        }
+      ]
+    }
+  ]
+}

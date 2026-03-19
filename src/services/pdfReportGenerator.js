@@ -241,7 +241,26 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
                 console.warn(`[Q${qId}] Cat: "${cat}" (Norm: ${normCat}) -> NO MATCH FOUND!`);
             }
         });
-        console.log('Final Calculated Scores:', scores);
+
+        // --- Normalization Logic (Frontend Only) ---
+        // Normalizes each category to reach max 30 points if all indicators are present.
+        const finalFactors = {
+            'Insatisfação Pessoal': 30 / 24,
+            'Ansiedade': 30 / 32,
+            'Depressão': 30 / 36,
+            'Álcool': 30 / 38,
+            'Drogas ou Remédios': 30 / 20,
+            'Sono': 30 / 10,
+            'Fumo': 30 / 14
+        };
+
+        Object.keys(scores).forEach(key => {
+            if (finalFactors[key]) {
+                scores[key] = scores[key] * finalFactors[key];
+            }
+        });
+
+        console.log('Final Normalized Scores (Ceiling 30):', scores);
         console.groupEnd();
     }
 
@@ -251,9 +270,8 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     const chartX = margin + 10;
     const chartY = yPos;
 
-    // Let's Find Max Score in our calculated scores to adjust scale
-    const calculatedMax = Math.max(...Object.values(scores), 10); // Minimum 10 to avoid flat chart
-    const maxScore = Math.ceil(calculatedMax / 5) * 5; // Round up to nearest 5
+    // Fix Max Score to 30 as per new requirements
+    const maxScore = 30; 
 
     // Grid lines (Horizontal: 0, 1, 2, 3, 4)
     doc.setDrawColor(200, 200, 200);

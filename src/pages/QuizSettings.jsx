@@ -165,20 +165,49 @@ const QuizSettings = () => {
             if (qError) throw qError;
 
             // 2. Handle Options (if applicable)
-            if (['select', 'scale'].includes(updatedQuestion.type)) {
-                const optionsToUpsert = updatedQuestion.question_options.map(o => ({
+            if (['select', 'scale', 'yes_no'].includes(updatedQuestion.type)) {
+                
+                // Get current options to check for deletions
+                const { data: currentOptions } = await supabase
+                    .from('question_options')
+                    .select('id')
+                    .eq('question_id', savedQ.id);
+
+                const currentIds = currentOptions?.map(o => o.id) || [];
+                const updatedIds = updatedQuestion.question_options
+                    .map(o => o.id)
+                    .filter(id => typeof id === 'number');
+
+                // Delete removed options
+                const idsToDelete = currentIds.filter(id => !updatedIds.includes(id));
+                if (idsToDelete.length > 0) {
+                    await supabase.from('question_options').delete().in('id', idsToDelete);
+                }
+
+                // Prepare options for upsert/insert
+                const optionsToSave = updatedQuestion.question_options.map(o => ({
                     question_id: savedQ.id,
                     text: o.text || o.label,
                     score_val: o.score_val || 0,
                     id: typeof o.id === 'number' ? o.id : undefined
                 }));
 
-                if (optionsToUpsert.length > 0) {
-                    const { error: optError } = await supabase
-                        .from('question_options')
-                        .upsert(optionsToUpsert);
+                // Split into new and existing to avoid batch null issues
+                const existingOptions = optionsToSave.filter(o => o.id !== undefined);
+                const newOptions = optionsToSave.filter(o => o.id === undefined).map(({ id, ...rest }) => rest);
 
-                    if (optError) throw optError;
+                if (existingOptions.length > 0) {
+                    const { error: updError } = await supabase
+                        .from('question_options')
+                        .upsert(existingOptions);
+                    if (updError) throw updError;
+                }
+
+                if (newOptions.length > 0) {
+                    const { error: insError } = await supabase
+                        .from('question_options')
+                        .insert(newOptions);
+                    if (insError) throw insError;
                 }
             }
 

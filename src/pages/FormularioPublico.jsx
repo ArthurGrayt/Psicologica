@@ -304,14 +304,15 @@ const FormularioPublico = () => {
 
         try {
             let score = 0;
-            if (q.type === 'yes_no' && val === 'Sim') score = q.weight || 0;
-            if (q.type === 'scale' || q.type === 'select') {
+            if (['scale', 'select', 'yes_no'].includes(q.type)) {
                 const opt = q.question_options?.find(o => String(o.text || o.label || o.value) === val);
                 if (opt) {
                     score = opt.score_val || 0;
-                    if (score === 0 && val !== '0' && /^\d+$/.test(val)) {
-                        score = parseInt(val, 10);
-                    }
+                } else if (q.type === 'yes_no') {
+                    // Fallback for yes_no if options somehow didn't load
+                    score = (val === 'Sim') ? (q.weight || 0) : 0;
+                } else if (score === 0 && val !== '0' && /^\d+$/.test(val)) {
+                    score = parseInt(val, 10);
                 }
             }
 

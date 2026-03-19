@@ -7,9 +7,19 @@ const QuestionEditPanel = ({ isOpen, onClose, question, onSave, categories }) =>
 
     useEffect(() => {
         if (question) {
+            let initialOptions = question.question_options || [];
+            
+            // Se for Sim/Não e estiver vazio, inicializa com as opções padrão
+            if (question.type === 'yes_no' && initialOptions.length === 0) {
+                initialOptions = [
+                    { text: 'Sim', label: 'Sim', score_val: 0 },
+                    { text: 'Não', label: 'Não', score_val: 0 }
+                ];
+            }
+
             setTempQuestion({
                 ...question,
-                question_options: question.question_options || [],
+                question_options: initialOptions,
                 has_logic: !!question.depends_on_question_id
             });
         } else {
@@ -20,7 +30,17 @@ const QuestionEditPanel = ({ isOpen, onClose, question, onSave, categories }) =>
     if (!tempQuestion) return null;
 
     const updateTemp = (field, value) => {
-        setTempQuestion(prev => ({ ...prev, [field]: value }));
+        const updated = { ...tempQuestion, [field]: value };
+        
+        // Se trocar o tipo para sim/não no seletor, garante que as opções existam
+        if (field === 'type' && value === 'yes_no' && updated.question_options.length === 0) {
+            updated.question_options = [
+                { text: 'Sim', label: 'Sim', score_val: 0 },
+                { text: 'Não', label: 'Não', score_val: 0 }
+            ];
+        }
+
+        setTempQuestion(updated);
     };
 
     const updateOption = (idx, field, value) => {
@@ -119,11 +139,16 @@ const QuestionEditPanel = ({ isOpen, onClose, question, onSave, categories }) =>
                     </div>
 
                     {/* Options (Conditional) */}
-                    {['select', 'scale'].includes(tempQuestion.type) && (
+                    {['select', 'scale', 'yes_no'].includes(tempQuestion.type) && (
                         <div className="bg-[#F8FAFC] rounded-3xl p-6 border border-slate-100 mt-2 shadow-inner">
                             <div className="flex justify-between items-center mb-5">
-                                <h4 className="text-sm font-bold text-slate-700 tracking-tight">Opções de Resposta</h4>
-                                <button onClick={addOption} className="text-xs font-bold text-[#139690] bg-[#139690]/10 px-3 py-1.5 rounded-full hover:bg-[#139690]/20 transition-all">+ Adicionar</button>
+                                <div className="flex flex-col">
+                                    <h4 className="text-sm font-bold text-slate-700 tracking-tight">Opções de Resposta</h4>
+                                    <p className="text-[10px] text-slate-400 font-medium">Defina os valores para o cálculo do score</p>
+                                </div>
+                                {tempQuestion.type !== 'yes_no' && (
+                                    <button onClick={addOption} className="text-xs font-bold text-[#139690] bg-[#139690]/10 px-3 py-1.5 rounded-full hover:bg-[#139690]/20 transition-all">+ Adicionar</button>
+                                )}
                             </div>
 
                             <div className="space-y-3">
@@ -133,22 +158,28 @@ const QuestionEditPanel = ({ isOpen, onClose, question, onSave, categories }) =>
                                         <input
                                             type="text"
                                             value={opt.label || opt.text || ''}
+                                            readOnly={tempQuestion.type === 'yes_no'}
                                             onChange={(e) => {
                                                 const val = e.target.value;
                                                 updateOption(idx, 'label', val);
                                                 updateOption(idx, 'text', val);
                                             }}
-                                            className="flex-1 bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#139690]/10 outline-none shadow-sm font-medium"
+                                            className={`flex-1 bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#139690]/10 outline-none shadow-sm font-medium ${tempQuestion.type === 'yes_no' ? 'bg-slate-50/50 text-slate-500 cursor-not-allowed border-none' : ''}`}
                                         />
-                                        <input
-                                            type="number"
-                                            value={opt.score_val}
-                                            onChange={(e) => updateOption(idx, 'score_val', Number(e.target.value))}
-                                            className="w-16 bg-white border border-slate-100 rounded-xl px-2 py-2.5 text-sm font-bold text-center text-[#139690] shadow-sm"
-                                        />
-                                        <button onClick={() => removeOption(idx)} className="text-slate-300 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition-all">
-                                            <Trash2 size={16} strokeWidth={1.5} />
-                                        </button>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-[9px] font-bold text-slate-300 uppercase mb-1">Score</span>
+                                            <input
+                                                type="number"
+                                                value={opt.score_val}
+                                                onChange={(e) => updateOption(idx, 'score_val', Number(e.target.value))}
+                                                className="w-16 bg-white border-2 border-[#139690]/20 rounded-xl px-2 py-2.5 text-sm font-bold text-center text-[#139690] shadow-sm focus:border-[#139690] outline-none transition-all"
+                                            />
+                                        </div>
+                                        {tempQuestion.type !== 'yes_no' && (
+                                            <button onClick={() => removeOption(idx)} className="text-slate-300 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition-all">
+                                                <Trash2 size={16} strokeWidth={1.5} />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
