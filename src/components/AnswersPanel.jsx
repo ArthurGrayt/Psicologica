@@ -114,13 +114,33 @@ const AnswersPanel = ({ patient, onClose }) => {
         return acc;
     }, {});
 
-    // Pontuação total por categoria (Baseada em todas as respondidas, não nas filtradas pela busca)
+    // Fatores de Normalização (Escala 0-10) - Mesma lógica do gráfico e laudo
+    const normalizationFactors = {
+        'Insatisfação Pessoal': 10 / 24,
+        'Ansiedade': 10 / 32,
+        'Depressão': 10 / 36,
+        'Álcool': 10 / 38,
+        'Drogas ou Remédios': 10 / 20,
+        'Sono': 10 / 10,
+        'Fumo': 10 / 14
+    };
+
+    // Pontuação total por categoria (Original e Normalizada)
     const categoryScores = answeredQuestions.reduce((acc, q) => {
         const catName = q.categories?.name || 'Geral';
-        if (!acc[catName]) acc[catName] = 0;
-        acc[catName] += scoresMap[q.id] || 0;
+        if (!acc[catName]) {
+            acc[catName] = { raw: 0, normalized: 0 };
+        }
+        
+        acc[catName].raw += scoresMap[q.id] || 0;
         return acc;
     }, {});
+
+    // Aplica os fatores de normalização para chegar na escala 0-10
+    Object.keys(categoryScores).forEach(cat => {
+        const factor = normalizationFactors[cat] || 1;
+        categoryScores[cat].normalized = categoryScores[cat].raw * factor;
+    });
 
     const toggleCategory = (category) => {
         setExpandedCategories(prev => ({
@@ -195,9 +215,15 @@ const AnswersPanel = ({ patient, onClose }) => {
                                                 {category}
                                             </h4>
                                         </div>
-                                        <div className="bg-[#139690] text-white px-3 py-1 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm min-w-[100px] ml-7 md:ml-0">
-                                            <span className="opacity-90 font-medium tracking-wide">Score:</span>
-                                            <span className="text-base">{categoryScores[category] || 0}</span>
+                                        <div className="flex flex-col md:flex-row gap-2">
+                                            <div className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-sm min-w-[100px] ml-7 md:ml-0 border border-slate-100">
+                                                <span className="opacity-80 font-medium tracking-wide whitespace-nowrap">Score Original:</span>
+                                                <span className="text-sm">{categoryScores[category]?.raw || 0}</span>
+                                            </div>
+                                            <div className="bg-[#139690] text-white px-3 py-1 rounded-full text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-sm min-w-[100px] ml-7 md:ml-0">
+                                                <span className="opacity-90 font-medium tracking-wide whitespace-nowrap">Escala 0-10:</span>
+                                                <span className="text-sm">{(categoryScores[category]?.normalized || 0).toFixed(1)}</span>
+                                            </div>
                                         </div>
                                     </div>
                                     
