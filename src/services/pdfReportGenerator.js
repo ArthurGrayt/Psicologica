@@ -343,7 +343,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         const textWidth = contentWidth;
 
         // Função para imprimir blocos de texto respeitando quebras de página automáticas
-        const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', align = 'justify', spacing = 5) => {
+        const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', display = 'flex', justify = 'flex-start', align = 'left', spacing = 3.5) => {
             if (!text) return;
             doc.setFontSize(fontSize);
             doc.setFont('helvetica', fontStyle);
@@ -367,15 +367,13 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
 
         // Define a ordem e estilos das partes do laudo
         const styledParts = [
-            { text: narrativeData.intro, style: 'normal', color: '#333333' },
-            { text: narrativeData.full_analysis || narrativeData.mental_text, style: 'normal', color: '#333333' },
-            { text: !narrativeData.full_analysis ? narrativeData.habits_text : null, style: 'normal', color: '#333333' }
+            { text: narrativeData.full_analysis || narrativeData.mental_text, style: 'normal', color: '#333333' }
         ];
 
-        // Processa a impressão de cada parte (Intro e Análise completa)
+        // Processa a impressão de cada parte de forma independente
         styledParts.filter(p => p.text).forEach(p => {
-            // O quinto parâmetro (5) controla o espaçamento em MILÍMETROS após cada bloco
-            printBlock(p.text, 10, p.style, p.color, 'justify', 5); 
+            // O valor 3.5mm representa uma redução de 30% em relação aos 5mm originais
+            printBlock(p.text, 10, p.style, p.color, 3.5); 
         });
 
         currentY += 10;

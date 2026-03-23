@@ -82,48 +82,47 @@ export const generateNarrative = (assessment, answers, questions) => {
     // 2. Geração do Texto de Análise (Linguagem Natural)
     // Aqui transformamos números em parágrafos explicativos para o laudo.
 
-    // Introdução padrão do documento
-    const intro = "O paciente foi submetido à avaliação psicológica para verificação de seu estado de saúde mental, como condição necessária à realização do trabalho.";
+    // Introdução padrão do documento (Ajustado para "psicossocial" conforme imagem)
+    const intro = "O paciente foi submetido à avaliação psicossocial para verificação de seu estado de saúde mental, como condição necessária à realização do trabalho.";
 
     // Função auxiliar para determinar a intensidade baseada na escala de 0 a 10
     const getIntensity = (score) => {
         const s = Number(score) || 0;
-        if (s === 0) return 'nula'; 
-        if (s <= 4.5) return 'baixa'; // Equivalente a 7/3
-        if (s <= 7.5) return 'moderada'; // Equivalente a 10.5/3
-        return 'intensa'; 
+        if (s === 0) return 'nula';
+        if (s <= 4.5) return 'baixa';
+        if (s <= 7.5) return 'moderada';
+        return 'intensa';
     };
 
     // ----- PARÁGRAFO 1: SAÚDE MENTAL (Psicoemocional) -----
+    // Extrai scores específicos
     const scoreInsat = scores['Insatisfação Pessoal'] || 0;
     const scoreAnxiety = scores['Ansiedade'] || 0;
     const scoreDepression = scores['Depressão'] || 0;
 
-    // Lógica para descrever o nível de satisfação com a vida
+    // Lógica para descrever o nível de satisfação com a vida (Total fidelidade à imagem)
     let insatPhrase = '';
-    if (scoreInsat > 7.5) insatPhrase = 'relatou insatisfação significativa com sua vida atual';
-    else if (scoreInsat > 5) insatPhrase = 'relatou insatisfação moderada com sua vida atual';
-    else if (scoreInsat > 2.5) insatPhrase = 'relatou leve insatisfação com sua vida atual';
-    else insatPhrase = 'relatou estar satisfeito com sua vida atual';
+    if (scoreInsat > 7.5) insatPhrase = 'apresentou insatisfação com sua vida pessoal';
+    else if (scoreInsat > 5) insatPhrase = 'apresentou insatisfação moderada com sua vida pessoal';
+    else if (scoreInsat > 2.5) insatPhrase = 'apresentou leve insatisfação com sua vida pessoal';
+    else insatPhrase = 'apresentou satisfação com sua vida pessoal';
 
-    // Lógica para descrever a presença de ansiedade
+    // Lógica para descrever a presença de ansiedade (PHQ-4 / GAD-2)
     let anxietyPhrase = '';
-    if (scoreAnxiety > 7.5) anxietyPhrase = 'O paciente possui alta possibilidade de apresentar transtornos de ansiedade';
-    else if (scoreAnxiety > 5) anxietyPhrase = 'O paciente possui moderada possibilidade de apresentar transtornos de ansiedade';
-    else if (scoreAnxiety > 2.5) anxietyPhrase = 'O paciente possui leve possibilidade de apresentar transtornos de ansiedade';
-    else anxietyPhrase = 'O paciente não manifestou possibilidade de apresentar transtornos de ansiedade';
+    if (scoreAnxiety > 7.5) anxietyPhrase = 'O paciente possui alta probabilidade de apresentar transtorno de ansiedade';
+    else if (scoreAnxiety > 5) anxietyPhrase = 'O paciente possui moderada probabilidade de apresentar transtorno de ansiedade';
+    else if (scoreAnxiety > 2.5) anxietyPhrase = 'O paciente possui leve probabilidade de apresentar transtorno de ansiedade';
+    else anxietyPhrase = 'O paciente não manifestou probabilidade de apresentar transtorno de ansiedade';
 
-    // Lógica para descrever a presença de depressão
+    // Lógica para descrever a presença de depressão (PHQ-4 / PHQ-2)
     let depressionPhrase = '';
-    if (scoreDepression > 7.5) depressionPhrase = 'O paciente possui alta possibilidade de desenvolver depressão';
-    else if (scoreDepression > 5) depressionPhrase = 'O paciente possui moderada possibilidade de desenvolver depressão';
-    else if (scoreDepression > 2.5) depressionPhrase = 'O paciente possui leve possibilidade de desenvolver depressão';
-    else depressionPhrase = 'O paciente não manifestou possibilidade de desenvolver depressão';
+    if (scoreDepression > 7.5) depressionPhrase = ' e depressão';
+    else depressionPhrase = ''; // Concatena diretamente na frase de ansiedade conforme imagem
 
     // Concatena as frases acima em um texto corrido focado em saúde mental
     const mentalText =
         `Durante o período da avaliação, foi possível identificar que o paciente ${insatPhrase}. ` +
-        `${anxietyPhrase}. ${depressionPhrase}.`;
+        `${anxietyPhrase}${depressionPhrase}.`;
 
 
     // ----- PARÁGRAFO 2: HÁBITOS E ESTILO DE VIDA -----
@@ -132,67 +131,64 @@ export const generateNarrative = (assessment, answers, questions) => {
     const scoreSmoke = scores['Fumo'] || 0;
     const scoreSleep = scores['Sono'] || 0;
 
-    // Descrição do consumo de Álcool (Threshold baseado no score normalizado)
-    let alcoholPhrase = '';
-    if (scoreAlcohol >= 7.5) alcoholPhrase = 'relatou consumo frequente e substancial de bebidas alcoólicas';
-    else if (scoreAlcohol >= 5) alcoholPhrase = "relatou consumo cotidiano e moderado de bebidas alcoólicas";
-    else if (scoreAlcohol > 2.5) alcoholPhrase = 'relatou consumo social ou ocasional de bebidas alcoólicas';
-    else alcoholPhrase = 'relatou não fazer uso ou fazer uso mínimo/eventual de bebidas alcoólicas';
-
-    // Descrição do uso de substâncias psicoativas e medicamentos
-    let drugsPhrase = '';
-    if (scoreDrugs >= 7.5) drugsPhrase = 'faz uso recorrente de drogas ilícitas ou medicamentos não prescritos';
-    else if (scoreDrugs > 5) drugsPhrase = 'faz uso de algum medicamento não prescrito ou substância ilícita de forma recreativa';
-    else if (scoreDrugs > 2.5) drugsPhrase = 'faz uso de algum medicamento não prescrito ou substância ilícita de forma recreativa';
-    else drugsPhrase = 'declarou não fazer uso de nenhum tipo de droga';
+    // Descrição do consumo de Álcool e Drogas (Unificado conforme imagem 1693)
+    let alcoholDrugsPhrase = '';
+    if (scoreAlcohol >= 7.5 || scoreDrugs >= 7.5) alcoholDrugsPhrase = 'O paciente e faz uso constante de algum tipo de droga lícita ou ilícita, oferecendo um alto risco para o desempenho de suas atividades.';
+    else alcoholDrugsPhrase = 'O paciente declarou não fazer uso de bebidas alcoólicas ou substâncias em excesso.';
 
     // Descrição do hábito de fumar (Tabagismo)
     let smokePhrase = '';
-    if (scoreSmoke >= 7.5) smokePhrase = 'apresenta dependência intensa ao tabaco';
-    else if (scoreSmoke > 0) smokePhrase = `apresenta dependência ${getIntensity(scoreSmoke)} ao fumo`;
-    else smokePhrase = 'declarou não ser fumante';
+    if (scoreSmoke >= 7.5) smokePhrase = 'O paciente tem uma dependência muito elevada ao fumo, o que pode comprometer as suas atividades.';
+    else if (scoreSmoke > 0) smokePhrase = `O paciente apresenta dependência ${getIntensity(scoreSmoke)} ao fumo.`;
+    else smokePhrase = 'O paciente declarou não ser fumante.';
 
     // Descrição da qualidade do sono
     let sleepPhrase = '';
-    if (scoreSleep >= 7.5) sleepPhrase = 'apresenta distúrbios graves do sono, com impacto na qualidade de vida';
-    else if (scoreSleep >= 5) sleepPhrase = 'apresenta alterações relevantes no padrão de sono';
-    else if (scoreSleep > 2.5) sleepPhrase = 'apresenta algumas alterações leves no sono';
-    else sleepPhrase = 'apresenta sono regular e sem intercorrências';
+    if (scoreSleep >= 7.5) sleepPhrase = 'Possui distúrbios do sono ou ansiedade..';
+    else if (scoreSleep >= 5) sleepPhrase = 'O paciente apresenta alterações relevantes no padrão de sono.';
+    else if (scoreSleep > 2.5) sleepPhrase = 'O paciente apresenta algumas alterações leves no sono.';
+    else sleepPhrase = 'O paciente apresenta sono regular.';
 
-    // Concatena as frases de hábitos em um parágrafo estruturado
-    const habitsText =
-        `Em relação aos hábitos e estilo de vida, o colaborador ${alcoholPhrase}. ` +
-        `Quanto ao uso de substâncias, ${drugsPhrase}. ` +
-        `No que diz respeito ao fumo, ${smokePhrase}. ` +
-        `Sobre o padrão de sono, ${sleepPhrase}.`;
+    // Concatena as frases de hábitos de forma direta (Sem prefixos)
+    const habitsText = [alcoholDrugsPhrase, smokePhrase, sleepPhrase]
+        .filter(Boolean)
+        .map(s => s.trim().endsWith('.') ? s.trim() : s.trim() + '.') // Garante que cada frase termine com ponto
+        .join(" ");
 
     // ----- PARÁGRAFO 3: CONCLUSÃO E PARECER FINAL -----
     // Critérios para determinar se o paciente deve ser sinalizado com risco severo
     // Os limites (thresholds) abaixo são os pontos de corte na escala de 0 a 30
     const hasSevereFlags =
         scoreDepression > 7.5 || // Corte de depressão moderada/alta (13.33 / 3)
-        scoreAnxiety > 5 ||    // Corte de ansiedade moderada/alta (9.375 / 3)
+        scoreAnxiety > 7.5 ||    // Corte de ansiedade moderada/alta (9.375 / 3)
         scoreAlcohol >= 7.5;     // Corte de consumo abusivo de álcool (15.79 / 3)
 
-    // Define o texto conclusivo dependendo se há ou não riscos identificados
+    // Define o texto conclusivo (Sem prefixos, para ser colado nos hábitos)
     const conclusionText = hasSevereFlags
-        ? 'Com base nos dados coletados, foram identificados indicadores de risco relevantes e inconclusivos quanto à aptidão do paciente para o trabalho. Recomenda-se uma avaliação complementar com o médico do trabalho responsável pelo PCMSO.'
-        : 'O paciente avaliado apresenta, no momento, um estado psicoemocional compatível com o desempenho de suas funções laborais. Não foram identificados indícios de quadros graves ou incapacitantes. Diante disso, o colaborador encontra-se APTO para o pleno exercício de suas atividades operacionais ou administrativas.';
+        ? 'Com base nos dados coletados, foram identificados indicadores de risco relevantes e inconclusivos quanto à aptidão do paciente para o trabalho. Recomenda-se uma avaliação complementar com o médico do trabalho responsável pelo PCMSO'
+        : 'O paciente apresenta, nesta avaliação, condições psicológicas compatíveis com suas atividades. Este parecer não é conclusivo quanto à aptidão, sendo essa responsabilidade do médico do trabalho.';
 
-    // 4. Aviso de Responsabilidade (Disclaimer)
-    // Texto legal reforçando que o software não substitui a consulta profissional
-    const disclaimer = "Lembre-se que este teste por si só não pode diagnosticar uma patologia, mas pode indicar a presença de sintomas. " +
-        "Um diagnóstico clínico só pode ser feito pelo seu psicólogo, médico do trabalho, psiquiatra ou outro profissional de saúde qualificado.";
+    // 4. Aviso de Responsabilidade (Disclaimer - Separado em duas frases como na imagem)
+    const disclaimer = "Lembre-se que este teste por si só não pode diagnosticar uma patologia, mas pode indicar a presença de sintomas.\n\n";
 
-    // Junta os parágrafos de saúde mental, hábitos, conclusão e o aviso legal em uma única string
-    const full_analysis = [mentalText, habitsText, conclusionText, disclaimer].filter(Boolean).join("\n\n");
+    // Montagem final do Laudo em 4 blocos distintos (Fiel à imagem 1693)
+    // Bloco 1: Intro
+    // Bloco 2: Saúde Mental
+    // Bloco 3: Hábitos + Conclusão (unidos por espaço)
+    // Bloco 4: Disclaimer
+    const full_analysis = [
+        intro, 
+        mentalText, 
+        habitsText + " " + conclusionText, 
+        disclaimer
+    ].filter(Boolean).join("\n\n");
 
     // Retorna um objeto completo contendo todas as variáveis calculadas e textos gerados
     return {
         intro,
         full_analysis,
         disclaimer,
-    
+
         // Mantemos campos legados (narrative, mental_text...) para garantir que o gerador de PDF continue funcionando sem erros
         narrative: full_analysis,
         mental_text: mentalText,
