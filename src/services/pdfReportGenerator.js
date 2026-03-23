@@ -1,140 +1,170 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Função Principal que gera o arquivo PDF do Laudo Psicológico
+// Recebe dados do paciente, meta-dados do exame, respostas, perguntas, logo da empresa e os textos da análise (narrativa)
 export const generatePDF = (patient, assessment, answers, questions, logoBase64, narrativeData, options = {}) => {
-    // Extract doctor from options if passed
+    
+    // Extrai o objeto 'doctor' das opções para saber qual médico está assinando o documento
     const doctor = options.doctor || null;
 
+    // Instancia um novo documento PDF usando a biblioteca jsPDF
     const doc = new jsPDF();
+    
+    // Obtém a largura total da página configurada (padrão A4)
     const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Define a margem padrão das laterais e topo em milímetros
     const margin = 15;
+    
+    // Calcula a largura útil para o conteúdo (descontando as margens esquerda e direita)
     const contentWidth = pageWidth - (margin * 2);
 
-    // --- Helper Functions ---
+    // --- Funções Auxiliares de Estilização ---
+
+    // Função para renderizar texto centralizado na horizontal
     const centerText = (text, y, size = 12, style = 'normal', color = '#000000') => {
-        doc.setFontSize(size);
-        doc.setFont('helvetica', style);
-        doc.setTextColor(color);
-        const textWidth = doc.getTextWidth(text);
+        doc.setFontSize(size); // Define tamanho da fonte
+        doc.setFont('helvetica', style); // Define família e estilo (B/I)
+        doc.setTextColor(color); // Define cor do texto (RGB ou Hex)
+        const textWidth = doc.getTextWidth(text); // Mede a largura exata da frase
+        // Desenha o texto posicionando o início em (Metade da Página - Metade do Texto)
         doc.text(text, (pageWidth - textWidth) / 2, y);
     };
 
+    // Função para desenhar o título de uma seção com uma caixa colorida de fundo
     const drawSectionHeader = (text, y, bgColor = '#139690') => {
-        doc.setFillColor(bgColor);
-        doc.rect(margin, y, contentWidth, 8, 'F');
+        doc.setFillColor(bgColor); // Define cor de preenchimento do retângulo
+        doc.rect(margin, y, contentWidth, 8, 'F'); // Desenha um retângulo preenchido ('F')
+        // Escreve o texto centralizado por cima da caixa colorida
         centerText(text, y + 5.5, 12, 'bold', '#FFFFFF');
     };
 
-    // --- 1. Header (Company Info) ---
+    // --- 1. Cabeçalho (Informações da Clínica/Empresa) ---
     const title = 'Gama Center Medicina Ocupacional e Engenharia de Segurança do Trabalho';
     const address = 'RUA BARÃO DE POUSO ALEGRE, 90, SÃO SEBASTIÃO, CONSELHEIRO LAFAIETE/MG - (31) 3761-2417';
 
-    // Dynamic Logo Dimensions
-    let logoWidth = 35; // Default fallback
-    let logoHeight = 20; // Fixed Height
+    // Variáveis para dimensões dinâmicas do Logotipo
+    let logoWidth = 35; // Largura padrão caso falte imagem
+    let logoHeight = 20; // Altura fixa desejada para o topo
 
+    // Lógica para processar a Imagem (Logo) se ela existir em formato Base64
     if (logoBase64) {
         try {
+            // Obtém as propriedades originais da imagem para manter a proporção (aspect ratio)
             const props = doc.getImageProperties(logoBase64);
             const aspectRatio = props.width / props.height;
-            // Keep height fixed at 20, calculate width
+            // Calcula a largura proporcional baseada na nossa altura fixa de 20mm
             logoWidth = logoHeight * aspectRatio;
         } catch (e) {
+            // Emite aviso no console se a imagem estiver corrompida ou inválida
             console.warn('Could not get image properties', e);
         }
     }
 
-    // Calculate available width for text
+    // Calcula quanto espaço sobra para o texto do título ao lado da logo
     const availableTextWidth = contentWidth - (logoBase64 ? (logoWidth + 5) : 0);
 
-    // --- Text Metrics Calculation ---
+    // Configura pincel e fonte para o Nome da Empresa no topo
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor('#000000');
 
+    // Quebra o texto longo do título em várias linhas caso não caiba na largura disponível
     const titleLines = doc.splitTextToSize(title, availableTextWidth);
 
-    // Y Positions
+    // Define a posição vertical inicial do cabeçalho
     const titleStartY = 15;
+    // Calcula a altura ocupada pelo bloco de títulos
     const titleBlockHeight = titleLines.length * 5;
 
-    // Address Position
+    // Define onde o endereço da clínica será escrito (logo abaixo do título)
     const addressY = titleStartY + titleBlockHeight + 2;
 
-    // Total Text Block Height (Title Top to Address Baseline)
+    // Coordenadas métricas para centralizar a logo verticalmente em relação ao texto do lado
     const textBlockBottomY = addressY;
-    const textBlockTopY = titleStartY - 4; // Approx top of capital letters
+    const textBlockTopY = titleStartY - 4; 
     const textBlockCenterY = (textBlockTopY + textBlockBottomY) / 2;
 
-    // --- Draw Logo Centered on Text Block ---
+    // Desenha o Logotipo se ele foi fornecido
     if (logoBase64) {
-        const logoX = pageWidth - margin - logoWidth;
-        // Center Image Y relative to Text Block Center
-        const logoY = textBlockCenterY - (logoHeight / 2);
-
+        const logoX = pageWidth - margin - logoWidth; // Alinhado à direita
+        const logoY = textBlockCenterY - (logoHeight / 2); // Centralizado verticalmente
+        // Adiciona a imagem ao documento
         doc.addImage(logoBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
     }
 
-    // --- Draw Text ---
+    // Escreve as linhas do Título da Empresa
     doc.text(titleLines, margin, titleStartY);
 
+    // Escreve o endereço da clínica com fonte menor
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text(address, margin, addressY);
 
-    // Cyan Line under header - Positioned after the header block
+    // Desenha uma linha decorativa ciana abaixo do cabeçalho
     const lineY = Math.max(addressY + 4, textBlockCenterY + (logoHeight / 2) + 2);
-    doc.setDrawColor(19, 150, 144); // #139690
-    doc.setLineWidth(1);
+    doc.setDrawColor(19, 150, 144); // Cor institucional #139690
+    doc.setLineWidth(1); // Espessura da linha
     doc.line(margin, lineY, pageWidth - margin, lineY);
 
-    // --- 2. Report Title ---
+    // --- 2. Título Central do Laudo ---
+    // Nome do exame centralizado e em destaque
     centerText('Avaliação Psicossocial', 40, 18, 'bold', '#139690');
+    // Data de hoje em que o arquivo foi gerado
     centerText(`Data do exame: ${new Date().toLocaleDateString('pt-BR')}`, 46, 11, 'normal', '#139690');
 
-    // --- 3. Intro Text ---
+    // --- 3. Texto Introdutório ---
+    // Parágrafo explicativo sobre o que é o questionário psicossocial
     const introText = "Este laudo tem o objetivo de efetuar uma avaliação primária para captar o nível do estado de saúde mental, física e psicológica do trabalhador com a finalidade de encaminhar o mesmo para o atendimento psicológico presencial, caso possua a necessidade, diminuindo assim os riscos de ter um trabalhador fatigado, com tendências suicidas e com disposição para síndrome de Burnout. \n\nO questionário consiste em perguntas chave que verificam os níveis de satisfação com a vida pessoal e profissional, capacidade de resiliência, níveis de estresse, uso e abuso de álcool, drogas e medicação para dormir, doenças pré-existentes e fobias, já que essas patologias são as que mais afastam os colaboradores de seus serviços";
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor('#000000');
+    // Prepara o texto distribuindo-o em linhas que respeitam as margens da página
     const introLines = doc.splitTextToSize(introText, contentWidth);
     doc.text(introLines, margin, 55);
 
-    // Dynamic Y positioning for next section
+    // Calcula a posição vertical dinâmica para começar a próxima seção (evita textos sobrepostos)
     let yPos = 55 + (introLines.length * 5) + 10;
+    
+    // --- 4. Tabela de Dados do Paciente ---
     drawSectionHeader('Dados do Paciente', yPos);
     yPos += 10;
 
+    // Estrutura os dados do paciente em um formato de grade para a função autoTable
     const patientData = [
         [{ content: 'Nome:', styles: { fontStyle: 'bold' } }, patient.name, { content: 'CPF:', styles: { fontStyle: 'bold' } }, patient.cpf || 'Não informado'],
         [{ content: 'Nascimento:', styles: { fontStyle: 'bold' } }, patient.nascimento || 'Não informado', { content: 'Sexo:', styles: { fontStyle: 'bold' } }, patient.sexo || 'Não informado'],
     ];
 
+    // Cria a tabela visual usando o plugin autoTable
     autoTable(doc, {
         startY: yPos,
         body: patientData,
-        theme: 'plain',
+        theme: 'plain', // Sem linhas de grade pesadas
         styles: { fontSize: 9, cellPadding: 2 },
         columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 80 },
-            2: { cellWidth: 25 },
-            3: { cellWidth: 'auto' }
+            0: { cellWidth: 25 }, // Coluna "Nome:"
+            1: { cellWidth: 80 }, // Valor do Nome
+            2: { cellWidth: 25 }, // Coluna "CPF:"
+            3: { cellWidth: 'auto' } // Valor do CPF
         },
         margin: { left: margin, right: margin }
     });
 
+    // Pega a posição de rodapé da última tabela para continuar escrevendo abaixo
     yPos = doc.lastAutoTable.finalY + 5;
 
-    // --- 5. Exam Data ---
+    // --- 5. Tabela de Dados do Exame ---
     drawSectionHeader('Dados do Exame', yPos);
     yPos += 10;
 
-    // Get formatted date/time
+    // Formatação de data e hora atual no padrão brasileiro
     const now = new Date();
     const formattedDateTime = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
+    // Define os dados secundários do laudo
     const examData = [
         [{ content: 'Data do Laudo:', styles: { fontStyle: 'bold' } }, formattedDateTime, { content: 'Médico Responsável:', styles: { fontStyle: 'bold' } }, doctor ? doctor.name : 'Fabianni C. N. C. Mello']
     ];
@@ -153,55 +183,49 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         margin: { left: margin, right: margin }
     });
 
+    // Avança a posição vertical preparando o Gráfico
     yPos = doc.lastAutoTable.finalY + 10;
 
-    // --- 6. Chart Logic & Drawing ---
-    // Define Categories and Colors matching the image
+    // --- 6. Lógica de Gráfico e Cálculo de Pontuação ---
+    // Define as cores institucionais para cada uma das 7 dimensões do exame
     const categories = [
-        { key: 'Insatisfação Pessoal', color: '#0000FF' }, // Renamed from 'Satisfação Pessoal'
-        { key: 'Ansiedade', color: '#FF0000' },
-        { key: 'Depressão', color: '#A52A2A' },
-        { key: 'Álcool', color: '#FFA500' },
-        { key: 'Fumo', color: '#000000' },
-        { key: 'Drogas ou Remédios', color: '#800080' },
-        { key: 'Sono', color: '#008000' }
+        { key: 'Insatisfação Pessoal', color: '#0000FF' }, // Azul
+        { key: 'Ansiedade', color: '#FF0000' },           // Vermelho
+        { key: 'Depressão', color: '#A52A2A' },           // Marrom
+        { key: 'Álcool', color: '#FFA500' },              // Laranja
+        { key: 'Fumo', color: '#000000' },                // Preto
+        { key: 'Drogas ou Remédios', color: '#800080' },  // Roxo
+        { key: 'Sono', color: '#008000' }                 // Verde
     ];
 
-    // Calculate Scores
+    // Inicializa somatório de pontos
     const scores = {};
     categories.forEach(cat => scores[cat.key] = 0);
 
-    // Map Question ID to Category
+    // Mapeamento de perguntas para categorias (semelhante ao narrativeLogic)
     const questionCategoryMap = {};
     if (questions) {
         questions.forEach(q => {
-            // Priority: category_key -> categories.name -> category
             const cat = q.category_key || q.categories?.name || q.category;
             if (cat) questionCategoryMap[q.id] = cat;
         });
     }
 
-    // Helper for robust string comparison (removes accents, lowercase)
+    // Função interna para comparação genérica de nomes de categorias
     const normalizeStr = (str) => {
         if (!str) return '';
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     };
 
+    // Cálculos de soma de pontos para as barras do gráfico
     if (answers) {
-        console.group('PDF Generator - Score Calculation Debug');
-        console.log('Initial Scores:', { ...scores });
-
         answers.forEach(ans => {
             const qId = ans.question_id;
             const cat = questionCategoryMap[qId];
-
-            if (!cat) {
-                console.warn(`[Q${qId}] No category found in question map.`);
-                return;
-            }
+            if (!cat) return;
 
             const normCat = normalizeStr(cat);
-            // More Robust Mapping Keys
+            // Dicionário de mapeamento para lidar com inconsistências de nomes no banco
             const mapping = {
                 'insatisfacaopessoal': 'Insatisfação Pessoal',
                 'satisfacaopessoal': 'Insatisfação Pessoal',
@@ -214,241 +238,169 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
                 'sono': 'Sono'
             };
 
-            let matchedKey = null;
+            let matchedKey = mapping[normCat];
 
-            // 1. Direct Map
-            if (mapping[normCat]) matchedKey = mapping[normCat];
-
-            // 2. Direct Match in Categories (normalized)
             if (!matchedKey) {
                 const direct = categories.find(c => normalizeStr(c.key) === normCat);
                 if (direct) matchedKey = direct.key;
             }
 
-            // 3. Substring match
-            if (!matchedKey) {
-                const partial = categories.find(c =>
-                    normalizeStr(c.key).includes(normCat) || normCat.includes(normalizeStr(c.key))
-                );
-                if (partial) matchedKey = partial.key;
-            }
-
+            // Se reconhecemos a categoria, somamos o valor da resposta
             if (matchedKey) {
                 const numericScore = parseFloat(ans.score);
-                const finalScoreToAdd = isNaN(numericScore) ? 0 : numericScore;
-                scores[matchedKey] += finalScoreToAdd;
-            } else {
-                console.warn(`[Q${qId}] Cat: "${cat}" (Norm: ${normCat}) -> NO MATCH FOUND!`);
+                scores[matchedKey] += isNaN(numericScore) ? 0 : numericScore;
             }
         });
 
-        // --- Normalization Logic (Frontend Only) ---
-        // Normalizes each category to reach max 30 points if all indicators are present.
+        // Aplicação dos FATORES DE CORREÇÃO (Igual ao narrativeLogic)
+        // Isso garante que todos os dados internos terminem em uma escala de 0 a 10
         const finalFactors = {
-            'Insatisfação Pessoal': 30 / 24,
-            'Ansiedade': 30 / 32,
-            'Depressão': 30 / 36,
-            'Álcool': 30 / 38,
-            'Drogas ou Remédios': 30 / 20,
-            'Sono': 30 / 10,
-            'Fumo': 30 / 14
+            'Insatisfação Pessoal': 10 / 24,
+            'Ansiedade': 10 / 32,
+            'Depressão': 10 / 36,
+            'Álcool': 10 / 38,
+            'Drogas ou Remédios': 10 / 20,
+            'Sono': 10 / 10,
+            'Fumo': 10 / 14
         };
 
         Object.keys(scores).forEach(key => {
             if (finalFactors[key]) {
+                // Multiplica o score bruto pelo fator para chegar no valor entre 0 e 10
                 scores[key] = scores[key] * finalFactors[key];
             }
         });
-
-        console.log('Final Normalized Scores (Ceiling 30):', scores);
-        console.groupEnd();
     }
 
-    // Draw Chart Base
-    const chartHeight = 75; // Increased from 60 to 75 for better vertical spacing
-    const chartWidth = contentWidth - 15;
-    const chartX = margin + 10;
+    // --- Desenho Físico do Gráfico de Barras ---
+    const chartHeight = 75; // Altura do eixo vertical em mm
+    const chartWidth = contentWidth - 15; // Largura do eixo horizontal
+    const chartX = margin + 10; // Recuo para os números da escala
     const chartY = yPos;
 
-    // Fix Max Score to 30 as per new requirements
-    const maxScore = 30; 
+    const maxScore = 10; // Limite superior fixo do gráfico (Escala 0-10)
 
-    // Grid lines (Horizontal: 0, 1, 2, 3, 4)
-    doc.setDrawColor(200, 200, 200);
+    // Desenha a GRADE (Grid) e NUMERAÇÃO VERTICAL (Escala 0-10)
+    doc.setDrawColor(200, 200, 200); // Cinza claro
     doc.setLineWidth(0.1);
     doc.setFontSize(8);
     doc.setTextColor('#333333');
 
     for (let i = 0; i <= maxScore; i++) {
+        // Calcula a posição em Y de cada degrau da escala
         const yLine = chartY + chartHeight - (i / maxScore * chartHeight);
-        doc.text(i.toString(), chartX - 6, yLine + 1.5, { align: 'right' }); // Better Y labels
-        doc.line(chartX, yLine, chartX + chartWidth, yLine); // Horizontal Line
+        doc.text(i.toString(), chartX - 6, yLine + 1.5, { align: 'right' }); // Escreve o número
+        doc.line(chartX, yLine, chartX + chartWidth, yLine); // Desenha a linha horizontal da grade
     }
 
-    // Draw Sections and Vertical Grid Lines
+    // Desenha as BARRAS COLORIDAS para cada categoria
     const barWidth = 16;
     const numCategories = categories.length;
-    // Calculate space for each column (category block)
-    const sectionWidth = chartWidth / numCategories;
+    const sectionWidth = chartWidth / numCategories; // Espaço disponível para cada grupo
 
     categories.forEach((cat, index) => {
+        // Pega o valor calculado (agora já na escala 0-10)
         const score = Math.min(scores[cat.key] || 0, maxScore);
-        const barHeight = (score / maxScore) * chartHeight;
+        const barHeight = (score / maxScore) * chartHeight; // Converte valor em milímetros de barra
 
-        // Horizontal center of the current section
+        // Centraliza a barra dentro da sua fatia no eixo X
         const sectionCenterX = chartX + (index * sectionWidth) + (sectionWidth / 2);
         const xBar = sectionCenterX - (barWidth / 2);
         const yBar = chartY + chartHeight - barHeight;
 
-        // Vertical Grid Line (at start of section, except first)
-        if (index > 0) {
-            const xGrid = chartX + (index * sectionWidth);
-            doc.setDrawColor(220, 220, 220);
-            doc.line(xGrid, chartY, xGrid, chartY + chartHeight);
-        }
-
-        // Draw Bar
+        // Desenha a própria barra retangular preenchida
         doc.setFillColor(cat.color);
         doc.rect(xBar, yBar, barWidth, barHeight, 'F');
 
-        // Labels - Positioned further down and centered with the bar
+        // Escreve os rótulos (Labels) na base do gráfico com 25 graus de inclinação
         doc.setFontSize(7);
         doc.setTextColor('#333333');
         doc.saveGraphicsState();
-        // Start label 12 units below the 0-line and center it with the section
         doc.text(cat.key, sectionCenterX, chartY + chartHeight + 12, { angle: 25, align: 'center' });
         doc.restoreGraphicsState();
     });
 
-    // Outer Border (to overlap the grid edges for a clean look)
+    // Desenha a borda externa do gráfico para acabamento
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.2);
     doc.rect(chartX, chartY, chartWidth, chartHeight, 'S');
 
-    // --- 7. Narrative Report (Análise) ---
+    // --- 7. Documentação da Análise Narrativa (Relatório Escrito) ---
     if (narrativeData) {
-        let currentY = chartY + chartHeight + 20; // Start below chart
+        let currentY = chartY + chartHeight + 20; // Posição abaixo do gráfico
 
-        // Check if we need a new page for the analysis
+        // Verifica se a página acabou. Se sim, cria uma nova página.
         if (currentY + 60 > doc.internal.pageSize.getHeight()) {
             doc.addPage();
             currentY = margin + 10;
         }
 
+        // Título da seção de texto
         drawSectionHeader('Análise', currentY);
         currentY += 15;
 
-        // --- Narrative Container ---
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor('#333333');
-
-        const containerPadding = 0;
         const textWidth = contentWidth;
 
-        // Helper to print a block of text and advance Y
+        // Função para imprimir blocos de texto respeitando quebras de página automáticas
         const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', align = 'justify', spacing = 5) => {
             if (!text) return;
             doc.setFontSize(fontSize);
             doc.setFont('helvetica', fontStyle);
             doc.setTextColor(color);
 
+            // Divide o parágrafo em linhas
             const lines = doc.splitTextToSize(text, textWidth);
             const blockHeight = lines.length * 5;
 
-            // Page Check
+            // Se o bloco de texto exceder o fim da página atual
             if (currentY + blockHeight > doc.internal.pageSize.getHeight() - margin) {
-                doc.addPage();
-                currentY = margin + 10;
+                doc.addPage(); // Cria nova folha
+                currentY = margin + 10; // Reinicia o topo
             }
 
-            doc.text(lines, margin + containerPadding, currentY, { align: align === 'justify' ? 'justify' : 'left', maxWidth: textWidth });
-            currentY += blockHeight + spacing; // Custom spacing support
+            // Escreve as linhas no papel PDF
+            doc.text(lines, margin, currentY, { align: align === 'justify' ? 'justify' : 'left', maxWidth: textWidth });
+            currentY += blockHeight + spacing; // Incrementa a posição vertical
         };
 
-        const isApto = narrativeData.is_apto !== false; // Default to apto if undefined
-        
-        const statusText = isApto
-            ? `O paciente avaliado apresenta, no momento, um estado psicoemocional equilibrado perante o contexto investigado. Não foram identificados indícios de quadros graves como burnout, tendências suicidas, ou outras patologias incapacitantes. Diante disso, o colaborador encontra-se APTO para o pleno exercício de suas atividades operacionais ou administrativas.`
-            : `Observa-se que o paciente apresenta indicadores relevantes de sobrecarga psicológica ou outros aspectos clínicos citados acima, o que torna desaconselhada a continuidade de suas atividades neste momento. Recomenda-se rigorosamente uma avaliação psicológica/psiquiátrica complementar detalhada e condutas direcionadas. Portanto, o parecer provisório é INAPTO.`;
 
-        // Define styled segments for better visual hierarchy and spacing
+        // Define a ordem e estilos das partes do laudo
         const styledParts = [
             { text: narrativeData.intro, style: 'normal', color: '#333333' },
             { text: narrativeData.full_analysis || narrativeData.mental_text, style: 'normal', color: '#333333' },
-            { text: !narrativeData.full_analysis ? narrativeData.habits_text : null, style: 'normal', color: '#333333' },
-            { text: statusText, style: 'bold', color: isApto ? '#2D6A4F' : '#D90429' }, // Cores dinâmicas para o parecer
-            { text: narrativeData.disclaimer, style: 'normal', color: '#666666' }
+            { text: !narrativeData.full_analysis ? narrativeData.habits_text : null, style: 'normal', color: '#333333' }
         ];
 
-        // Print each styled part with left alignment (to fix word spacing issues) and 4 spacing
+        // Processa a impressão de cada parte (Intro e Análise completa)
         styledParts.filter(p => p.text).forEach(p => {
-            printBlock(p.text, 10, p.style, p.color, 'left', 4);
+            // O quinto parâmetro (5) controla o espaçamento em MILÍMETROS após cada bloco
+            printBlock(p.text, 10, p.style, p.color, 'justify', 5); 
         });
 
         currentY += 10;
-        
-        // Add Status Badge (Requested Feature) at the Bottom Centered
-        const badgeColor = isApto ? '#22C55E' : '#EF4444'; // Green or Red
-        const badgeText = isApto ? '  Status: Apto para a Função  ' : '  Status: Inapto Temporariamente  ';
-        const badgeTextColor = '#FFFFFF';
-        
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        const badgeWidth = doc.getTextWidth(badgeText) + 10;
-        
-        const badgeX = (pageWidth - badgeWidth) / 2;
-        
-        // Check page bounds before drawing badge
-        if (currentY + 15 > doc.internal.pageSize.getHeight() - margin) {
-            doc.addPage();
-            currentY = margin + 10;
-        }
 
-        // Draw rounded rectangle for badge
-        doc.setFillColor(badgeColor);
-        doc.roundedRect(badgeX, currentY, badgeWidth, 8, 2, 2, 'F');
-        
-        // Draw text inside badge
-        doc.setTextColor(badgeTextColor);
-        doc.text(badgeText, badgeX + 5, currentY + 5.5);
-        
-        currentY += 15; // Space after badge
-
-        // Conclusion Box REMOVED (Replaced by text above)
-        // Disclaimer Footer REMOVED (Replaced by text above)
-
-        // 4. Doctor Signature (Requested Feature)
+        // --- 8. Assinatura do Profissional ---
+        // Se houver um médico selecionado, escreve o nome e CRP no rodapé do documento
         if (doctor && doctor.name) {
-            const signatureY = currentY + 35; // Approx 100px / 2.83 (pts to mm conversion) ~ 35mm
+            const signatureY = currentY + 35; // Espaço de 35mm para a assinatura física manual
+            const signatureText = `Assinado por: ${doctor.name}, CRP-${doctor.crp || 'Não informado'}.`;
 
-            // Check page bounds
             if (signatureY + 10 > doc.internal.pageSize.getHeight() - margin) {
                 doc.addPage();
-                // New Page: Reset Y to margin
-                // If we page break, the signature might detach from disclaimer, but better than being cut off.
-                const newSignatureY = margin + 10;
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor('#000000');
-                const signatureText = `Assinado por: ${doctor.name}, CRP-${doctor.crp || 'Não informado'}.`;
-                doc.text(signatureText, pageWidth / 2, newSignatureY, { align: 'center' });
+                doc.text(signatureText, pageWidth / 2, margin + 10, { align: 'center' });
             } else {
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor('#000000');
-                const signatureText = `Assinado por: ${doctor.name}, CRP-${doctor.crp || 'Não informado'}.`;
                 doc.text(signatureText, pageWidth / 2, signatureY, { align: 'center' });
             }
         }
     }
 
-    // Output
+    // Se as opções pedirem Base64 (para visualização prévia), retorna a string
     if (options?.returnBase64) {
         const dataUri = doc.output('datauristring');
         return dataUri.split(',')[1];
     }
 
-    // Save
+    // Por fim, executa o comando de download do arquivo PDF com nome dinâmico baseado no paciente e data
     doc.save(`Laudo_${patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };

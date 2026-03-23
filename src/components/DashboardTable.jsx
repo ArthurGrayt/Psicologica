@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Calendar, Pencil, Unlock, Lock, ArrowUpDown, Trash2, Link as LinkIcon, MoreHorizontal, ChevronDown, CheckCircle } from 'lucide-react';
+import { FileText, Calendar, Pencil, Unlock, Lock, ArrowUpDown, Trash2, Link as LinkIcon, MoreHorizontal, ChevronDown, CheckCircle, MessageSquare } from 'lucide-react';
 
-const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPageChange, onEdit, onSort, onDelete, onGenerateForm, onToggleLock, onGenerateReport }) => {
+const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPageChange, onEdit, onSort, onDelete, onGenerateForm, onViewAnswers, onGenerateReport }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
@@ -202,15 +202,12 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                             className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                onToggleLock(patient.id, patient.assessmentId, patient.locked);
+                                                onViewAnswers(patient);
                                                 setOpenDropdownId(null);
                                             }}
                                         >
-                                            {patient.locked ?
-                                                <Unlock size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" /> :
-                                                <Lock size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" />
-                                            }
-                                            <span className="font-medium">{patient.locked ? 'Destravar' : 'Travar'}</span>
+                                            <MessageSquare size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" />
+                                            <span className="font-medium">Respostas</span>
                                         </button>
                                     ) : (
                                         <div className="px-5 py-3 text-xs text-slate-400 italic flex items-center gap-3 select-none">
@@ -546,19 +543,16 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                onToggleLock(patient.id, patient.assessmentId, patient.locked);
+                                                                onViewAnswers(patient);
                                                                 setOpenDropdownId(null);
                                                             }}
                                                         >
-                                                            {patient.locked ?
-                                                                <Unlock size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" /> :
-                                                                <Lock size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
-                                                            }
-                                                            <span className="font-medium align-middle">{patient.locked ? 'Destravar' : 'Travar'}</span>
+                                                            <MessageSquare size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
+                                                            <span className="font-medium align-middle">Respostas</span>
                                                         </button>
                                                     ) : (
                                                         <div className="px-4 py-2.5 text-xs text-slate-400 italic flex items-center gap-3 select-none">
-                                                            <Unlock size={16} className="opacity-50" />
+                                                            <MessageSquare size={16} className="opacity-50" />
                                                             <span className="align-middle">Não avaliado</span>
                                                         </div>
                                                     )}

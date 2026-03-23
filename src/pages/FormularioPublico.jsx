@@ -76,8 +76,8 @@ const QuestionCard = ({ question, answer, onAnswer, error }) => {
                     {hasOptions ? (
                         <SearchableSelect
                             options={question.question_options.map(opt => ({
-                                value: String(opt.label || opt.text || opt.value),
-                                label: String(opt.label || opt.text || opt.value)
+                                value: String(opt.text || opt.label || opt.value),
+                                label: String(opt.text || opt.label || opt.value)
                             }))}
                             value={String(answer || '')}
                             onChange={(val) => onAnswer(val)}
@@ -305,13 +305,17 @@ const FormularioPublico = () => {
         try {
             let score = 0;
             if (['scale', 'select', 'yes_no'].includes(q.type)) {
+                // Busca a opção correspondente usando a mesma ordem de prioridade da renderização (text > label > value)
                 const opt = q.question_options?.find(o => String(o.text || o.label || o.value) === val);
+                
                 if (opt) {
-                    score = opt.score_val || 0;
+                    // Se encontrou a opção, usa o score_val definido no banco
+                    score = Number(opt.score_val) || 0;
                 } else if (q.type === 'yes_no') {
-                    // Fallback for yes_no if options somehow didn't load
-                    score = (val === 'Sim') ? (q.weight || 0) : 0;
+                    // Fallback apenas para yes_no caso as opções não tenham carregado (usa o peso da pergunta)
+                    score = (val === 'Sim') ? (Number(q.weight) || 0) : 0;
                 } else if (score === 0 && val !== '0' && /^\d+$/.test(val)) {
+                    // Fallback para valores numéricos diretos se não houver mapeamento de opção
                     score = parseInt(val, 10);
                 }
             }

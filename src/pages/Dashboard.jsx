@@ -11,6 +11,7 @@ import DoctorSelectionModal from '../components/DoctorSelectionModal';
 import DateRangePicker from '../components/DateRangePicker';
 import { generateNarrative } from '../utils/narrativeLogic';
 import logoGamaUrl from '../assets/logo-gama.png';
+import AnswersPanel from '../components/AnswersPanel';
 
 const Dashboard = () => {
     // Estado Mockado Removido. Apenas dados reais.
@@ -39,6 +40,15 @@ const Dashboard = () => {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [activeEditTab, setActiveEditTab] = useState('data'); // 'data' | 'analysis'
     const [isMultipleModalOpen, setIsMultipleModalOpen] = useState(false);
+
+    // State do Painel de Respostas
+    const [isAnswersOpen, setIsAnswersOpen] = useState(false);
+    const [answersPatient, setAnswersPatient] = useState(null);
+
+    const handleViewAnswers = (patient) => {
+        setAnswersPatient(patient);
+        setIsAnswersOpen(true);
+    };
 
     // Form Generation State
     const [generatedLink, setGeneratedLink] = useState(null);
@@ -107,7 +117,8 @@ const Dashboard = () => {
         };
         fetchParams();
     }, []);
-    // Fetch Patients from DB
+
+    // Fetch Patients from DB
     const fetchPatients = async () => {
         // Define o estado de carregamento como verdadeiro e limpa erros anteriores
         setIsLoading(true);
@@ -478,9 +489,7 @@ const Dashboard = () => {
             console.error('Error in client-side narrative generation:', err);
             narrativeData = {
                 intro: "Não foi possível gerar a análise detalhada.",
-                full_analysis: "Erro de processamento.",
-                status_label: "EM ANÁLISE",
-                is_apto: true
+                full_analysis: "Erro de processamento."
             };
         }
 
@@ -1203,13 +1212,13 @@ const Dashboard = () => {
                                         onClick={() => setActiveEditTab('data')}
                                         className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${activeEditTab === 'data' ? 'bg-white text-[#139690] shadow-sm' : 'text-slate-400'}`}
                                     >
-                                        Editar Paciente
+                                        Editar
                                     </button>
                                     <button
                                         onClick={() => setActiveEditTab('analysis')}
                                         className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${activeEditTab === 'analysis' ? 'bg-white text-[#139690] shadow-sm' : 'text-slate-400'}`}
                                     >
-                                        Análise Psicossocial
+                                        Análise
                                     </button>
                                 </div>
                             </div>
@@ -1254,7 +1263,7 @@ const Dashboard = () => {
 
             {/* Painel de Filtros Avançados */}
             <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[800px] opacity-100 overflow-visible mt-3' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
-                <div className="bg-white p-6 xl:p-7 rounded-[24px] xl:rounded-[32px] shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-6">
+                <div className="bg-white p-6 xl:p-7 rounded-[24px] xl:rounded-[32px] shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-">
                     
                     {/* Linha 1: Campos Principais (Empresa, Cargo, Setor) */}
                     <div className="flex flex-1 flex-wrap gap-4">
@@ -1351,7 +1360,12 @@ const Dashboard = () => {
             )}
 
             {/* Container Principal: Tabela -> Edição (Split) */}
-            <div className="flex flex-1 gap-6 overflow-visible relative">
+            {/* 
+                💡 AQUI: Para ajustar a distância entre a barra de busca e a tabela, 
+                altere os valores de margem negativa abaixo (ex: xl:-mt-4, 2xl:-mt-6).
+                Se quiser colar ainda mais, aumente o número (ex: xl:-mt-8, 2xl:-mt-10).
+            */}
+            <div className="flex flex-1 gap-6 overflow-visible relative xl:-mt-4 2xl:-mt-6">
 
                 {/* Lado Esquerdo: Tabela OU Formulário */}
                 <div className={`flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedPatient ? 'xl:w-2/5 bg-white p-6 xl:p-8 rounded-[32px] shadow-sm w-full' : 'w-full xl:bg-white xl:rounded-[32px] xl:shadow-sm'} ${selectedPatient && activeEditTab !== 'data' ? 'hidden xl:flex' : 'flex'}`}>
@@ -1503,21 +1517,21 @@ const Dashboard = () => {
                                 onSort={handleSort}
                                 onDelete={handleDeletePatient}
                                 onGenerateForm={handleGenerateAssessment}
-                                onToggleLock={handleToggleLock}
+                                onViewAnswers={handleViewAnswers}
                                 onGenerateReport={handleGenerateReportTrigger}
                             />
                         )
                     )}
                 </div>
 
-                {/* 3. Painel Lateral (Placeholder para manter layout de Split conforme pedido) */}
+                {/* 3. Painel Lateral (Análise) */}
                 <div
                     className={`bg-white rounded-[32px] shadow-sm flex-col transition-all duration-500 ease-in-out transform ${selectedPatient
                         ? 'w-full xl:flex-1 translate-x-0 opacity-100 flex'
                         : 'translate-x-full opacity-0 absolute right-0 xl:w-1/2'
-                        } ${selectedPatient && activeEditTab !== 'analysis' ? 'hidden xl:flex' : 'flex'}`}
+                        } ${selectedPatient && activeEditTab === 'data' ? 'hidden xl:flex' : 'flex'}`}
                 >
-                    {selectedPatient && (
+                    {selectedPatient && activeEditTab === 'analysis' && (
                         <div className="flex flex-col h-full p-8 relative overflow-y-auto custom-scrollbar">
                             <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 sticky top-0 bg-white z-10 py-2">
                                 <FileText size={20} className="text-[#35b6cf]" />
@@ -1598,6 +1612,20 @@ const Dashboard = () => {
                     )}
                 </div>
 
+            </div>
+
+            {/* Tela de Respostas (Fullscreen) */}
+            <div 
+                className={`fixed inset-0 bg-slate-50 z-50 transform transition-all duration-300 ease-in-out flex flex-col ${
+                    isAnswersOpen ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0 pointer-events-none'
+                }`}
+            >
+                {answersPatient && (
+                    <AnswersPanel 
+                        patient={answersPatient} 
+                        onClose={() => setIsAnswersOpen(false)} 
+                    />
+                )}
             </div>
 
             {/* Modal de Assinatura Digital */}
