@@ -11,6 +11,7 @@ const AnswersPanel = ({ patient, onClose }) => {
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [currentSignature, setCurrentSignature] = useState(patient?.assinatura); // Estado para a assinatura atualizada
 
     useEffect(() => {
         if (!patient?.assessmentId) {
@@ -49,6 +50,19 @@ const AnswersPanel = ({ patient, onClose }) => {
 
             if (qsError) throw qsError;
             setQuestions(qsData || []);
+
+            // Busca a assinatura mais recente na tabela patients para garantir que apareça se tiver sido feita recentemente
+            if (patient?.uuid_colab) {
+                const { data: patData } = await supabase
+                    .from('patients')
+                    .select('assinatura')
+                    .eq('uuid_colab', patient.uuid_colab)
+                    .maybeSingle();
+                
+                if (patData?.assinatura) {
+                    setCurrentSignature(patData.assinatura);
+                }
+            }
 
         } catch (err) {
             console.error("Erro ao buscar respostas:", err);
@@ -253,11 +267,11 @@ const AnswersPanel = ({ patient, onClose }) => {
                 )}
 
                 {/* Seção de Assinatura */}
-                {patient.assinatura && (
+                {currentSignature && (
                     <div className="mt-12 mb-6 border-t border-slate-200 pt-8 flex flex-col items-center">
                         <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm mb-3">
                             <img
-                                src={patient.assinatura}
+                                src={currentSignature}
                                 alt="Assinatura Eletrônica"
                                 className="h-20 object-contain mx-auto"
                             />

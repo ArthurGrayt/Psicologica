@@ -375,21 +375,25 @@ const FormularioPublico = () => {
             const res = await fetch(dataUrl);
             const blob = await res.blob();
             const fileName = `sig_${assessmentId}_${Date.now()}.png`;
+            // Define o caminho completo dentro do bucket, incluindo a pasta 'assinaturas'
+            const filePath = `assinaturas/${fileName}`;
 
+            // 1. Upload para o Supabase Storage (Bucket 'assinaturas', Pasta 'assinaturas')
             const { error: uploadError } = await supabase.storage
                 .from('assinaturas')
-                .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+                .upload(filePath, blob, { contentType: 'image/png', upsert: true });
 
             if (uploadError) throw uploadError;
 
-            const { data: { publicUrl } } = supabase.storage.from('assinaturas').getPublicUrl(fileName);
+            // 2. Obtém a URL pública usando o caminho completo (incluindo a pasta)
+            const { data: { publicUrl } } = supabase.storage.from('assinaturas').getPublicUrl(filePath);
 
-            // Salva a assinatura exclusivamente na tabela patients para centralizar os dados do colaborador
+            // 3. Salva a assinatura exclusivamente na tabela patients para centralizar os dados do colaborador
             if (patient && assessment?.patient_id) {
-                // Cria o payload contendo apenas a URL pública da imagem da assinatura
+                // Cria o payload contendo apenas a URL pública da imagem da assinatura (agora com o caminho da pasta)
                 const payload = { assinatura: publicUrl };
                 // Registra no log o início do salvamento da assinatura, informando tabela, filtro e payload
-                console.log("Salvando URL da assinatura na tabela 'patients':", {
+                console.log("Salvando URL da assinatura (com pasta) na tabela 'patients':", {
                     destino: 'patients',
                     filtro: { uuid_colab: assessment.patient_id },
                     payload

@@ -1246,7 +1246,7 @@ const Dashboard = () => {
 
 
             {/* 1. Card Superior (Filtros e Busca) */}
-            <div className="xl:bg-white xl:p-5 xl:rounded-[32px] xl:shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4 transition-all duration-500 xl:mb-0">
+            <div className="xl:bg-white xl:p-5 xl:rounded-[32px] xl:shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4 transition-all duration-500 xl:mb-0 xl:-mt-2.5">
                 <div className="flex items-center gap-3 w-full xl:w-auto">
                         {selectedPatient ? (
                             <div className="flex flex-col gap-4 w-full">
@@ -1319,11 +1319,11 @@ const Dashboard = () => {
             </div>
 
             {/* Painel de Filtros Avançados */}
-            <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[800px] opacity-100 overflow-visible mt-3' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
-                <div className="bg-white p-6 xl:p-7 rounded-[24px] xl:rounded-[32px] shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-">
+            <div className={`transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[800px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 invisible overflow-hidden'}`}>
+                <div className="bg-white p-6 xl:p-7 rounded-[24px] xl:rounded-[32px] shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-6">
                     
                     {/* Linha 1: Campos Principais (Empresa, Cargo, Setor) */}
-                    <div className="flex flex-1 flex-wrap gap-4">
+                    <div className="flex flex-1 flex-wrap gap-x-2 gap-y-4">
                         <div className="flex-1 min-w-[200px]">
                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Empresa</label>
                             <SearchableSelect
@@ -1356,7 +1356,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Linha 2: Controles Secundários (Data, Status, Bloqueio, Limpar) */}
-                    <div className="flex flex-wrap xl:flex-nowrap gap-4 items-end">
+                    <div className="flex flex-wrap xl:flex-nowrap gap-x-2 gap-y-4 pl-2 items-end">
                         <div className="flex-none">
                             <DateRangePicker 
                                 value={filters.date} 
@@ -1418,11 +1418,9 @@ const Dashboard = () => {
 
             {/* Container Principal: Tabela -> Edição (Split) */}
             {/* 
-                💡 AQUI: Para ajustar a distância entre a barra de busca e a tabela, 
-                altere os valores de margem negativa abaixo (ex: xl:-mt-4, 2xl:-mt-6).
-                Se quiser colar ainda mais, aumente o número (ex: xl:-mt-8, 2xl:-mt-10).
+                💡 AQUI: Espaçamento reduzido pela metade conforme solicitado (subindo a tabela)
             */}
-            <div className="flex flex-1 gap-6 overflow-visible relative xl:-mt-4 2xl:-mt-6">
+            <div className="flex flex-1 gap-6 overflow-visible relative xl:mt-0 2xl:mt-0">
 
                 {/* Lado Esquerdo: Tabela OU Formulário */}
                 <div className={`flex flex-col overflow-visible transition-all duration-500 ease-in-out ${selectedPatient ? 'xl:w-2/5 bg-white p-6 xl:p-8 rounded-[32px] shadow-sm w-full' : 'w-full xl:bg-white xl:rounded-[32px] xl:shadow-sm'} ${selectedPatient && activeEditTab !== 'data' ? 'hidden xl:flex' : 'flex'}`}>
