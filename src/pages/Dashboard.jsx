@@ -1707,7 +1707,7 @@ const Dashboard = () => {
             {/* Modal de Link Gerado */}
             {isLinkModalOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-                    <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-4xl w-full animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-4xl xl:max-w-xl w-full animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                 <LinkIcon size={20} className="text-[#35b6cf]" />
@@ -1723,7 +1723,7 @@ const Dashboard = () => {
                                 <div className="bg-white p-4 rounded-xl border-2 border-slate-100 shadow-sm mb-6">
                                     <QRCodeCanvas
                                         value={generatedLink}
-                                        size={520}
+                                        size={360}
                                         level={"H"}
                                         includeMargin={true}
                                     />
