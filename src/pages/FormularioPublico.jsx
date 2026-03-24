@@ -342,6 +342,7 @@ const FormularioPublico = () => {
                 });
                 // Executa a atualização na tabela 'answers' filtrando pelo ID do registro existente
                 await supabase.from('answers').update(payload).eq('id', existing.id);
+                console.log(`✅ [Sucesso] Resposta atualizada com sucesso no banco de dados. (Questão ID: ${q.id})`);
             } else {
                 // Define o objeto com os dados para uma nova inserção (ID da avaliação, ID da pergunta, resposta e pontuação)
                 const payload = {
@@ -357,9 +358,10 @@ const FormularioPublico = () => {
                 });
                 // Realiza a inserção do novo registro na tabela 'answers'
                 await supabase.from('answers').insert(payload);
+                console.log(`✅ [Sucesso] Nova resposta inserida com sucesso no banco de dados. (Questão ID: ${q.id})`);
             }
         } catch (err) {
-            console.error('Auto-save error', err);
+            console.error(`❌ [Erro CRUD] Falha ao salvar a resposta (Questão ID: ${q?.id}). Detalhes do erro:`, err);
         }
     };
 
@@ -403,13 +405,14 @@ const FormularioPublico = () => {
                     .update(payload)
                     // Importante: Filtra por uuid_colab pois o patient_id da avaliação é um UUID
                     .eq('uuid_colab', assessment.patient_id);
+                
+                console.log("✅ [Sucesso] Assinatura salva no bucket e vinculada ao paciente com sucesso.");
             }
 
-            // Define a URL da assinatura localmente (Base64) para exibição instantânea e sem erro
             setSignatureUrl(dataUrl);
             setShowSigModal(false);
         } catch (err) {
-            console.error(err);
+            console.error("❌ [Erro CRUD] Falha ao fazer upload da assinatura ou vincular ao paciente. Detalhes do erro:", err);
             alert('Erro ao salvar assinatura. Tente novamente.');
         } finally {
             setSigLoading(false);
@@ -472,10 +475,13 @@ const FormularioPublico = () => {
                 await supabase.from('patients').update(patientPayload).eq('uuid_colab', assessment.patient_id);
             }
 
+            console.log("✅ [Sucesso] O Formulário Completo foi processado. Todas as respostas enviadas com sucesso e status atualizado.");
+
             // Altera o estado de status local para 'finished' para renderizar a tela de sucesso
             setStatus('finished');
         } catch (err) {
             // Em caso de erro na requisição, exibe um alerta contendo a mensagem de erro detalhada
+            console.error("❌ [Erro CRUD] Falha ao enviar o formulário e finalizar a avaliação. Detalhes do erro:", err);
             alert('Erro ao enviar: ' + err.message);
         } finally {
             // Independentemente do sucesso ou erro, desativa o indicador de carregamento

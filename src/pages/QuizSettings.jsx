@@ -163,6 +163,7 @@ const QuizSettings = () => {
                 .single();
 
             if (qError) throw qError;
+            console.log(`✅ [Sucesso] Pergunta ${typeof updatedQuestion.id === 'number' ? 'atualizada' : 'criada'} com sucesso no banco de dados. (ID: ${savedQ.id})`);
 
             // 2. Handle Options (if applicable)
             if (['select', 'scale', 'yes_no'].includes(updatedQuestion.type)) {
@@ -181,7 +182,9 @@ const QuizSettings = () => {
                 // Delete removed options
                 const idsToDelete = currentIds.filter(id => !updatedIds.includes(id));
                 if (idsToDelete.length > 0) {
-                    await supabase.from('question_options').delete().in('id', idsToDelete);
+                    const { error: delError } = await supabase.from('question_options').delete().in('id', idsToDelete);
+                    if (delError) throw delError;
+                    console.log(`✅ [Sucesso] ${idsToDelete.length} opções removidas com sucesso no banco de dados.`);
                 }
 
                 // Prepare options for upsert/insert
@@ -201,6 +204,7 @@ const QuizSettings = () => {
                         .from('question_options')
                         .upsert(existingOptions);
                     if (updError) throw updError;
+                    console.log(`✅ [Sucesso] ${existingOptions.length} opções atualizadas com sucesso no banco de dados.`);
                 }
 
                 if (newOptions.length > 0) {
@@ -208,6 +212,7 @@ const QuizSettings = () => {
                         .from('question_options')
                         .insert(newOptions);
                     if (insError) throw insError;
+                    console.log(`✅ [Sucesso] ${newOptions.length} novas opções inseridas com sucesso no banco de dados.`);
                 }
             }
 
@@ -217,7 +222,7 @@ const QuizSettings = () => {
             fetchQuestions();
 
         } catch (err) {
-            console.error('Error saving:', err);
+            console.error('❌ [Erro CRUD] Falha ao salvar a pergunta ou suas opções. Detalhes do erro:', err);
             alert('Erro ao salvar: ' + err.message);
         }
     };
@@ -232,9 +237,10 @@ const QuizSettings = () => {
                 .eq('id', id);
 
             if (error) throw error;
+            console.log(`✅ [Sucesso] Pergunta (ID: ${id}) excluída com sucesso do banco de dados.`);
             fetchQuestions();
         } catch (err) {
-            console.error('Error deleting:', err);
+            console.error(`❌ [Erro CRUD] Falha ao excluir a pergunta (ID: ${id}). Detalhes do erro:`, err);
             alert('Erro ao excluir: ' + err.message);
         }
     };

@@ -48,11 +48,12 @@ const AdminLayout = () => {
     const handleLogout = async () => {
         try {
             await supabase.auth.signOut();
+            console.log('✅ [Sucesso] Usuário deslogado do sistema.');
             navigate('/');
             // Opcionalmente recarrega a página para limpar estados em memória
             window.location.reload();
         } catch (error) {
-            console.error('Erro ao sair do sistema:', error);
+            console.error('❌ [Erro Autenticação] Falha ao sair do sistema:', error);
         }
     };
 

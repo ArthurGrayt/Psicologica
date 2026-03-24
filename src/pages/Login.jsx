@@ -44,11 +44,12 @@ const Login = () => {
 
             // Se o login for bem-sucedido, redireciona
             if (data.user) {
+                console.log(`✅ [Sucesso] Usuário autenticado com sucesso: ${email}`);
                 navigate('/admin/dashboard');
             }
         } catch (err) {
             // Trata erros informando o usuário
-            console.error('Erro de Autenticação:', err.message);
+            console.error(`❌ [Erro Autenticação] Falha na tentativa de login para ${email}. Detalhes:`, err.message);
             setError('E-mail ou senha incorretos. Verifique suas credenciais.');
         } finally {
             // Desativa o spinner de loading

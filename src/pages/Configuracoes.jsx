@@ -132,6 +132,7 @@ const Configuracoes = () => {
             const { error } = await supabase.from('narrative_configs').upsert(payload, { onConflict: 'category,level' });
 
             if (error) throw error;
+            console.log(`✅ [Sucesso] Configurações da categoria '${categoryId}' salvas com sucesso no banco de dados.`);
 
             // Atualiza o estado inicial para refletir que as mudanças foram salvas
             const newInitial = { ...initialConfigs };
@@ -141,7 +142,7 @@ const Configuracoes = () => {
             setMessage({ type: 'success', categoryId, text: 'Salvo!' });
             setTimeout(() => setMessage({ type: '', text: '' }), 2000);
         } catch (err) {
-            console.error('Erro ao salvar:', err);
+            console.error(`❌ [Erro CRUD] Falha ao salvar configurações da categoria '${categoryId}'. Detalhes do erro:`, err);
             setMessage({ type: 'error', categoryId, text: 'Erro ao salvar' });
         } finally {
             setSavingCategory(null);

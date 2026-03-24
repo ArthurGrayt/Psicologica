@@ -150,6 +150,7 @@ const Doctors = () => {
                     .from('responsaveis')
                     .insert(payload);
                 error = insertError;
+                if (!error) console.log(`✅ [Sucesso] Novo médico '${payload.name}' criado com sucesso.`);
             } else {
                 // UPDATE
                 const { error: updateError } = await supabase
@@ -157,6 +158,7 @@ const Doctors = () => {
                     .update(payload)
                     .eq('id', selectedDoctor.id);
                 error = updateError;
+                if (!error) console.log(`✅ [Sucesso] Dados do médico '${payload.name}' (ID: ${selectedDoctor.id}) atualizados com sucesso.`);
             }
 
             if (error) throw error;
@@ -166,7 +168,7 @@ const Doctors = () => {
             fetchDoctors();
 
         } catch (err) {
-            console.error('Error saving doctor:', err);
+            console.error(`❌ [Erro CRUD] Falha ao salvar dados do médico (ID: ${selectedDoctor?.id}). Detalhes do erro:`, err);
             alert('Erro ao salvar: ' + err.message);
         }
     };
@@ -181,9 +183,10 @@ const Doctors = () => {
                 .eq('id', id);
 
             if (error) throw error;
+            console.log(`✅ [Sucesso] Médico (ID: ${id}) excluído com sucesso do banco de dados.`);
             fetchDoctors();
         } catch (err) {
-            console.error('Error deleting doctor:', err);
+            console.error(`❌ [Erro CRUD] Falha ao excluir médico (ID: ${id}). Detalhes do erro:`, err);
             alert('Erro ao excluir: ' + err.message);
         }
     };
@@ -205,6 +208,7 @@ const Doctors = () => {
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
+            console.log(`✅ [Sucesso] Upload da assinatura concluído (${filePath}).`);
 
             // 2. Get Public URL
             const { data: { publicUrl } } = supabase.storage
@@ -222,7 +226,7 @@ const Doctors = () => {
             }
 
         } catch (err) {
-            console.error('Error uploading signature:', err);
+            console.error(`❌ [Erro CRUD] Falha no upload da assinatura para o storage. Detalhes do erro:`, err);
             alert('Erro ao fazer upload da assinatura: ' + err.message);
         } finally {
             setLoading(false);
@@ -254,6 +258,7 @@ const Doctors = () => {
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
+            console.log(`✅ [Sucesso] Upload do certificado (PFX) concluído (${filePath}).`);
 
             // 2. Get Public URL (Note: Certificates usually shouldn't be public, but for this demo/MVP flow we need access)
             // Ideally should be Signed URL, but Edge Function needs access. 
@@ -271,7 +276,7 @@ const Doctors = () => {
             }
 
         } catch (err) {
-            console.error('Error uploading certificate:', err);
+            console.error(`❌ [Erro CRUD] Falha no upload do certificado (PFX) para o storage. Detalhes do erro:`, err);
             alert('Erro ao fazer upload do certificado: ' + err.message);
         } finally {
             setLoading(false);

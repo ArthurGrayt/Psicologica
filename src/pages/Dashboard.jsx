@@ -279,6 +279,19 @@ const Dashboard = () => {
     useEffect(() => {
         fetchPatients();
         fetchNarrativeConfigs();
+
+        // Ouve o evento customizado enviado pelo DevFloatingButton para atualizar a lista sem refresh
+        const handleRefresh = () => {
+            console.log("🔄 [Dashboard] Evento 'refresh-patients' recebido. Atualizando tabela...");
+            fetchPatients();
+        };
+
+        window.addEventListener('refresh-patients', handleRefresh);
+
+        // Cleanup: Remove o listener ao desmontar o componente
+        return () => {
+            window.removeEventListener('refresh-patients', handleRefresh);
+        };
     }, []);
 
     // Search & Filter Effect
@@ -592,12 +605,13 @@ const Dashboard = () => {
                 .eq('id', selectedPatient.id);
 
             if (pError) throw pError;
+            console.log(`✅ [Sucesso] Nome do paciente (ID: ${selectedPatient.id}) atualizado com sucesso no banco de dados.`);
 
             setSelectedPatient(null);
             fetchPatients();
             alert('Dados atualizados com sucesso!');
         } catch (err) {
-            console.error('Erro ao atualizar paciente:', err.message);
+            console.error(`❌ [Erro CRUD] Falha ao atualizar dados do paciente (ID: ${selectedPatient?.id}). Detalhes do erro:`, err);
             alert('Erro ao atualizar: ' + err.message);
         }
     };
@@ -624,6 +638,7 @@ const Dashboard = () => {
                 // 1. Limpar Respostas de outros formulários (vínculo 'respondedor')
                 console.log('Limpando form_answers do colaborador...');
                 await supabase.from('form_answers').delete().eq('respondedor', uuidColab);
+                console.log(`✅ [Sucesso] form_answers do colaborador (UUID: ${uuidColab}) limpas.`);
 
                 // 2. Identificar e limpar Avaliações e Respostas Principais
                 const { data: assessments } = await supabase
@@ -637,9 +652,11 @@ const Dashboard = () => {
                     
                     // Deleta respostas primeiro (filhas)
                     await supabase.from('answers').delete().in('assessment_id', assessmentIds);
+                    console.log(`✅ [Sucesso] ${assessmentIds.length} respostas deletadas.`);
                     
                     // Deleta avaliações depois (mães)
                     await supabase.from('assessments').delete().in('id', assessmentIds);
+                    console.log(`✅ [Sucesso] ${assessmentIds.length} avaliações deletadas.`);
                 }
 
                 // 3. Deletar TODAS as entradas na tabela 'patients' vinculadas a este colaborador
@@ -651,6 +668,7 @@ const Dashboard = () => {
                     .eq('uuid_colab', uuidColab);
 
                 if (pError) throw pError;
+                console.log(`✅ [Sucesso] Referências do paciente (UUID: ${uuidColab}) removidas da tabela 'patients'.`);
 
                 // NOTA: Conforme instrução, as tabelas 'colaboradores' e 'agendamentos' não são tocadas.
             } else {
@@ -660,6 +678,7 @@ const Dashboard = () => {
                     .delete()
                     .eq('id', id);
                 if (pError) throw pError;
+                console.log(`✅ [Sucesso] Registro do paciente (ID: ${id}) removido da tabela 'patients'.`);
             }
 
             // Atualizar estado local para refletir a exclusão na UI imediatamente
@@ -669,7 +688,7 @@ const Dashboard = () => {
             alert('Paciente removido do Dashboard e registros de respostas excluídos com sucesso.');
 
         } catch (err) {
-            console.error('Erro crítico na exclusão:', err);
+            console.error(`❌ [Erro CRUD] Falha crítica na exclusão do paciente (ID: ${id}, UUID: ${uuidColab}). Detalhes do erro:`, err);
             alert('Erro ao excluir: ' + (err.message || 'Falha na conexão com o banco'));
         }
     };
@@ -690,6 +709,7 @@ const Dashboard = () => {
                 .eq('id', assessmentId);
 
             if (error) throw error;
+            console.log(`✅ [Sucesso] Estado de bloqueio da avaliação (ID: ${assessmentId}) atualizado para ${newLockState}.`);
 
             // Update Local State Optimistically
             setPatients(prev => prev.map(p => {
@@ -700,7 +720,7 @@ const Dashboard = () => {
             }));
 
         } catch (err) {
-            console.error('Error toggling lock:', err);
+            console.error(`❌ [Erro CRUD] Falha ao alterar status de bloqueio da avaliação (ID: ${assessmentId}). Detalhes do erro:`, err);
             alert('Erro ao alterar status de bloqueio: ' + err.message);
         }
     };
@@ -721,6 +741,7 @@ const Dashboard = () => {
                 .single();
 
             if (error) throw error;
+            console.log(`✅ [Sucesso] Novo link de avaliação criado com sucesso no banco de dados. (Paciente ID: ${patientId})`);
 
             // 2. Generate Link
             const link = `${window.location.origin}/quiz/${data.id}`;
@@ -731,7 +752,7 @@ const Dashboard = () => {
             fetchPatients();
 
         } catch (err) {
-            console.error('Error generating assessment:', err);
+            console.error(`❌ [Erro CRUD] Falha ao gerar link de avaliação (Paciente ID: ${patientId}). Detalhes do erro:`, err);
             alert('Erro ao gerar link: ' + err.message);
         }
     };
@@ -766,6 +787,7 @@ const Dashboard = () => {
                 .single();
 
             if (error) throw error;
+            console.log(`✅ [Sucesso] Colaborador '${data.nome}' criado com sucesso no banco de dados. (ID: ${data.id})`);
 
             console.log('Colaborador criado:', data);
 
@@ -781,7 +803,9 @@ const Dashboard = () => {
                 });
 
             if (patientError) {
-                console.error('Erro ao criar registro em patients:', patientError);
+                console.error(`❌ [Erro CRUD] Falha ao criar registro espelho na tabela 'patients' para o colaborador (ID: ${data.id}).`, patientError);
+            } else {
+                console.log(`✅ [Sucesso] Registro espelho na tabela 'patients' criado para o colaborador (ID: ${data.id}).`);
             }
 
             // Reset
@@ -793,7 +817,7 @@ const Dashboard = () => {
             alert('Colaborador adicionado com sucesso!');
 
         } catch (err) {
-            console.error('Erro ao criar colaborador:', err.message);
+            console.error(`❌ [Erro CRUD] Falha ao criar colaborador de forma rápida. Detalhes do erro:`, err);
             alert('Erro ao criar: ' + err.message);
         }
     };
@@ -981,6 +1005,7 @@ const Dashboard = () => {
                 .insert(inserts);
 
             if (error) throw error;
+            console.log(`✅ [Sucesso] ${inserts.length} agendamentos de avaliação criados com sucesso.`);
 
             // 2. Sincronizar com a tabela 'patients'
             // Criamos ou atualizamos registros em 'patients' para cada colaborador importado
@@ -999,7 +1024,9 @@ const Dashboard = () => {
                 .upsert(patientInserts, { onConflict: 'uuid_colab' });
 
             if (patientError) {
-                console.error('Erro ao sincronizar com patients:', patientError);
+                console.error(`❌ [Erro CRUD] Falha ao sincronizar registro na tabela 'patients' durante a importação.`, patientError);
+            } else {
+                console.log(`✅ [Sucesso] ${patientInserts.length} pacientes sincronizados/atualizados no dashboard.`);
             }
 
             // Sucesso
@@ -1012,7 +1039,7 @@ const Dashboard = () => {
             fetchPatients();
 
         } catch (err) {
-            console.error('Erro ao importar pacientes:', err.message);
+            console.error(`❌ [Erro CRUD] Falha ao importar colaboradores e gerar agendamentos. Detalhes do erro:`, err);
             alert('Erro ao importar: ' + err.message);
         }
     };
