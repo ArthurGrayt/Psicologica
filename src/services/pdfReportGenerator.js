@@ -118,15 +118,15 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     // Parágrafo explicativo sobre o que é o questionário psicossocial
     const introText = "Este laudo tem o objetivo de efetuar uma avaliação primária para captar o nível do estado de saúde mental, física e psicológica do trabalhador com a finalidade de encaminhar o mesmo para o atendimento psicológico presencial, caso possua a necessidade, diminuindo assim os riscos de ter um trabalhador fatigado, com tendências suicidas e com disposição para síndrome de Burnout. \n\nO questionário consiste em perguntas chave que verificam os níveis de satisfação com a vida pessoal e profissional, capacidade de resiliência, níveis de estresse, uso e abuso de álcool, drogas e medicação para dormir, doenças pré-existentes e fobias, já que essas patologias são as que mais afastam os colaboradores de seus serviços";
 
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor('#000000');
+    doc.setTextColor('#333333');
     // Prepara o texto distribuindo-o em linhas que respeitam as margens da página
     const introLines = doc.splitTextToSize(introText, contentWidth);
-    doc.text(introLines, margin, 55);
+    doc.text(introLines, margin, 48);
 
     // Calcula a posição vertical dinâmica para começar a próxima seção (evita textos sobrepostos)
-    let yPos = 55 + (introLines.length * 5) + 10;
+    let yPos = 48 + (introLines.length * 4.2) + 4;
     
     // --- 4. Tabela de Dados do Paciente ---
     drawSectionHeader('Dados do Paciente', yPos);
@@ -184,7 +184,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     });
 
     // Avança a posição vertical preparando o Gráfico
-    yPos = doc.lastAutoTable.finalY + 10;
+    yPos = doc.lastAutoTable.finalY + 4;
 
     // --- 6. Lógica de Gráfico e Cálculo de Pontuação ---
     // Define as cores institucionais para cada uma das 7 dimensões do exame
@@ -273,7 +273,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     }
 
     // --- Desenho Físico do Gráfico de Barras ---
-    const chartHeight = 75; // Altura do eixo vertical em mm
+    const chartHeight = 35; // Altura do eixo vertical reduzida (~50%)
     const chartWidth = contentWidth - 15; // Largura do eixo horizontal
     const chartX = margin + 10; // Recuo para os números da escala
     const chartY = yPos;
@@ -294,7 +294,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     }
 
     // Desenha as BARRAS COLORIDAS para cada categoria
-    const barWidth = 16;
+    const barWidth = 8; // Largura da barra reduzida para 50%
     const numCategories = categories.length;
     const sectionWidth = chartWidth / numCategories; // Espaço disponível para cada grupo
 
@@ -313,10 +313,10 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         doc.rect(xBar, yBar, barWidth, barHeight, 'F');
 
         // Escreve os rótulos (Labels) na base do gráfico com 25 graus de inclinação
-        doc.setFontSize(7);
+        doc.setFontSize(5);
         doc.setTextColor('#333333');
         doc.saveGraphicsState();
-        doc.text(cat.key, sectionCenterX, chartY + chartHeight + 12, { angle: 25, align: 'center' });
+        doc.text(cat.key, sectionCenterX, chartY + chartHeight + 9, { angle: 25, align: 'center' });
         doc.restoreGraphicsState();
     });
 
@@ -327,17 +327,12 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
 
     // --- 7. Documentação da Análise Narrativa (Relatório Escrito) ---
     if (narrativeData) {
-        let currentY = chartY + chartHeight + 20; // Posição abaixo do gráfico
+        let currentY = chartY + chartHeight + 14; // Subi a Análise (era 18)
 
-        // Verifica se a página acabou. Se sim, cria uma nova página.
-        if (currentY + 60 > doc.internal.pageSize.getHeight()) {
-            doc.addPage();
-            currentY = margin + 10;
-        }
-
+        // Removemos a verificação de quebra de página aqui para forçar o início na pág 1
         // Título da seção de texto
         drawSectionHeader('Análise', currentY);
-        currentY += 15;
+        currentY += 12;
 
         doc.setFontSize(10);
         const textWidth = contentWidth;
@@ -351,10 +346,10 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
 
             // Divide o parágrafo em linhas
             const lines = doc.splitTextToSize(text, textWidth);
-            const blockHeight = lines.length * 6;
+            const blockHeight = lines.length * 5; // Reduzi de 6 para 5 a altura da linha no bloco
 
-            // Se o bloco de texto exceder o fim da página atual
-            if (currentY + blockHeight > doc.internal.pageSize.getHeight() - margin) {
+            // Se o bloco de texto realmente exceder o fim da página atual (só quebra em último caso)
+            if (currentY + blockHeight > doc.internal.pageSize.getHeight() - 6) {
                 doc.addPage(); // Cria nova folha
                 currentY = margin + 10; // Reinicia o topo
             }
@@ -372,19 +367,19 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
 
         // Processa a impressão de cada parte de forma independente
         styledParts.filter(p => p.text).forEach(p => {
-            // O valor 3.5mm representa uma redução de 30% em relação aos 5mm originais
-            printBlock(p.text, 10, p.style, p.color, 'justify', 3.5); 
+            // O valor 2.5mm representa uma redução maior para garantir que caiba em uma página
+            printBlock(p.text, 9.5, p.style, p.color, 'justify', 2.5); 
         });
 
-        currentY += 10;
+        currentY += 2;
 
         // --- 8. Assinatura do Profissional ---
         // Se houver um médico selecionado, escreve o nome e CRP no rodapé do documento
         if (doctor && doctor.name) {
-            const signatureY = currentY + 35; // Espaço de 35mm para a assinatura física manual
+            const signatureY = currentY + 12; // Subi a assinatura (era 18)
             const signatureText = `Assinado por: ${doctor.name}, CRP-${doctor.crp || 'Não informado'}.`;
 
-            if (signatureY + 10 > doc.internal.pageSize.getHeight() - margin) {
+            if (signatureY + 5 > doc.internal.pageSize.getHeight() - 5) {
                 doc.addPage();
                 doc.text(signatureText, pageWidth / 2, margin + 10, { align: 'center' });
             } else {
