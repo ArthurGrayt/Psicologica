@@ -39,7 +39,7 @@ const SignatureUploadModal = ({ isOpen, onClose, onSign, loading }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/50 z-[11000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="bg-slate-900 p-4 text-white flex justify-between items-center border-b border-white/10">
                     <h3 className="font-bold flex items-center gap-2">

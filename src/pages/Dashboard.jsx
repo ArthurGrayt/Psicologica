@@ -12,6 +12,7 @@ import DateRangePicker from '../components/DateRangePicker';
 import { generateNarrative } from '../utils/narrativeLogic';
 import logoGamaUrl from '../assets/logo-gama.png';
 import AnswersPanel from '../components/AnswersPanel';
+import PdfPreviewModal from '../components/PdfPreviewModal';
 
 const Dashboard = () => {
     // Estado Mockado Removido. Apenas dados reais.
@@ -64,9 +65,14 @@ const Dashboard = () => {
     const [patientToSign, setPatientToSign] = useState(null);
     const [isSigningLoading, setIsSigningLoading] = useState(false);
 
-    // Doctor Selection Modal State (For Report Generation)
     const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
     const [selectedPatientForReport, setSelectedPatientForReport] = useState(null);
+
+    // PDF Preview State
+    const [isPdfPreviewOpen, setIsPdfPreviewOpen] = useState(false);
+    const [pdfPreviewData, setPdfPreviewData] = useState(null);
+    const [pdfPreviewPatient, setPdfPreviewPatient] = useState(null);
+    const [selectedDoctorForReport, setSelectedDoctorForReport] = useState(null);
 
     // Hook de Dados de Empresa
     const { companies, units, fetchUnits } = useCompanyData();
@@ -373,22 +379,58 @@ const Dashboard = () => {
     const paginatedPatients = filteredPatients.slice(startIndex, startIndex + itemsPerPage);
 
     // Handler for Report Generation (Normal and Signed)
-    const handleGenerateReportTrigger = (patient, isSigned = false) => {
-        if (isSigned) {
-            setPatientToSign(patient);
-            setIsSigModalOpen(true);
-        } else {
-            // New Flow: Select Doctor first
-            setSelectedPatientForReport(patient);
-            setIsDoctorModalOpen(true);
+    const handleGenerateReportTrigger = (patient) => {
+        // Novo fluxo unificado: Sempre seleciona médico primeiro para abrir o preview
+        setSelectedPatientForReport(patient);
+        setIsDoctorModalOpen(true);
+    };
+
+    const handleDoctorConfirm = async (doctor) => {
+        if (selectedPatientForReport) {
+            setSelectedDoctorForReport(doctor);
+            setPdfPreviewPatient(selectedPatientForReport);
+            setIsPdfPreviewOpen(true);
+            setPdfPreviewData(null); // Reset anterior
+
+            try {
+                // Gera o PDF em base64 para o preview
+                const { pdfBase64 } = await generateReportData(selectedPatientForReport, true, doctor);
+                setPdfPreviewData(pdfBase64);
+                console.log(`✅ [Sucesso] Laudo gerado em Base64 para visualização prévia (${selectedPatientForReport.name}).`);
+            } catch (err) {
+                console.error("❌ [Erro] Falha ao gerar visualização do laudo:", err);
+                alert("Erro ao gerar laudo: " + err.message);
+                setIsPdfPreviewOpen(false);
+            }
+            
+            setSelectedPatientForReport(null); // Limpa seleção de gatilho
         }
     };
 
-    const handleDoctorConfirm = (doctor) => {
-        if (selectedPatientForReport) {
-            generateReportLogic(selectedPatientForReport, doctor);
-            setSelectedPatientForReport(null); // Clear after generating
+    const handleDownloadPdf = () => {
+        if (!pdfPreviewData || !pdfPreviewPatient) return;
+        
+        const binaryString = window.atob(pdfPreviewData);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
         }
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Laudo_${pdfPreviewPatient.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    };
+
+    const handleStartSigning = () => {
+        if (!pdfPreviewPatient) return;
+        setPatientToSign(pdfPreviewPatient);
+        setIsSigModalOpen(true);
     };
 
     const handleSignAndDownload = async (pfxBase64, password) => {
@@ -406,7 +448,7 @@ const Dashboard = () => {
             // I'll implement this helper assuming I have access to the same data fetching logic.
             // I will implement `generateReportData` helper.
 
-            const { pdfBase64, patientName } = await generateReportData(patientToSign, true);
+            const { pdfBase64, patientName } = await generateReportData(patientToSign, true, selectedDoctorForReport);
 
             console.log('Sending to Edge Function...');
             const { data, error } = await supabase.functions.invoke('sign-pdf', {
@@ -1709,6 +1751,21 @@ const Dashboard = () => {
                     />
                 )}
             </div>
+
+            {/* Visualizador de PDF */}
+            <PdfPreviewModal
+                isOpen={isPdfPreviewOpen}
+                onClose={() => {
+                    setIsPdfPreviewOpen(false);
+                    setPdfPreviewData(null);
+                    setPdfPreviewPatient(null);
+                    setSelectedDoctorForReport(null);
+                }}
+                pdfBase64={pdfPreviewData}
+                patientName={pdfPreviewPatient?.name}
+                onDownload={handleDownloadPdf}
+                onSign={handleStartSigning}
+            />
 
             {/* Modal de Assinatura Digital */}
             <SignatureUploadModal
