@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Download, PenTool, Loader2, FileText, ExternalLink } from 'lucide-react';
 
-const PdfPreviewModal = ({ isOpen, onClose, pdfBase64, patientName, onDownload, onSign }) => {
+const PdfPreviewModal = ({ isOpen, onClose, pdfBase64, patientName, onDownload, onSign, reportDate, onDateChange }) => {
     if (!isOpen) return null;
 
     return (
@@ -73,14 +73,25 @@ const PdfPreviewModal = ({ isOpen, onClose, pdfBase64, patientName, onDownload, 
 
                 {/* Footer Actions */}
                 <div className="px-6 py-4 xl:px-8 xl:py-5 border-t border-slate-100 bg-slate-50 flex flex-col xl:flex-row items-center justify-between gap-4 flex-shrink-0">
-                    <div className="hidden xl:flex items-center gap-2 text-xs text-slate-400 font-medium">
-                         Dica: Verifique todos os dados antes de prosseguir com a assinatura.
+                    <div className="flex items-center gap-4">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Data do Laudo</label>
+                            <div className="relative">
+                                <input 
+                                    type="date" 
+                                    value={reportDate}
+                                    onChange={(e) => onDateChange(e.target.value)}
+                                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#139690] focus:border-transparent transition-all"
+                                />
+                            </div>
+                        </div>
                     </div>
                     
                     <div className="flex flex-col xl:flex-row items-center gap-2.5 w-full xl:w-auto">
                         <button
                             onClick={onDownload}
-                            className="w-full xl:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all active:scale-95 text-sm"
+                            disabled={!pdfBase64}
+                            className="w-full xl:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Download size={18} />
                             Baixar PDF
@@ -88,7 +99,8 @@ const PdfPreviewModal = ({ isOpen, onClose, pdfBase64, patientName, onDownload, 
                         
                         <button
                             onClick={onSign}
-                            className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-[#139690] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-lg shadow-[#139690]/20 transition-all active:scale-95 text-sm"
+                            disabled={!pdfBase64}
+                            className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-[#139690] text-white font-bold rounded-xl hover:bg-opacity-90 shadow-lg shadow-[#139690]/20 transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <PenTool size={18} />
                             Assinar Digitalmente

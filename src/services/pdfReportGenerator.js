@@ -109,10 +109,15 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     doc.line(margin, lineY, pageWidth - margin, lineY);
 
     // --- 2. Título Central do Laudo ---
-    // Nome do exame centralizado e em destaque
-    centerText('Avaliação Psicossocial', 40, 18, 'bold', '#139690');
-    // Data de hoje em que o arquivo foi gerado
-    centerText(`Data do exame: ${new Date().toLocaleDateString('pt-BR')}`, 46, 11, 'normal', '#139690');
+    // Define a data que será exibida no título (usa a data customizada ou a data atual)
+    const displayDate = options.reportDate 
+        ? new Date(options.reportDate + 'T12:00:00').toLocaleDateString('pt-BR') 
+        : new Date().toLocaleDateString('pt-BR');
+    
+    // Título e Data concatenados e centralizados na página
+    const reportTitle = `Avaliação Psicossocial - ${displayDate}`;
+    // Renderiza o texto centralizado na posição vertical 38mm
+    centerText(reportTitle, 38, 16, 'bold', '#139690');
 
     // --- 3. Texto Introdutório ---
     // Parágrafo explicativo sobre o que é o questionário psicossocial
@@ -123,13 +128,16 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     doc.setTextColor('#333333');
     // Prepara o texto distribuindo-o em linhas que respeitam as margens da página
     const introLines = doc.splitTextToSize(introText, contentWidth);
-    doc.text(introLines, margin, 48);
+    // Escreve o texto com um recuo vertical levemente menor (45mm)
+    doc.text(introLines, margin, 45); 
 
-    // Calcula a posição vertical dinâmica para começar a próxima seção (evita textos sobrepostos)
-    let yPos = 48 + (introLines.length * 4.2) + 4;
+    // Calcula a posição vertical dinâmica para começar a próxima seção (gap reduzido para economizar espaço)
+    let yPos = 45 + (introLines.length * 4.2) + 3;
     
     // --- 4. Tabela de Dados do Paciente ---
+    // Desenha o cabeçalho "Dados do Paciente" na posição calculada
     drawSectionHeader('Dados do Paciente', yPos);
+    // Incrementa posição para a tabela
     yPos += 10;
 
     // Estrutura os dados do paciente em um formato de grade para a função autoTable
@@ -138,53 +146,55 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         [{ content: 'Nascimento:', styles: { fontStyle: 'bold' } }, patient.nascimento || 'Não informado', { content: 'Sexo:', styles: { fontStyle: 'bold' } }, patient.sexo || 'Não informado'],
     ];
 
-    // Cria a tabela visual usando o plugin autoTable
+    // Cria a tabela visual usando o plugin autoTable com padding reduzido
     autoTable(doc, {
-        startY: yPos,
-        body: patientData,
-        theme: 'plain', // Sem linhas de grade pesadas
-        styles: { fontSize: 9, cellPadding: 2 },
+        startY: yPos, // Início da tabela
+        body: patientData, // Conteúdo
+        theme: 'plain', // Sem linhas pesadas
+        styles: { fontSize: 9, cellPadding: 1.5 }, // Padding reduzido para 1.5mm
         columnStyles: {
-            0: { cellWidth: 25 }, // Coluna "Nome:"
-            1: { cellWidth: 80 }, // Valor do Nome
-            2: { cellWidth: 25 }, // Coluna "CPF:"
-            3: { cellWidth: 'auto' } // Valor do CPF
+            0: { cellWidth: 25 }, // Coluna rótulo
+            1: { cellWidth: 80 }, // Valor do nome
+            2: { cellWidth: 25 }, // Coluna rótulo
+            3: { cellWidth: 'auto' } // CPF
         },
-        margin: { left: margin, right: margin }
+        margin: { left: margin, right: margin } // Margens laterais
     });
 
-    // Pega a posição de rodapé da última tabela para continuar escrevendo abaixo
-    yPos = doc.lastAutoTable.finalY + 5;
+    // Pega a posição final da tabela e adiciona um gap pequeno (3mm)
+    yPos = doc.lastAutoTable.finalY + 3;
 
     // --- 5. Tabela de Dados do Exame ---
     drawSectionHeader('Dados do Exame', yPos);
     yPos += 10;
 
-    // Formatação de data e hora atual no padrão brasileiro
-    const now = new Date();
-    const formattedDateTime = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    // Prepara a data formatada para a tabela (usa a data customizada se disponível)
+    const reportDateObj = options.reportDate ? new Date(options.reportDate + 'T12:00:00') : new Date();
+    // Formata apenas a data para exibição na tabela de Dados do Exame (sem horário conforme solicitado)
+    const formattedDate = reportDateObj.toLocaleDateString('pt-BR');
 
-    // Define os dados secundários do laudo
+    // Define os dados secundários do laudo para a tabela
     const examData = [
-        [{ content: 'Data do Laudo:', styles: { fontStyle: 'bold' } }, formattedDateTime, { content: 'Médico Responsável:', styles: { fontStyle: 'bold' } }, doctor ? doctor.name : 'Fabianni C. N. C. Mello']
+        [{ content: 'Data do Laudo:', styles: { fontStyle: 'bold' } }, formattedDate, { content: 'Médico Responsável:', styles: { fontStyle: 'bold' } }, doctor ? doctor.name : 'Fabianni C. N. C. Mello']
     ];
 
+    // Renderiza a tabela de dados do exame com padding otimizado
     autoTable(doc, {
-        startY: yPos,
-        body: examData,
-        theme: 'plain',
-        styles: { fontSize: 9, cellPadding: 2 },
+        startY: yPos, // Início vertical
+        body: examData, // Conteúdo do exame
+        theme: 'plain', // Estilo simples
+        styles: { fontSize: 9, cellPadding: 1.5 }, // Padding reduzido
         columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 80 },
-            2: { cellWidth: 35 },
-            3: { cellWidth: 'auto' }
+            0: { cellWidth: 25 }, // Data do laudo
+            1: { cellWidth: 80 }, // Data real
+            2: { cellWidth: 35 }, // Médico
+            3: { cellWidth: 'auto' } // Nome do médico
         },
-        margin: { left: margin, right: margin }
+        margin: { left: margin, right: margin } // Mantém margens
     });
 
-    // Avança a posição vertical preparando o Gráfico
-    yPos = doc.lastAutoTable.finalY + 4;
+    // Avança a posição vertical preparando o espaço do gráfico (gap de 3mm)
+    yPos = doc.lastAutoTable.finalY + 3;
 
     // --- 6. Lógica de Gráfico e Cálculo de Pontuação ---
     // Define as cores institucionais para cada uma das 7 dimensões do exame
@@ -273,30 +283,43 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     }
 
     // --- Desenho Físico do Gráfico de Barras ---
-    const chartHeight = 35; // Altura do eixo vertical reduzida (~50%)
-    const chartWidth = contentWidth - 15; // Largura do eixo horizontal
-    const chartX = margin + 10; // Recuo para os números da escala
+    // Altura reduzida para 28mm para economizar espaço vertical
+    const chartHeight = 28; 
+    // Largura útil do gráfico
+    const chartWidth = contentWidth - 15; 
+    // Recuo horizontal para a escala
+    const chartX = margin + 10; 
+    // Posição vertical calculada
     const chartY = yPos;
 
-    const maxScore = 10; // Limite superior fixo do gráfico (Escala 0-10)
+    // Escala máxima de 10 conforme solicitado
+    const maxScore = 10; 
 
-    // Desenha a GRADE (Grid) e NUMERAÇÃO VERTICAL (Escala 0-10)
-    doc.setDrawColor(200, 200, 200); // Cinza claro
-    doc.setLineWidth(0.1);
-    doc.setFontSize(8);
-    doc.setTextColor('#333333');
+    // Configuração das linhas de grade e da escala lateral
+    doc.setDrawColor(200, 200, 200); // Cor cinza suave
+    doc.setLineWidth(0.1); // Linha fina
+    doc.setFontSize(8); // Fonte pequena
+    doc.setTextColor('#333333'); // Cor do texto
 
-    for (let i = 0; i <= maxScore; i++) {
-        // Calcula a posição em Y de cada degrau da escala
+    // Loop para desenhar a escala de 2.5 em 2.5 (0, 2.5, 5.0, 7.5, 10)
+    for (let i = 0; i <= maxScore; i += 2.5) {
+        // Calcula a posição Y de cada linha da grade
         const yLine = chartY + chartHeight - (i / maxScore * chartHeight);
-        doc.text(i.toString(), chartX - 6, yLine + 1.5, { align: 'right' }); // Escreve o número
-        doc.line(chartX, yLine, chartX + chartWidth, yLine); // Desenha a linha horizontal da grade
+        // Formata o valor numérico para exibição (ex: 2.5, 5, 7.5)
+        const label = i % 1 === 0 ? i.toString() : i.toFixed(1);
+        // Escreve o rótulo da escala à esquerda do eixo
+        doc.text(label, chartX - 6, yLine + 1.5, { align: 'right' }); 
+        // Desenha a linha horizontal da grade cruzando o gráfico
+        doc.line(chartX, yLine, chartX + chartWidth, yLine); 
     }
 
-    // Desenha as BARRAS COLORIDAS para cada categoria
-    const barWidth = 8; // Largura da barra reduzida para 50%
+    // Desenha as BARRAS COLORIDAS para cada categoria do exame
+    // Largura da barra ajustada para melhor estética (10mm)
+    const barWidth = 20; 
+    // Total de categorias para distribuir no eixo X
     const numCategories = categories.length;
-    const sectionWidth = chartWidth / numCategories; // Espaço disponível para cada grupo
+    // Espaço horizontal reservado para cada grupo de barra
+    const sectionWidth = chartWidth / numCategories; 
 
     categories.forEach((cat, index) => {
         // Pega o valor calculado (agora já na escala 0-10)
@@ -326,65 +349,86 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     doc.rect(chartX, chartY, chartWidth, chartHeight, 'S');
 
     // --- 7. Documentação da Análise Narrativa (Relatório Escrito) ---
+    // Inicia a seção de análise se houver dados disponíveis
     if (narrativeData) {
-        let currentY = chartY + chartHeight + 14; // Subi a Análise (era 18)
+        // Desloca a seção para baixo: 10mm originais + 3.5mm (equivale a 10px) = 13.5mm abaixo do gráfico
+        let currentY = chartY + chartHeight + 13.5;
 
-        // Removemos a verificação de quebra de página aqui para forçar o início na pág 1
-        // Título da seção de texto
+        // Desenha o cabeçalho da seção com caixa colorida
         drawSectionHeader('Análise', currentY);
-        currentY += 12;
+        // Avança 14mm para iniciar o corpo do texto (proporcionando 6mm de padding do topo)
+        currentY += 14;
 
-        doc.setFontSize(10);
+        // Configura fonte padrão para o corpo da análise
+        doc.setFontSize(9.5);
+        // Usa a largura útil total da página
         const textWidth = contentWidth;
 
-        // Função para imprimir blocos de texto respeitando quebras de página automáticas
-        const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', align = 'left', spacing = 3.5) => {
+        // Função otimizada para imprimir texto processando tags HTML e forçando página única
+        const printBlock = (text, fontSize = 9.5, fontStyle = 'normal', color = '#333333', align = 'left', spacing = 2) => {
+            // Aborta se não houver conteúdo
             if (!text) return;
+            
+            // Limpa tags HTML para evitar que apareçam no PDF final
+            let processedText = text
+                .replace(/<p>/g, '') // Remove <p>
+                .replace(/<\/p>/g, '\n\n') // Converte </p> em quebra dupla
+                .replace(/<br\s*\/?>/g, '\n'); // Converte <br> em quebra simples
+
+            // Define estilos de fonte antes de processar as linhas
             doc.setFontSize(fontSize);
             doc.setFont('helvetica', fontStyle);
             doc.setTextColor(color);
 
-            // Divide o parágrafo em linhas
-            const lines = doc.splitTextToSize(text, textWidth);
-            const blockHeight = lines.length * 5; // Reduzi de 6 para 5 a altura da linha no bloco
+            // Divide o texto completo em parágrafos baseados em quebras de linha
+            const paragraphs = processedText.split('\n');
+            
+            // Processa cada parágrafo individualmente
+            paragraphs.forEach(paragraph => {
+                // Se parágrafo for vazio, adiciona apenas o espaçamento
+                if (paragraph.trim() === '') {
+                    currentY += spacing;
+                    return;
+                }
 
-            // Se o bloco de texto realmente exceder o fim da página atual (só quebra em último caso)
-            if (currentY + blockHeight > doc.internal.pageSize.getHeight() - 6) {
-                doc.addPage(); // Cria nova folha
-                currentY = margin + 10; // Reinicia o topo
-            }
+                // Quebra o parágrafo em linhas que respeitem a largura do papel
+                const lines = doc.splitTextToSize(paragraph, textWidth);
+                // Calcula altura baseada em um fator de 4.2 para economizar espaço vertical
+                const blockHeight = lines.length * 4.2; 
 
-            // Escreve as linhas no papel PDF
-            doc.text(lines, margin, currentY, { align: 'left' });
-            currentY += blockHeight + spacing; // Incrementa a posição vertical
+                // Desenha o texto efetivamente no documento
+                doc.text(lines, margin, currentY, { align: 'left' });
+                // Atualiza Y para o próximo bloco ou parágrafo
+                currentY += blockHeight + spacing;
+            });
         };
 
-
-        // Define a ordem e estilos das partes do laudo
+        // Define as fontes de texto para a narrativa (busca análise completa ou mental)
         const styledParts = [
             { text: narrativeData.full_analysis || narrativeData.mental_text, style: 'normal', color: '#333333' }
         ];
 
-        // Processa a impressão de cada parte de forma independente
+        // Processa cada parte com espaçamento reduzido (2mm)
         styledParts.filter(p => p.text).forEach(p => {
-            // O valor 2.5mm representa uma redução maior para garantir que caiba em uma página
-            printBlock(p.text, 9.5, p.style, p.color, 'justify', 2.5); 
+            // Chama a função de impressão sem possibilidade de quebra de página automática forçada aqui
+            printBlock(p.text, 9.5, p.style, p.color, 'justify', 2); 
         });
 
+        // Adiciona um gap final antes da assinatura (2mm)
         currentY += 2;
 
         // --- 8. Assinatura do Profissional ---
-        // Se houver um médico selecionado, escreve o nome e CRP no rodapé do documento
+        // Adiciona bloco de assinatura se o médico estiver definido
         if (doctor && doctor.name) {
-            const signatureY = currentY + 12; // Subi a assinatura (era 18)
+            // Posiciona a assinatura 8mm abaixo do texto (reduzido de 12mm)
+            const signatureY = currentY + 8;
+            // Texto formatado da assinatura
             const signatureText = `Assinado por: ${doctor.name}, CRP-${doctor.crp || 'Não informado'}.`;
 
-            if (signatureY + 5 > doc.internal.pageSize.getHeight() - 5) {
-                doc.addPage();
-                doc.text(signatureText, pageWidth / 2, margin + 10, { align: 'center' });
-            } else {
-                doc.text(signatureText, pageWidth / 2, signatureY, { align: 'center' });
-            }
+            // Garante que a assinatura seja impressa na pág 1 se houver qualquer espaço, caso contrário, imprime no limite inferior
+            const safeY = Math.min(signatureY, doc.internal.pageSize.getHeight() - 10);
+            // Centraliza o texto da assinatura na horizontal
+            doc.text(signatureText, pageWidth / 2, safeY, { align: 'center' });
         }
     }
 

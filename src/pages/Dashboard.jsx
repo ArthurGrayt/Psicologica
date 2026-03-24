@@ -73,6 +73,7 @@ const Dashboard = () => {
     const [pdfPreviewData, setPdfPreviewData] = useState(null);
     const [pdfPreviewPatient, setPdfPreviewPatient] = useState(null);
     const [selectedDoctorForReport, setSelectedDoctorForReport] = useState(null);
+    const [selectedReportDate, setSelectedReportDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Hook de Dados de Empresa
     const { companies, units, fetchUnits } = useCompanyData();
@@ -391,10 +392,13 @@ const Dashboard = () => {
             setPdfPreviewPatient(selectedPatientForReport);
             setIsPdfPreviewOpen(true);
             setPdfPreviewData(null); // Reset anterior
+            // Define a data padrão como hoje ao abrir um novo laudo
+            const today = new Date().toISOString().split('T')[0];
+            setSelectedReportDate(today);
 
             try {
-                // Gera o PDF em base64 para o preview
-                const { pdfBase64 } = await generateReportData(selectedPatientForReport, true, doctor);
+                // Gera o PDF em base64 para o preview usando a data padrão
+                const { pdfBase64 } = await generateReportData(selectedPatientForReport, true, doctor, today);
                 setPdfPreviewData(pdfBase64);
                 console.log(`✅ [Sucesso] Laudo gerado em Base64 para visualização prévia (${selectedPatientForReport.name}).`);
             } catch (err) {
@@ -420,11 +424,27 @@ const Dashboard = () => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Laudo_${pdfPreviewPatient.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        // Usa a data selecionada para o nome do arquivo se disponível
+        const fileDate = selectedReportDate || new Date().toISOString().split('T')[0];
+        a.download = `Laudo_${pdfPreviewPatient.name.replace(/\s+/g, '_')}_${fileDate}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+    };
+
+    // Handler para mudança de data no modal (regenera o PDF)
+    const handleReportDateChange = async (newDate) => {
+        setSelectedReportDate(newDate);
+        if (pdfPreviewPatient && selectedDoctorForReport) {
+            setPdfPreviewData(null); // Mostra o loader
+            try {
+                const { pdfBase64 } = await generateReportData(pdfPreviewPatient, true, selectedDoctorForReport, newDate);
+                setPdfPreviewData(pdfBase64);
+            } catch (err) {
+                console.error("Erro ao atualizar data do laudo:", err);
+            }
+        }
     };
 
     const handleStartSigning = () => {
@@ -510,7 +530,7 @@ const Dashboard = () => {
     // Existing helper refactor needed here?
     // I'll add the `generateReportData` function here.
 
-    const generateReportData = async (patient, returnBase64 = false, doctor = null) => {
+    const generateReportData = async (patient, returnBase64 = false, doctor = null, reportDate = null) => {
         // Busca a avaliação específica vinculada ao paciente
         let assessment = null;
         
@@ -583,6 +603,8 @@ const Dashboard = () => {
         }
 
         const options = doctor ? { doctor } : {};
+        // Inclui a data customizada nas opções do gerador de PDF
+        if (reportDate) options.reportDate = reportDate;
         if (returnBase64) {
             options.returnBase64 = true;
             const b64 = generatePDF(patient, assessment, answers, questions, logoBase64, narrativeData, options);
@@ -1765,6 +1787,8 @@ const Dashboard = () => {
                 patientName={pdfPreviewPatient?.name}
                 onDownload={handleDownloadPdf}
                 onSign={handleStartSigning}
+                reportDate={selectedReportDate}
+                onDateChange={handleReportDateChange}
             />
 
             {/* Modal de Assinatura Digital */}
