@@ -185,10 +185,10 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         theme: 'plain', // Estilo simples
         styles: { fontSize: 9, cellPadding: 1.5 }, // Padding reduzido
         columnStyles: {
-            0: { cellWidth: 25 }, // Data do laudo
-            1: { cellWidth: 80 }, // Data real
-            2: { cellWidth: 35 }, // Médico
-            3: { cellWidth: 'auto' } // Nome do médico
+            0: { halign: 'left', cellWidth: 26 }, // Rótulo "Data do Laudo:" grudado na margem esquerda
+            1: { halign: 'left', cellWidth: 'auto' }, // Valor da data grudado no rótulo (o 'auto' cria o gap no meio)
+            2: { halign: 'right', cellWidth: 'auto' }, // Rótulo "Médico Responsável:" grudado no nome (o 'auto' cria o gap no meio)
+            3: { halign: 'right', cellWidth: 60 }  // Nome do médico grudado na margem direita
         },
         margin: { left: margin, right: margin } // Mantém margens
     });
