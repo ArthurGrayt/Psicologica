@@ -77,12 +77,24 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                             <button
                                 className="p-2 -mr-2 text-slate-300 hover:text-slate-600 transition-colors"
                                 onClick={(e) => {
+                                    // Previne a propagação do clique para elementos pai
                                     e.stopPropagation();
+                                    // Obtém as coordenadas do botão clicado
                                     const rect = e.currentTarget.getBoundingClientRect();
+                                    // Define uma altura estimada para o dropdown no mobile para cálculo de espaço
+                                    const dropdownHeight = 260;
+                                    // Calcula o espaço livre abaixo do botão
+                                    const spaceBelow = window.innerHeight - rect.bottom;
+                                    
+                                    // Se o espaço abaixo for menor que a altura do dropdown, abre para cima
+                                    const openUpward = spaceBelow < dropdownHeight;
+
+                                    // Define a posição do menu flutuante (fixed)
                                     setDropdownPosition({
-                                        top: rect.bottom + 5,
-                                        right: window.innerWidth - rect.right + 20 // Adjust for mobile padding
+                                        top: openUpward ? rect.top - dropdownHeight - 5 : rect.bottom + 5,
+                                        right: window.innerWidth - rect.right + 20 // Ajuste para o padding lateral do mobile
                                     });
+                                    // Alterna a exibição do dropdown para este paciente específico
                                     setOpenDropdownId(openDropdownId === patient.id ? null : patient.id);
                                 }}
                             >
@@ -222,9 +234,7 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                         className="w-full flex items-center gap-3 px-5 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors group"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (window.confirm('Tem certeza que deseja excluir este paciente?')) {
-                                                onDelete(patient.id);
-                                            }
+                                            onDelete(patient.id, patient.uuid_colab);
                                             setOpenDropdownId(null);
                                         }}
                                     >
@@ -464,13 +474,24 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                                     }`}
                                                 title="Configurações"
                                                 onClick={(e) => {
+                                                    // Evita disparar eventos em elementos de tabela pai
                                                     e.stopPropagation();
-                                                    // Calculate position before opening
+                                                    // Obtém o retângulo de posicionamento do botão de ações
                                                     const rect = e.currentTarget.getBoundingClientRect();
+                                                    // Altura máxima estimada para o dropdown desktop (com todos os botões)
+                                                    const dropdownHeight = 280;
+                                                    // Verifica o espaço restante no viewport abaixo do botão
+                                                    const spaceBelow = window.innerHeight - rect.bottom;
+                                                    
+                                                    // Decisão de direção: Abre para cima se não couber embaixo
+                                                    const openUpward = spaceBelow < dropdownHeight;
+
+                                                    // Atualiza o estado de posição com base na decisão de direção
                                                     setDropdownPosition({
-                                                        top: rect.bottom + 5,
+                                                        top: openUpward ? rect.top - dropdownHeight - 5 : rect.bottom + 5,
                                                         right: window.innerWidth - rect.right
                                                     });
+                                                    // Abre ou fecha o menu deste registro
                                                     setOpenDropdownId(openDropdownId === patient.id ? null : patient.id);
                                                 }}
                                             >
@@ -563,9 +584,7 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors group"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (window.confirm('Tem certeza que deseja excluir este paciente?')) {
-                                                                onDelete(patient.id);
-                                                            }
+                                                            onDelete(patient.id, patient.uuid_colab);
                                                             setOpenDropdownId(null);
                                                         }}
                                                     >

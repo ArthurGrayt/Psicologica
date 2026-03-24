@@ -343,7 +343,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         const textWidth = contentWidth;
 
         // Função para imprimir blocos de texto respeitando quebras de página automáticas
-        const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', align = 'justify', spacing = 3.5) => {
+        const printBlock = (text, fontSize = 10, fontStyle = 'normal', color = '#333333', align = 'left', spacing = 3.5) => {
             if (!text) return;
             doc.setFontSize(fontSize);
             doc.setFont('helvetica', fontStyle);
@@ -351,7 +351,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
 
             // Divide o parágrafo em linhas
             const lines = doc.splitTextToSize(text, textWidth);
-            const blockHeight = lines.length * 5;
+            const blockHeight = lines.length * 6;
 
             // Se o bloco de texto exceder o fim da página atual
             if (currentY + blockHeight > doc.internal.pageSize.getHeight() - margin) {
@@ -360,7 +360,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
             }
 
             // Escreve as linhas no papel PDF
-            doc.text(lines, margin, currentY, { align: align === 'justify' ? 'justify' : 'left', maxWidth: textWidth });
+            doc.text(lines, margin, currentY, { align: 'left' });
             currentY += blockHeight + spacing; // Incrementa a posição vertical
         };
 

@@ -591,29 +591,66 @@ const Dashboard = () => {
         // Filtered will update via Effect or valid re-render, but usually better to update state source
     };
 
-    const handleDeletePatient = async (id) => {
+    const handleDeletePatient = async (id, uuidColab = null) => {
+        // Confirmação de segurança para o usuário
+        if (!window.confirm('Tem certeza que deseja remover este paciente do dashboard e excluir suas respostas e avaliações?')) {
+            return;
+        }
+
         try {
-            // Deletar o paciente diretamente da tabela patients
-            const { error } = await supabase
-                .from('patients')
-                .delete()
-                .eq('id', id);
+            console.log(`--- INICIANDO EXCLUSÃO SELETIVA --- ID: ${id}, UUID_COLAB: ${uuidColab}`);
+            
+            if (uuidColab) {
+                // 1. Limpar Respostas de outros formulários (vínculo 'respondedor')
+                console.log('Limpando form_answers do colaborador...');
+                await supabase.from('form_answers').delete().eq('respondedor', uuidColab);
 
-            if (error) throw error;
+                // 2. Identificar e limpar Avaliações e Respostas Principais
+                const { data: assessments } = await supabase
+                    .from('assessments')
+                    .select('id')
+                    .eq('patient_id', uuidColab);
 
-            // Atualizar estado local
-            // Atualizar estado local
-            const newPatients = patients.filter(p => p.id !== id);
-            setPatients(newPatients);
-            // setFilteredPatients will auto-update via Effect if we depended on patients, 
-            // but we added it to dependency array so it should trigger.
+                if (assessments && assessments.length > 0) {
+                    const assessmentIds = assessments.map(a => a.id);
+                    console.log('Limpando respostas e avaliações:', assessmentIds);
+                    
+                    // Deleta respostas primeiro (filhas)
+                    await supabase.from('answers').delete().in('assessment_id', assessmentIds);
+                    
+                    // Deleta avaliações depois (mães)
+                    await supabase.from('assessments').delete().in('id', assessmentIds);
+                }
 
-            // alert('Paciente excluído com sucesso.'); 
-            // Opcional: Toast notification
+                // 3. Deletar TODAS as entradas na tabela 'patients' vinculadas a este colaborador
+                // Usamos o uuid_colab para garantir que suma do Dashboard
+                console.log('Limpando referências na tabela patients (Dashboard)...');
+                const { error: pError } = await supabase
+                    .from('patients')
+                    .delete()
+                    .eq('uuid_colab', uuidColab);
+
+                if (pError) throw pError;
+
+                // NOTA: Conforme instrução, as tabelas 'colaboradores' e 'agendamentos' não são tocadas.
+            } else {
+                // Fallback caso não tenhamos o uuidColab (deleta apenas o registro da tabela patients)
+                const { error: pError } = await supabase
+                    .from('patients')
+                    .delete()
+                    .eq('id', id);
+                if (pError) throw pError;
+            }
+
+            // Atualizar estado local para refletir a exclusão na UI imediatamente
+            setPatients(prev => prev.filter(p => uuidColab ? p.uuid_colab !== uuidColab : p.id !== id));
+            setFilteredPatients(prev => prev.filter(p => uuidColab ? p.uuid_colab !== uuidColab : p.id !== id));
+
+            alert('Paciente removido do Dashboard e registros de respostas excluídos com sucesso.');
 
         } catch (err) {
-            console.error('Erro ao excluir paciente:', err);
-            alert('Erro ao excluir: ' + err.message);
+            console.error('Erro crítico na exclusão:', err);
+            alert('Erro ao excluir: ' + (err.message || 'Falha na conexão com o banco'));
         }
     };
 

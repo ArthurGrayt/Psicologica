@@ -1,18 +1,69 @@
-import React, { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Stethoscope, ClipboardList, Menu, Activity, LogOut } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 import logoGamaUrl from '../assets/logo-gama.png';
+import DevFloatingButton from '../components/DevFloatingButton';
 
 const AdminLayout = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+
+    // Efeito para checar se o usuário de fato tem uma sessão no Supabase para ver o painel
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            // Se não houver sessão de login, o app expulsa o usuário para a rota padrão
+            if (!session) {
+                navigate('/login');
+            } else {
+                // Se estiver logado, libera o carregamento visual da interface interna
+                setIsLoadingAuth(false);
+            }
+        };
+        checkAuth();
+        
+        // Listener contínuo caso o token vença
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT' || !session) {
+                navigate('/login');
+            }
+        });
+
+        return () => {
+            authListener?.subscription.unsubscribe();
+        };
+    }, [navigate]);
+
+    // Função para tratar o logout do sistema
+    const handleLogout = async () => {
+        try {
+            await supabase.auth.signOut();
+            navigate('/');
+            // Opcionalmente recarrega a página para limpar estados em memória
+            window.location.reload();
+        } catch (error) {
+            console.error('Erro ao sair do sistema:', error);
+        }
+    };
 
     const menuItems = [
         { icon: LayoutDashboard, label: 'Pacientes', path: '/admin/dashboard' },
         { icon: Stethoscope, label: 'Médicos', path: '/admin/doctors' },
         { icon: ClipboardList, label: 'Formulários', path: '/admin/quiz-settings' },
     ];
+
+    // Tela de carregamento enquanto valida se o usuário pode acessar
+    if (isLoadingAuth) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-[#f8fafc]">
+                 <div className="w-12 h-12 border-4 border-[#139690] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
@@ -66,7 +117,10 @@ const AdminLayout = () => {
                         </div>
                     </div>
 
-                    <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white border border-gray-200 hover:bg-red-50 hover:border-red-100 hover:text-red-600 text-xs font-semibold text-slate-500 transition-all">
+                    <button 
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white border border-gray-200 hover:bg-red-50 hover:border-red-100 hover:text-red-600 text-xs font-semibold text-slate-500 transition-all"
+                    >
                         <LogOut size={14} />
                         <span>Sair do Sistema</span>
                     </button>
@@ -113,6 +167,8 @@ const AdminLayout = () => {
                     );
                 })}
             </div>
+            
+            <DevFloatingButton />
         </div>
     );
 };
