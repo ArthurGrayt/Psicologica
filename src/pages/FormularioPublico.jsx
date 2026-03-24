@@ -141,7 +141,7 @@ const SignatureModal = ({ isOpen, onClose, onSave, loading }) => {
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
             {/* O container agora usa max-w-2xl (cerca de 50% maior que md) e se ajusta ao landscape */}
-            <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-2xl landscape:max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-3.8xl landscape:max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="bg-[#35b6cf] p-4 text-white flex justify-between items-center border-b border-white/10 flex-shrink-0">
                     <h3 className="font-bold flex items-center gap-2">
                         <AlignLeft size={18} />
