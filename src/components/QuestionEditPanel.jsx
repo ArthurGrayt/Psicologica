@@ -68,7 +68,7 @@ const QuestionEditPanel = ({ isOpen, onClose, question, onSave, categories }) =>
             />
 
             {/* Panel */}
-            <div className={`fixed top-0 right-0 h-full w-full md:w-[35%] bg-white z-[60] shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-transform duration-500 ease-in-out transform flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className={`fixed top-0 right-0 h-full w-full lg:w-[35%] bg-white z-[60] shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-transform duration-500 ease-in-out transform flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-slate-50">
