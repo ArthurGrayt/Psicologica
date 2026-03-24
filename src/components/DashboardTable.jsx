@@ -172,18 +172,21 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                     }}
                                     className="w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
                                 >
-                                    <button
-                                        className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            // Passa uuid_colab (UUID) em vez de id (numérico) para evitar erro de tipo no Supabase
-                                            onGenerateForm(patient.uuid_colab);
-                                            setOpenDropdownId(null);
-                                        }}
-                                    >
-                                        <LinkIcon size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" />
-                                        <span className="font-medium">Gerar Link</span>
-                                    </button>
+                                    {/* Oculta Gerar Link se já estiver respondido ou laudado */}
+                                    {!(patient.status === 'completed' || patient.status === 'Concluído' || patient.status === 'reported' || patient.status === 'Laudado') && (
+                                        <button
+                                            className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                // Passa uuid_colab (UUID) em vez de id (numérico) para evitar erro de tipo no Supabase
+                                                onGenerateForm(patient.uuid_colab);
+                                                setOpenDropdownId(null);
+                                            }}
+                                        >
+                                            <LinkIcon size={18} className="text-slate-400 group-hover:text-[#139690] transition-colors" />
+                                            <span className="font-medium">Gerar Link</span>
+                                        </button>
+                                    )}
 
                                     <button
                                         className="w-full flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
@@ -493,18 +496,21 @@ const DashboardTable = ({ patients, totalItems, currentPage, itemsPerPage, onPag
                                                     }}
                                                     className="w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 animate-in fade-in slide-in-from-top-2 duration-200 text-left"
                                                 >
-                                                    <button
-                                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            // Passa uuid_colab (UUID) em vez de id (numérico) para evitar erro de tipo no Supabase
-                                                            onGenerateForm(patient.uuid_colab);
-                                                            setOpenDropdownId(null);
-                                                        }}
-                                                    >
-                                                        <LinkIcon size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
-                                                        <span className="font-medium align-middle">Gerar Link</span>
-                                                    </button>
+                                                    {/* Oculta Gerar Link se já estiver respondido ou laudado */}
+                                                    {!(patient.status === 'completed' || patient.status === 'Concluído' || patient.status === 'reported' || patient.status === 'Laudado') && (
+                                                        <button
+                                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // Passa uuid_colab (UUID) em vez de id (numérico) para evitar erro de tipo no Supabase
+                                                                onGenerateForm(patient.uuid_colab);
+                                                                setOpenDropdownId(null);
+                                                            }}
+                                                        >
+                                                            <LinkIcon size={16} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
+                                                            <span className="font-medium align-middle">Gerar Link</span>
+                                                        </button>
+                                                    )}
 
                                                     <button
                                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors group"

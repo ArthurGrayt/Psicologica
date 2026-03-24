@@ -140,10 +140,15 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     // Incrementa posição para a tabela
     yPos += 10;
 
+    // Converte a sigla do sexo para o nome por extenso (Ex: M -> Masculino)
+    const genderFull = (patient.sexo === 'M' || patient.sexo === 'Masculino') ? 'Masculino' : 
+                       (patient.sexo === 'F' || patient.sexo === 'Feminino') ? 'Feminino' : 
+                       (patient.sexo || 'Não informado');
+
     // Estrutura os dados do paciente em um formato de grade para a função autoTable
     const patientData = [
         [{ content: 'Nome:', styles: { fontStyle: 'bold' } }, patient.name, { content: 'CPF:', styles: { fontStyle: 'bold' } }, patient.cpf || 'Não informado'],
-        [{ content: 'Nascimento:', styles: { fontStyle: 'bold' } }, patient.nascimento || 'Não informado', { content: 'Sexo:', styles: { fontStyle: 'bold' } }, patient.sexo || 'Não informado'],
+        [{ content: 'Nascimento:', styles: { fontStyle: 'bold' } }, patient.nascimento || 'Não informado', { content: 'Sexo:', styles: { fontStyle: 'bold' } }, genderFull],
     ];
 
     // Cria a tabela visual usando o plugin autoTable com padding reduzido
@@ -263,20 +268,20 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
         });
 
         // Aplicação dos FATORES DE CORREÇÃO (Igual ao narrativeLogic)
-        // Isso garante que todos os dados internos terminem em uma escala de 0 a 10
+        // Isso garante que todos os dados internos terminem em uma escala de 0 a 5
         const finalFactors = {
-            'Insatisfação Pessoal': 10 / 24,
-            'Ansiedade': 10 / 32,
-            'Depressão': 10 / 36,
-            'Álcool': 10 / 38,
-            'Drogas ou Remédios': 10 / 20,
-            'Sono': 10 / 10,
-            'Fumo': 10 / 14
+            'Insatisfação Pessoal': 5 / 24,
+            'Ansiedade': 5 / 32,
+            'Depressão': 5 / 36,
+            'Álcool': 5 / 38,
+            'Drogas ou Remédios': 5 / 20,
+            'Sono': 5 / 10,
+            'Fumo': 5 / 14
         };
 
         Object.keys(scores).forEach(key => {
             if (finalFactors[key]) {
-                // Multiplica o score bruto pelo fator para chegar no valor entre 0 e 10
+                // Multiplica o score bruto pelo fator para chegar no valor entre 0 e 5
                 scores[key] = scores[key] * finalFactors[key];
             }
         });
@@ -292,8 +297,8 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     // Posição vertical calculada
     const chartY = yPos;
 
-    // Escala máxima de 10 conforme solicitado
-    const maxScore = 10; 
+    // Escala máxima de 5 conforme solicitado
+    const maxScore = 5; 
 
     // Configuração das linhas de grade e da escala lateral
     doc.setDrawColor(200, 200, 200); // Cor cinza suave
@@ -301,12 +306,12 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     doc.setFontSize(8); // Fonte pequena
     doc.setTextColor('#333333'); // Cor do texto
 
-    // Loop para desenhar a escala de 2.5 em 2.5 (0, 2.5, 5.0, 7.5, 10)
-    for (let i = 0; i <= maxScore; i += 2.5) {
+    // Loop para desenhar a escala de 1 em 1 (0, 1, 2, 3, 4, 5)
+    for (let i = 0; i <= maxScore; i += 1) {
         // Calcula a posição Y de cada linha da grade
         const yLine = chartY + chartHeight - (i / maxScore * chartHeight);
-        // Formata o valor numérico para exibição (ex: 2.5, 5, 7.5)
-        const label = i % 1 === 0 ? i.toString() : i.toFixed(1);
+        // Formata o valor numérico para exibição (ex: 0, 1, 2, 3, 4, 5)
+        const label = i.toString();
         // Escreve o rótulo da escala à esquerda do eixo
         doc.text(label, chartX - 6, yLine + 1.5, { align: 'right' }); 
         // Desenha a linha horizontal da grade cruzando o gráfico
@@ -322,7 +327,7 @@ export const generatePDF = (patient, assessment, answers, questions, logoBase64,
     const sectionWidth = chartWidth / numCategories; 
 
     categories.forEach((cat, index) => {
-        // Pega o valor calculado (agora já na escala 0-10)
+        // Pega o valor calculado (agora já na escala 0-5)
         const score = Math.min(scores[cat.key] || 0, maxScore);
         const barHeight = (score / maxScore) * chartHeight; // Converte valor em milímetros de barra
 
