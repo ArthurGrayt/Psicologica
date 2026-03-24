@@ -79,9 +79,9 @@ const AdminLayout = () => {
     return (
         <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
             {/* Sidebar (Hidden on Mobile/Tablet/iPad Pro) */}
-            <aside className="hidden xl:flex flex-col w-72 bg-white border-r border-gray-200 text-slate-600 h-screen z-40 relative">
+            <aside className="hidden xl:flex flex-col w-52 bg-white border-r border-gray-200 text-slate-600 h-screen z-40 relative">
                 {/* Logo Area */}
-                <div className="px-8 py-8 flex items-center justify-between">
+                <div className="px-6 py-8 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <img src={logoGamaUrl} alt="Logo Gama" className="h-10 w-auto" />
                         <div>
@@ -117,7 +117,7 @@ const AdminLayout = () => {
                 </nav>
 
                 {/* User Profile / Footer - Clean Style */}
-                <div className="px-4 py-8 mt-auto border-t border-gray-100">
+                <div className="px-3 py-8 mt-auto border-t border-gray-100">
                     <div className="flex items-center gap-3 px-2 mb-6">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-brand-secondary font-bold text-sm">
                             AR
@@ -133,7 +133,7 @@ const AdminLayout = () => {
                         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white border border-gray-200 hover:bg-red-50 hover:border-red-100 hover:text-red-600 text-xs font-semibold text-slate-500 transition-all"
                     >
                         <LogOut size={14} />
-                        <span>Sair do Sistema</span>
+                        <span>Sair</span>
                     </button>
 
                     <p className="text-center text-[9px] text-slate-300 mt-6 tracking-widest uppercase">
