@@ -40,66 +40,73 @@ const SignatureUploadModal = ({ isOpen, onClose, onSign, loading }) => {
 
     return (
         <div className="fixed inset-0 bg-black/50 z-[11000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="bg-slate-900 p-4 text-white flex justify-between items-center border-b border-white/10">
-                    <h3 className="font-bold flex items-center gap-2">
+            {/* Container do Modal: No mobile horizontal (landscape), aumenta o max-width e max-height */}
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md landscape:max-w-2xl landscape:max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-slate-900 p-3 md:p-4 text-white flex justify-between items-center border-b border-white/10 flex-shrink-0">
+                    <h3 className="font-bold flex items-center gap-2 text-sm md:text-base">
                         <FileText size={18} className="text-[#35b6cf]" />
                         Assinar Laudo Digitalmente
                     </h3>
                     <button onClick={onClose} className="hover:bg-white/10 p-1 rounded transition-colors"><X size={20} /></button>
                 </div>
 
-                <div className="p-6 bg-slate-50 space-y-5">
-                    {/* File Upload Area */}
-                    <div
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 
-                            ${pfxFile ? 'border-green-400 bg-green-50' : 'border-slate-300 hover:border-[#35b6cf] hover:bg-white'}`}
-                    >
-                        <input
-                            type="file"
-                            accept=".pfx,.p12"
-                            ref={fileInputRef}
-                            className="hidden"
-                            onChange={handleFileChange}
-                        />
+                <div className="p-4 md:p-6 bg-slate-50 overflow-y-auto flex-1">
+                    {/* Em landscape mobile, usa grid de 2 colunas para economizar altura */}
+                    <div className="flex flex-col landscape:grid landscape:grid-cols-2 gap-4 md:gap-6">
+                        {/* File Upload Area */}
+                        <div
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`border-2 border-dashed rounded-xl p-4 md:p-6 text-center cursor-pointer transition-all duration-200 flex flex-col justify-center
+                                ${pfxFile ? 'border-green-400 bg-green-50' : 'border-slate-300 hover:border-[#35b6cf] hover:bg-white bg-white/50'}`}
+                        >
+                            <input
+                                type="file"
+                                accept=".pfx,.p12"
+                                ref={fileInputRef}
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
 
-                        {pfxFile ? (
-                            <div className="flex flex-col items-center gap-2 text-green-700">
-                                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                    <Check size={20} />
+                            {pfxFile ? (
+                                <div className="flex flex-col items-center gap-2 text-green-700">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                        <Check size={20} />
+                                    </div>
+                                    <span className="font-medium text-xs md:text-sm truncate max-w-full px-2">{pfxFile.name}</span>
+                                    <span className="text-[10px] md:text-xs opacity-70">Clique para alterar</span>
                                 </div>
-                                <span className="font-medium text-sm truncate max-w-full px-2">{pfxFile.name}</span>
-                                <span className="text-xs opacity-70">Clique para alterar</span>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center gap-2 text-slate-500">
-                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-1">
-                                    <Upload size={20} />
+                            ) : (
+                                <div className="flex flex-col items-center gap-2 text-slate-500">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-slate-100 rounded-full flex items-center justify-center mb-1">
+                                        <Upload size={20} />
+                                    </div>
+                                    <span className="font-medium text-xs md:text-sm">Selecione o arquivo .PFX ou .P12</span>
+                                    <span className="text-[10px] md:text-xs opacity-70 italic text-slate-400">Clique ou arraste o certificado digital</span>
                                 </div>
-                                <span className="font-medium text-sm">Selecione o arquivo .PFX ou .P12</span>
-                                <span className="text-xs opacity-70">Certificado Digital e-CPF ou e-CNPJ</span>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
 
-                    {/* Password Input */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5 ml-1">Senha do Certificado</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-[#35b6cf] focus:ring-2 focus:ring-[#35b6cf]/20 outline-none transition-all placeholder:text-slate-400 text-sm"
-                            placeholder="Digite a senha..."
-                        />
-                        <p className="text-[10px] text-slate-400 mt-1.5 ml-1 flex items-center gap-1">
-                            <LockIcon size={10} /> Sua senha não será salva, apenas usada para assinar agora.
-                        </p>
+                        {/* Password and Info Area */}
+                        <div className="flex flex-col justify-center space-y-4">
+                            <div>
+                                <label className="block text-[10px] md:text-xs font-bold text-slate-600 uppercase mb-1.5 ml-1">Senha do Certificado</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-4 py-2 md:py-2.5 rounded-lg border border-slate-300 focus:border-[#35b6cf] focus:ring-2 focus:ring-[#35b6cf]/20 outline-none transition-all placeholder:text-slate-400 text-sm"
+                                    placeholder="Digite a senha..."
+                                />
+                                <p className="text-[9px] md:text-[10px] text-slate-400 mt-2 ml-1 flex items-start gap-1.5 leading-tight">
+                                    <LockIcon size={12} className="mt-0.5 flex-shrink-0" /> 
+                                    <span>Segurança total: Sua senha é processada apenas localmente para a assinatura e nunca será enviada ou salva em nossos servidores.</span>
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="p-4 bg-white border-t border-slate-100 flex justify-end gap-3">
+                <div className="p-3 md:p-4 bg-white border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
                     <button
                         onClick={onClose}
                         disabled={loading}
