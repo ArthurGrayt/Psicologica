@@ -20,6 +20,7 @@ const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState(''); // State for search input
     const [isLoading, setIsLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
+    const [narrativeConfigs, setNarrativeConfigs] = useState(null);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -256,9 +257,28 @@ const Dashboard = () => {
         }
     };
 
+    // Busca as configurações narrativas dinâmicas
+    const fetchNarrativeConfigs = async () => {
+        try {
+            const { data, error } = await supabase.from('narrative_configs').select('*');
+            if (!error && data && data.length > 0) {
+                // Agrupa por categoria para facilitar o uso no narrativeLogic
+                const grouped = {};
+                data.forEach(item => {
+                    if (!grouped[item.category]) grouped[item.category] = [];
+                    grouped[item.category].push(item);
+                });
+                setNarrativeConfigs(grouped);
+            }
+        } catch (err) {
+            console.warn('Não foi possível carregar configurações dinâmicas do laudo:', err);
+        }
+    };
+
     // Load on Mount
-    React.useEffect(() => {
+    useEffect(() => {
         fetchPatients();
+        fetchNarrativeConfigs();
     }, []);
 
     // Search & Filter Effect
@@ -484,7 +504,7 @@ const Dashboard = () => {
         let narrativeData = null;
         try {
             console.log('Calculating narrative client-side...');
-            narrativeData = generateNarrative(assessment, answers, questions);
+            narrativeData = generateNarrative(assessment, answers, questions, narrativeConfigs);
         } catch (err) {
             console.error('Error in client-side narrative generation:', err);
             narrativeData = {
@@ -911,7 +931,7 @@ const Dashboard = () => {
                     .select('*, categories:category_key(name)');
 
                 if (isMounted) {
-                    const narrativeData = generateNarrative(assessment, answers, questions);
+                    const narrativeData = generateNarrative(assessment, answers, questions, narrativeConfigs);
                     setNarrativePreview({ loading: false, data: narrativeData, error: null });
                 }
             } catch (err) {

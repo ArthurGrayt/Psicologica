@@ -9,8 +9,10 @@ import DevFloatingButton from '../components/DevFloatingButton';
 const AdminLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [user, setUser] = useState(null);
     const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+
+    const MASTER_USER_ID = '9cff7ed7-00b3-41d9-99e1-f235c5de9174';
 
     // Efeito para checar se o usuário de fato tem uma sessão no Supabase para ver o painel
     useEffect(() => {
@@ -21,6 +23,7 @@ const AdminLayout = () => {
                 navigate('/login');
             } else {
                 // Se estiver logado, libera o carregamento visual da interface interna
+                setUser(session.user);
                 setIsLoadingAuth(false);
             }
         };
@@ -29,7 +32,10 @@ const AdminLayout = () => {
         // Listener contínuo caso o token vença
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_OUT' || !session) {
+                setUser(null);
                 navigate('/login');
+            } else if (session) {
+                setUser(session.user);
             }
         });
 
@@ -55,6 +61,11 @@ const AdminLayout = () => {
         { icon: Stethoscope, label: 'Médicos', path: '/admin/doctors' },
         { icon: ClipboardList, label: 'Formulários', path: '/admin/quiz-settings' },
     ];
+
+    // Se for o usuário mestre, adiciona a aba de configurações
+    if (user?.id === MASTER_USER_ID) {
+        menuItems.push({ icon: Activity, label: 'Configurações', path: '/admin/configuracoes' });
+    }
 
     // Tela de carregamento enquanto valida se o usuário pode acessar
     if (isLoadingAuth) {
