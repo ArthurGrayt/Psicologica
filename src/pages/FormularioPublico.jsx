@@ -139,25 +139,35 @@ const SignatureModal = ({ isOpen, onClose, onSave, loading }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="bg-[#35b6cf] p-4 text-white flex justify-between items-center">
-                    <h3 className="font-bold">Assinatura Digital</h3>
-                    <button onClick={onClose} className="hover:bg-white/20 p-1 rounded"><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
+            {/* O container agora usa max-w-2xl (cerca de 50% maior que md) e se ajusta ao landscape */}
+            <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-2xl landscape:max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-[#35b6cf] p-4 text-white flex justify-between items-center border-b border-white/10 flex-shrink-0">
+                    <h3 className="font-bold flex items-center gap-2">
+                        <AlignLeft size={18} />
+                        Assinatura Digital
+                    </h3>
+                    <button onClick={onClose} className="hover:bg-white/20 p-1 rounded transition-colors"><X size={20} /></button>
                 </div>
 
-                <div className="p-4 bg-slate-50 flex justify-center">
-                    <div className="border-2 border-dashed border-slate-300 rounded bg-white relative">
+                <div className="p-4 md:p-8 bg-slate-50 flex-1 flex flex-col items-center justify-center overflow-y-auto">
+                    <div className="w-full max-w-full border-2 border-dashed border-slate-300 rounded-xl bg-white shadow-inner relative flex justify-center items-center overflow-hidden">
+                        {/* Área do Canvas redimensionada de 320x180 para 600x240 para oferecer mais espaço (+50%+) */}
                         <SignatureCanvas
                             ref={sigCanvas}
                             penColor="black"
-                            canvasProps={{ width: 320, height: 180, className: 'sigCanvas' }}
+                            canvasProps={{ 
+                                width: 600, 
+                                height: 240, 
+                                className: 'sigCanvas w-full h-full cursor-crosshair' 
+                            }}
                         />
-                        <p className="text-[10px] text-slate-300 text-center absolute bottom-2 w-full pointer-events-none uppercase tracking-widest">Área de Assinatura</p>
+                        <p className="text-[12px] text-slate-300 text-center absolute bottom-4 w-full pointer-events-none uppercase tracking-[0.2em] font-bold opacity-50">Área de Assinatura</p>
                     </div>
+                    <p className="mt-4 text-xs text-slate-400 italic">Dica: Gire o aparelho na horizontal para uma área de assinatura ainda maior.</p>
                 </div>
 
-                <div className="p-4 bg-white border-t border-slate-100 flex justify-between gap-3">
+                <div className="p-4 md:p-6 bg-white border-t border-slate-100 flex justify-between items-center gap-4 flex-shrink-0">
                     <button onClick={clear} className="text-slate-500 hover:bg-slate-100 px-4 py-2 rounded text-sm transition-colors">
                         Limpar
                     </button>
@@ -607,16 +617,6 @@ const FormularioPublico = () => {
                     <div className="text-[14px] text-slate-600 cursor-pointer hover:bg-slate-100 px-3 py-1.5 rounded transition-colors" onClick={() => { if (window.confirm('Limpar todas as respostas?')) setAnswers({}); }}>
                         Limpar formulário
                     </div>
-                </div>
-
-                <div className="text-center mt-12 text-[12px] text-slate-500 leading-relaxed">
-                    Este conteúdo não foi criado nem aprovado pela CorpEd Psicologia. <br />
-                    <span className="underline cursor-pointer">Denunciar abuso</span> -
-                    <span className="underline cursor-pointer ml-1">Termos de Serviço</span> -
-                    <span className="underline cursor-pointer ml-1">Política de Privacidade</span>
-                </div>
-                <div className="text-center mt-4 text-[#70757a] text-[22px] font-normal" style={{ fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>
-                    Formulários
                 </div>
 
             </div>
