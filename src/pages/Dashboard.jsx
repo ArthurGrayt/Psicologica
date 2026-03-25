@@ -1461,8 +1461,8 @@ const Dashboard = () => {
                             <SearchableSelect
                                 options={[
                                     { value: 'pending', label: 'Status' },
-                                    { value: 'in_progress', label: 'Análise' },
-                                    { value: 'completed', label: 'Concluído' }
+                                    { value: 'in_progress', label: 'Em Progresso' },
+                                    { value: 'completed', label: 'Respondido' }
                                 ]}
                                 value={filters.status}
                                 onChange={(val) => handleFilterChange('status', val)}

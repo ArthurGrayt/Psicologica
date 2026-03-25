@@ -123,8 +123,49 @@ const QuestionCard = ({ question, answer, onAnswer, error }) => {
 };
 
 /* --- Signature Modal Component --- */
+/* --- Signature Modal Component --- */
 const SignatureModal = ({ isOpen, onClose, onSave, loading }) => {
     const sigCanvas = useRef({});
+
+    // Função para redimensionar o canvas e sincronizar com o tamanho real da tela (DOM vs Interno)
+    // Isso resolve o problema da linha não seguir o toque em modo landscape/horizontal
+    const resizeCanvas = () => {
+        const canvas = sigCanvas.current?.getCanvas();
+        if (canvas) {
+            // Obtém o fator de densidade de pixels da tela para manter a nitidez
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            // Sincroniza a largura e altura interna com o tamanho visível no navegador
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            // Escala o contexto para compensar o ratio e manter as coordenadas 1:1 com o toque
+            canvas.getContext("2d").scale(ratio, ratio);
+            // Limpa o estado interno do SignaturePad para que ele reconheça as novas dimensões
+            sigCanvas.current.clear();
+        }
+    };
+
+    // Efeito para gerenciar o redimensionamento e a trava de scroll da página
+    useEffect(() => {
+        if (isOpen) {
+            // Bloqueia o scroll do corpo da página enquanto o modal estiver aberto
+            // Isso evita que a página role enquanto o usuário tenta assinar no mobile
+            document.body.style.overflow = 'hidden';
+
+            // Pequeno delay (300ms) para garantir que a animação de abertura do modal terminou
+            // e o canvas já possui suas dimensões de layout finais antes de inicializarmos
+            const timer = setTimeout(resizeCanvas, 300);
+            
+            // Ouvinte de evento para caso o usuário gire o dispositivo com o modal já aberto
+            window.addEventListener('resize', resizeCanvas);
+            
+            return () => {
+                // Restaura o scroll do corpo da página ao fechar o modal
+                document.body.style.overflow = 'unset';
+                window.removeEventListener('resize', resizeCanvas);
+                clearTimeout(timer);
+            };
+        }
+    }, [isOpen]);
 
     const clear = () => sigCanvas.current.clear();
     const save = () => {
@@ -140,7 +181,7 @@ const SignatureModal = ({ isOpen, onClose, onSave, loading }) => {
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
-            {/* O container agora usa max-w-2xl (cerca de 50% maior que md) e se ajusta ao landscape */}
+            {/* O container agora usa max-w-3.3xl e se ajusta ao landscape */}
             <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-3.3xl landscape:max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="bg-[#35b6cf] p-4 text-white flex justify-between items-center border-b border-white/10 flex-shrink-0">
                     <h3 className="font-bold flex items-center gap-2">
@@ -151,14 +192,12 @@ const SignatureModal = ({ isOpen, onClose, onSave, loading }) => {
                 </div>
 
                 <div className="p-4 md:p-8 bg-slate-50 flex-1 flex flex-col items-center justify-center overflow-y-auto">
-                    <div className="w-full max-w-full border-2 border-dashed border-slate-300 rounded-xl bg-white shadow-inner relative flex justify-center items-center overflow-hidden">
-                        {/* Área do Canvas redimensionada de 320x180 para 600x240 para oferecer mais espaço (+50%+) */}
+                    <div className="w-full max-w-full border-2 border-dashed border-slate-300 rounded-xl bg-white shadow-inner relative flex justify-center items-center overflow-hidden min-h-[220px]">
+                        {/* Removidas dimensões fixas de width/height props para permitir controle total via ref e resizeCanvas */}
                         <SignatureCanvas
                             ref={sigCanvas}
                             penColor="black"
                             canvasProps={{ 
-                                width: 600, 
-                                height: 240, 
                                 className: 'sigCanvas w-full h-full cursor-crosshair' 
                             }}
                         />
@@ -621,8 +660,8 @@ const FormularioPublico = () => {
 
             </div>
 
-            {/* Scroll to Top Button */}
-            {showScrollTop && (
+            {/* Scroll to Top Button (Oculto quando o modal de assinatura está aberto) */}
+            {showScrollTop && !showSigModal && (
                 <button
                     onClick={scrollToTop}
                     className="fixed bottom-6 right-6 bg-[#35b6cf] text-white p-3 rounded-full shadow-lg hover:bg-[#2da9c0] transition-all duration-300 animate-in fade-in zoom-in-75 z-50 flex items-center justify-center group"
